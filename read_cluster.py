@@ -24,10 +24,11 @@ for i, store in enumerate(events):
       #print clusters    
       for c in clusters:
           cor = c.position()
-          if (c.cellId() % 32) == 0 and (c.cellId() / 32) %32 == 1 :
-            
-              pos_b.append([cor.x, cor.y, cor.z])
-              ids_b.append([c.bits(), c.cellId()])
+          if (c.cellId() % 32) == 0:
+              # Select only the triplet layers
+              if (c.cellId() / 32) %32 == 20 or (c.cellId() / 32) %32 == 21 (c.cellId() / 32) %32 == 22:
+                  pos_b.append([cor.x, cor.y, cor.z])
+                  ids_b.append([c.bits(), c.cellId()])
           print c.cellId() % 32, np.sqrt(cor.x**2 + cor.y**2)
           #else:
           #  pos_e.append([cor.x, cor.y, cor.z])
