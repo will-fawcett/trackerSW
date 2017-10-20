@@ -12,6 +12,18 @@ import sys
 import numpy as np
 
 filename = sys.argv[1]
+draw_triplet_only = int(sys.argv[2])
+
+if not draw_triplet_only in [0,1]:
+    print 'ERROR: second positional argument must be 0 or 1'
+
+
+if draw_triplet_only:
+    print 'WARNING: only drawing triplet layer'
+else:
+    print 'INFO: only drawing triplet layer'
+
+
 basefilename = filename.replace(".root", "")
 
 def colorhash(num):
@@ -30,31 +42,62 @@ def plot_data_rphi(hits, ids, cellIds, data_epos, title="rphi"):
     f1 = plt.figure(title)
     ax1 = plt.axes()
 
-    print 'cellIds'
-    print cellIds
+    for i in np.unique(cellIds):
+        col = id_to_color(i)
+        h   = hits[(cellIds == i), 0:3]
+        r   = np.sqrt(h[:,0]**2 + h[:,1]**2)
+        c   = cellIds[(ids == i)]
+        
+        # Select only hits inside z < 500 mm 
+        h = h[(np.abs(h[:,2]) < 500), :]
 
-    col = id_to_color(0)
-    h = hits
-    print h
+        # Select triplet layers (triplet has ID 21)
+        drawHit = True
+        if draw_triplet_only:
+            if i in [21]:  
+                drawHit = True
+            else:
+                drawHit = False
 
-    h = h[(np.abs(h[:,2]) < 500), :]
-    print h
-    plt.title("Tracker hits from geant_pgun_fullsim")
-    if False:
-        ax1.plot(h[:,0], h[:,1], 'o', color=col, ms=5, alpha=0.8)
-    else:
-        ax1.plot(h[:,0], h[:,1], 'o', color=col, ms=1, alpha=0.8)
+        if drawHit:
+            plt.title("Tracker hits from geant_pgun_fullsim")
+            if True:
+                ax1.plot(h[:,0], h[:,1], 'o', color=col, ms=4, alpha=0.8)
+            else:
+                ax1.plot(h[:,0], h[:,1], 'o', color=col, ms=1, alpha=0.8)
 
     #ax1.plot(data_epos[:,0], data_epos[:,1], '*', ms=5, alpha=0.8, color="blue")
+    ax1.set_title("Tracker Hits")
+    ax1.set_xlabel("x [mm]")
+    ax1.set_ylabel("y [mm]")
+    hmax = np.max(h[:,:])
+    hmin = np.min(h[:,:])
+    ax1.set_xlim((0, 1600))
+    ax1.set_ylim((0, 1600))
+
+def plot_data_rphi_original(hits, ids, cellIds, data_epos, title="rphi"):
+    f1 = plt.figure(title)
+    ax1 = plt.axes()
+    for i in np.unique(cellIds):
+
+        col = id_to_color(i)
+        print i, col
+        h = hits[(cellIds == i) , 0:3]
+        plt.title("Tracker hits from geant_pgun_fullsim")
+
+        if True:
+            ax1.plot(h[:,0], h[:,1], 'o', color=col, ms=5, alpha=0.8)
+        else:
+            ax1.plot(h[:,0], h[:,1], 'o', color=col, ms=1, alpha=0.8)
+
+    # ax1.plot(data_epos[:,0], data_epos[:,1], '*', ms=5, alpha=0.8, color="blue")
     ax1.set_title("Tracker Hits")
     ax1.set_xlabel("x")
     ax1.set_ylabel("y")
     hmax = np.max(h[:,:])
     hmin = np.min(h[:,:])
-    #ax1.set_xlim((1.1 * hmin, 1.1 * hmax))
-    #ax1.set_ylim((1.1 * hmin, 1.1 * hmax))
-    ax1.set_xlim((0, 1600))
-    ax1.set_ylim((0, 1600))
+    ax1.set_xlim((1.1 * hmin, 1.1 * hmax))
+    ax1.set_ylim((1.1 * hmin, 1.1 * hmax))
 
 def plot_data_rz(hits, ids, cells, data_epos, title="rz"):
     f2 = plt.figure(title, figsize=(7,5))
@@ -100,8 +143,14 @@ if __name__ == "__main__":
     cellIds = id_data[:,1] % 32
     #print cellIds[:100], hits[:100]
     #sys.exit()
+
+    if draw_triplet_only:
+        basefilename += '_triplet'
+
     plot_data_rz(hits, ids, cellIds, data_epos, title="rphi-endcap")
     plt.savefig(basefilename + "_rz.png")
+
     plot_data_rphi(hits, ids, cellIds, data_epos, title="rz-endcap")
     plt.savefig(basefilename + "_rphi.png")
+
     plt.show()
