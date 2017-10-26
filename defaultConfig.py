@@ -62,34 +62,28 @@ def addTripletHeader(ofile, name, innerRadius, outerRadius):
 
 def addDefaultOuterEndcap(ofile):
     endcap = '''
+
     Endcap ECAP {
       //@includestd Conversions/flangeTEDD
 
       phiSegments 4
-      numDisks 3
-      innerRadius 25.0
-      //outerRadius 1300
-      barrelGap 6250
-      outerZ 8750
+      numDisks 6
+      innerRadius 25
+      outerRadius 1545
+      //barrelGap 375 // Not reasonably defined if tilted barrel built
+      innerZ 2625     // Used instead of barrelGap
+      outerZ 5000
       alignEdges false
-
-      Disk 1 {
-       outerRadius 900
-      }
-      Disk 2 {
-       outerRadius 1100
-      }
-      Disk 3 {
-       outerRadius 1300
-      }
+      bigDelta 5
+      smallDelta 2.5
 
       Ring 1 {
        moduleShape wedge
        moduleType pixel
-       plotColor 8
+       plotColor 11
 
        trackingTags inner,tracker
-       @include Pixel_iFwd_module0.cfg
+       @include Pixel_OuterFwd_module0.cfg
        @include Pixel_material.cfg
        resolutionLocalX 0.0075 // Pitch ~25um
        resolutionLocalY 0.015  // Pitch ~50um
@@ -97,10 +91,10 @@ def addDefaultOuterEndcap(ofile):
       Ring 2 {
        moduleShape wedge
        moduleType pixel
-       plotColor 4
+       plotColor 5
 
        trackingTags inner,tracker
-       @include Pixel_iFwd_module1.cfg
+       @include Pixel_OuterFwd_module1.cfg
        @include Pixel_material.cfg
        resolutionLocalX 0.0095 // Pitch ~100/3um
        resolutionLocalY 0.030  // Pitch ~100um
@@ -111,7 +105,7 @@ def addDefaultOuterEndcap(ofile):
        plotColor 7
 
        trackingTags inner,tracker
-       @include MacroPixel_iFwd_module0.cfg
+       @include MacroPixel_OuterFwd_module0.cfg
        @include MacroPixel_material.cfg
        resolutionLocalX 0.0095 // Pitch ~100/3um
        resolutionLocalY 0.115  // Pitch ~400um
@@ -122,7 +116,7 @@ def addDefaultOuterEndcap(ofile):
        plotColor 7
 
        trackingTags inner,tracker
-       @include MacroPixel_iFwd_module1.cfg
+       @include MacroPixel_OuterFwd_module1.cfg
        @include MacroPixel_material.cfg
        resolutionLocalX 0.0095 // Pitch ~100/3um
        resolutionLocalY 0.115  // Pitch ~400um
@@ -132,8 +126,8 @@ def addDefaultOuterEndcap(ofile):
        moduleType macroPixel
        plotColor 7
 
-       trackingTags outer,tracker
-       @include MacroPixel_iFwd_module2.cfg
+       trackingTags inner,tracker
+       @include MacroPixel_OuterFwd_module2.cfg
        @include MacroPixel_material.cfg
        resolutionLocalX 0.0095 // Pitch ~100/3um
        resolutionLocalY 0.115  // Pitch ~400um
@@ -144,7 +138,7 @@ def addDefaultOuterEndcap(ofile):
        plotColor 7
 
        trackingTags outer,tracker
-       @include MacroPixel_iFwd_module3.cfg
+       @include MacroPixel_OuterFwd_module3.cfg
        @include MacroPixel_material.cfg
        resolutionLocalX 0.0095 // Pitch ~100/3um
        resolutionLocalY 0.115  // Pitch ~400um
@@ -163,8 +157,9 @@ def addDefaultOuterEndcap(ofile):
        resolutionLocalX 0.0095 // Pitch ~100/3um
        resolutionLocalY 0.115  // Pitch ~400um
       }
-      Ring 10-13 {
+      Ring 10-15 {
        moduleShape rectangular
+       moduleType strip
        width 102.4
        length 102.4
        physicalLength 102.4
@@ -177,45 +172,60 @@ def addDefaultOuterEndcap(ofile):
        resolutionLocalX 0.0095 // Pitch ~100/3um
        resolutionLocalY 2.887  // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
       }
+      Ring 16 {
+       moduleShape rectangular
+       width 102.4
+       length 52.0
+       physicalLength 52.0
+       moduleType strip
+       plotColor 1
+
+       trackingTags outer,tracker
+       @include Strip_Fwd_half_module.cfg
+       @include Strip_material_2.5.cfg
+       resolutionLocalX 0.0095
+       resolutionLocalY 2.887 // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
+      }
 
       Ring 1 {
-       waferDiameter 103.1
+       waferDiameter 86.2
        additionalModules 0
       }
       Ring 2 {
-       waferDiameter 115.5
+       waferDiameter 113.0
        additionalModules 2
       }
       Ring 3 {
-       waferDiameter 114.1
+       waferDiameter 114.8
        additionalModules 3
       }
       Ring 4 {
-       waferDiameter 113.7
+       waferDiameter 112.6
        additionalModules 4
       }
       Ring 5 {
-       waferDiameter 113.4
+       waferDiameter 118.6
        additionalModules 5
       }
       Ring 6 {
-       waferDiameter 114.8
+       waferDiameter 113.7
        additionalModules 5
       }
     }
+
 '''
     ofile.write(endcap)
 
 def addBeampipe(ofile):
     bp='''
-    BeamPipe Pipe {
+BeamPipe Pipe {
 
     radius         20.0   // mm
     thickness      0.8    // mm
     radLength      0.00227
     intLength      0.00190
 }
-    '''
+'''
     ofile.write(bp)
 
 def addInnerTracker(ofile):
