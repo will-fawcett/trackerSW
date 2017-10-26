@@ -22,11 +22,15 @@ TRIPLET_TOLERANCE = 10
 
 debug = True # development
 
-def main(tripletLayer, layerSpacing):
-    print 'hello world'
-    print 'tripletLayer: {0}, {1}'.format(type(tripletLayer), tripletLayer)
-    print 'layerSpacing: {0}, {1}'.format(type(layerSpacing), layerSpacing)
+def main(tripletLayer, layerSpacing, addECtriplet, ecLayer, ecSpacing):
+    print 'barrel tripletLayer: {0}, {1}'.format(type(tripletLayer), tripletLayer)
+    print 'barrel layerSpacing: {0}, {1}'.format(type(layerSpacing), layerSpacing)
     print 'TRIPLET_TOLERANCE', TRIPLET_TOLERANCE
+    print 'Add endcap triplet?', addECtriplet
+    if addECtriplet:
+        print 'endcap triplet layer: {0} {1}'.format(type(ecLayer), ecLayer)
+        print 'endcap triplet spacing: {0} {1}'.format(type(ecSpacing), ecSpacing)
+
 
     # Create new config file
     ofile = open("layout.cfg", "w")
@@ -49,8 +53,11 @@ def main(tripletLayer, layerSpacing):
         genRegTriplet(ofile, tripletLayer, layerSpacing)
         genRegNormal(ofile, range(tripletLayer+1, 7), 2)
 
-    # Now add end-caps
-    addDefaultOuterEndcap(ofile)
+    # Now add end-caps (optional)
+    if addECtriplet:
+        ecLayer
+    else:
+        addDefaultOuterEndcap(ofile)
 
     # End the outer-tracker
     ofile.write('}\n')
@@ -79,7 +86,7 @@ def genRegNormal(ofile, layerRange, barrelAreaID):
         outerRadius = radiiMap[layerRange[-1]]
 
     if debug:
-        print 'Generating normal region for', barrelName
+        print '\nGenerating normal region for', barrelName
         print '\tinnerRadius' , innerRadius
         print '\touterRadius' , outerRadius
 
@@ -122,8 +129,6 @@ def genRegNormal(ofile, layerRange, barrelAreaID):
 
 
 
-
-
 def genRegTriplet(ofile, position, spacing):
     '''
     Adds the triplet information based on the requested barrel layer Position
@@ -138,6 +143,9 @@ def genRegTriplet(ofile, position, spacing):
     else:
         barrelName = "BRL_1_triplet"
 
+    if debug:
+        print '\nGenerating triplet "{2}" in layer {0} with spacing {1} mm'.format(position, spacing, barrelName)
+
     # Calculate inner and outer radius based on requested position and layer spacing
     # Allow for triplet to be at the top and bottom of barrel region
     tripletCentroid = radiiMap[position]
@@ -148,10 +156,6 @@ def genRegTriplet(ofile, position, spacing):
 
     innerRadius = tripletCentroid - (TRIPLET_TOLERANCE+spacing)
     outerRadius = tripletCentroid + (TRIPLET_TOLERANCE+spacing)
-
-    if debug:
-        print 'Triplet in layer {0}, spacing {1}'.format(position, spacing)
-        print 'Nominal centroid: {0}, Calculated centroid {1}'.format(radiiMap[position], tripletCentroid)
 
     # add triplet sub-region header
     addTripletHeader(ofile, barrelName, innerRadius, outerRadius)
@@ -169,6 +173,11 @@ def genRegTriplet(ofile, position, spacing):
     l3.addLayer(ofile)
     ofile.write('    }\n') # close brace after barrel area
 
+    if debug:
+        print '\tinnerRadius', innerRadius
+        print '\ttripletCentroid', tripletCentroid
+        print '\touterRadius', outerRadius
+        print '\t(r1, r2, r3) : ({0}, {1}, {2})'.format(radius1, radius2, radius3 )
 
 
 
@@ -177,11 +186,12 @@ import sys
 if __name__ == "__main__":
   parser = OptionParser()
   #parser.add_option("-j", "--jsonFile", action="store", type="string", help="Input JSON file")
-  #parser.add_option("-o", "--outputDir", action="store", type="string", default=os.getcwd(), help="Output directory for plots")
   parser.add_option("-l", "--tripletLayer", action="store", type="int", help="Triplet layer in barrel, choose 1--6")
-  parser.add_option("-s", "--layerSpacing", action="store", type="int", help="Spacing of triplet layers in mm")
-  #parser.add_option("-W", "--chartWidth", action="store", type="int", default = 300, help="width of each chart plot")
-  #parser.add_option("-H", "--chartHeight", action="store", type="int", default = 300, help="height of each chart plot")
+  parser.add_option("-s", "--layerSpacing", action="store", type="int", help="Spacing of triplet layers in barrel in mm")
+
+  parser.add_option("-e", "--addECtriplet", action="store", type="int", default=0, help="Output directory for plots")
+  parser.add_option("-c", "--ecLayer",      action="store", type="int", default=-1, help="Location of triplet in endcap, choose 1--6")
+  parser.add_option("-p", "--ecSpacing",    action="store", type="int", default=-1, help="Spacing of triplet in endcap in mm")
   #parser.add_option("-l", "--labelFormat", action="store", type="string", default="%perc", help="label format: %val for numbers, %perc for percentages")
   if len(sys.argv) == 1:
     parser.print_help()
