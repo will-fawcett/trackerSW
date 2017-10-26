@@ -18,11 +18,30 @@ Tracker Outer {
     plotColor 1
 
     // Detector constraints
-    etaCut 6'''
+    etaCut 6\n\n'''
     ofile.write(outerHeader)
 
+def addNormalBarrelHeader(ofile, name, innerRadius, outerRadius):
+    toWrite = "    Barrel "+name+"  {\n"
+    toWrite += "      innerRadius "+str(innerRadius)+"\n"
+    toWrite += "      outerRadius "+str(outerRadius)+"\n"
+    toWrite += '''
+      bigDelta 5
+      smallDelta 2.5
+      numLayers 1
+      outerZ 2250
+      startZMode modulecenter
+      innerRadius 522.45
+      outerRadius 532.45
+      sameRods true
+      physicalLength 102.4
+      phiSegments 2
+
+      trackingTags outer,tracker\n\n'''
+    ofile.write(toWrite)
+
 def addTripletHeader(ofile, name, innerRadius, outerRadius):
-    toWrite = "      Barrel "+name+" {\n"
+    toWrite = "    Barrel "+name+" {\n"
     toWrite += "      innerRadius "+str(innerRadius)+"\n"
     toWrite += "      outerRadius "+str(outerRadius)+"\n"
     toWrite += '''
@@ -38,8 +57,154 @@ def addTripletHeader(ofile, name, innerRadius, outerRadius):
       moduleType strip
       plotColor 1
 
-      trackingTags triplet,tracker'''
+      trackingTags triplet,tracker\n\n'''
     ofile.write(toWrite)
+
+def addDefaultOuterEndcap(ofile):
+    endcap = '''
+    Endcap ECAP {
+      //@includestd Conversions/flangeTEDD
+
+      phiSegments 4
+      numDisks 3
+      innerRadius 25.0
+      //outerRadius 1300
+      barrelGap 6250
+      outerZ 8750
+      alignEdges false
+
+      Disk 1 {
+       outerRadius 900
+      }
+      Disk 2 {
+       outerRadius 1100
+      }
+      Disk 3 {
+       outerRadius 1300
+      }
+
+      Ring 1 {
+       moduleShape wedge
+       moduleType pixel
+       plotColor 8
+
+       trackingTags inner,tracker
+       @include Pixel_iFwd_module0.cfg
+       @include Pixel_material.cfg
+       resolutionLocalX 0.0075 // Pitch ~25um
+       resolutionLocalY 0.015  // Pitch ~50um
+      }
+      Ring 2 {
+       moduleShape wedge
+       moduleType pixel
+       plotColor 4
+
+       trackingTags inner,tracker
+       @include Pixel_iFwd_module1.cfg
+       @include Pixel_material.cfg
+       resolutionLocalX 0.0095 // Pitch ~100/3um
+       resolutionLocalY 0.030  // Pitch ~100um
+      }
+      Ring 3 {
+       moduleShape wedge
+       moduleType macroPixel
+       plotColor 7
+
+       trackingTags inner,tracker
+       @include MacroPixel_iFwd_module0.cfg
+       @include MacroPixel_material.cfg
+       resolutionLocalX 0.0095 // Pitch ~100/3um
+       resolutionLocalY 0.115  // Pitch ~400um
+      }
+      Ring 4 {
+       moduleShape wedge
+       moduleType macroPixel
+       plotColor 7
+
+       trackingTags inner,tracker
+       @include MacroPixel_iFwd_module1.cfg
+       @include MacroPixel_material.cfg
+       resolutionLocalX 0.0095 // Pitch ~100/3um
+       resolutionLocalY 0.115  // Pitch ~400um
+      }
+      Ring 5 {
+       moduleShape wedge
+       moduleType macroPixel
+       plotColor 7
+
+       trackingTags outer,tracker
+       @include MacroPixel_iFwd_module2.cfg
+       @include MacroPixel_material.cfg
+       resolutionLocalX 0.0095 // Pitch ~100/3um
+       resolutionLocalY 0.115  // Pitch ~400um
+      }
+      Ring 6 {
+       moduleShape wedge
+       moduleType macroPixel
+       plotColor 7
+
+       trackingTags outer,tracker
+       @include MacroPixel_iFwd_module3.cfg
+       @include MacroPixel_material.cfg
+       resolutionLocalX 0.0095 // Pitch ~100/3um
+       resolutionLocalY 0.115  // Pitch ~400um
+      }
+      Ring 7-9 {
+       moduleShape rectangular
+       moduleType macroPixel
+       width 102.4
+       length 102.4
+       physicalLength 102.4
+       plotColor 7
+
+       trackingTags outer,tracker
+       @include MacroPixel_module1.cfg
+       @include MacroPixel_material.cfg
+       resolutionLocalX 0.0095 // Pitch ~100/3um
+       resolutionLocalY 0.115  // Pitch ~400um
+      }
+      Ring 10-13 {
+       moduleShape rectangular
+       width 102.4
+       length 102.4
+       physicalLength 102.4
+       moduleType strip
+       plotColor 1
+
+       trackingTags outer,tracker
+       @include Strip_Fwd_module.cfg
+       @include Strip_material_2.5.cfg
+       resolutionLocalX 0.0095 // Pitch ~100/3um
+       resolutionLocalY 2.887  // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
+      }
+
+      Ring 1 {
+       waferDiameter 103.1
+       additionalModules 0
+      }
+      Ring 2 {
+       waferDiameter 115.5
+       additionalModules 2
+      }
+      Ring 3 {
+       waferDiameter 114.1
+       additionalModules 3
+      }
+      Ring 4 {
+       waferDiameter 113.7
+       additionalModules 4
+      }
+      Ring 5 {
+       waferDiameter 113.4
+       additionalModules 5
+      }
+      Ring 6 {
+       waferDiameter 114.8
+       additionalModules 5
+      }
+    }
+'''
+    ofile.write(endcap)
 
 def addBeampipe(ofile):
     bp='''

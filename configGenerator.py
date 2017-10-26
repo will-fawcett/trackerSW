@@ -8,7 +8,8 @@ Variables include
     - Position of triplet in end-cap
     - Spacing of triplet in end-cap
 '''
-from defaultConfig import addBeampipe, addInnerTracker, addOuterTrackerHeader, addTripletHeader
+from defaultConfig import addBeampipe, addInnerTracker, addOuterTrackerHeader, addTripletHeader, addNormalBarrelHeader, addDefaultOuterEndcap
+from Layer import Layer
 
 # Mapping of barrel layers to radii [mm]
 radiiMap = {1: 522.0, 2:727.56, 3:932.67, 4:1137.78, 5:1342.89, 6:1548.0}
@@ -36,13 +37,92 @@ def main(tripletLayer, layerSpacing):
     addInnerTracker(ofile)
 
     # Now create outer tracker, with triplet
+    addOuterTrackerHeader(ofile)
     if (tripletLayer==1):
-        addOuterTrackerHeader(ofile)
         genRegTriplet(ofile, tripletLayer, layerSpacing)
+        genRegNormal(ofile, [2,3,4,5,6], 1)
     elif (tripletLayer==6):
-        genRegTriplet(6)
+        genRegNormal(ofile, [1,2,3,4,5], 0)
+        genRegTriplet(ofile, tripletLayer, layerSpacing)
     else:
-        pass
+        genRegNormal(ofile, range(1, tripletLayer), 0)
+        genRegTriplet(ofile, tripletLayer, layerSpacing)
+        genRegNormal(ofile, range(tripletLayer+1, 7), 2)
+
+    # Now add end-caps
+    addDefaultOuterEndcap(ofile)
+
+    # End the outer-tracker
+    ofile.write('}\n')
+
+
+def genRegNormal(ofile, layerRange, barrelAreaID):
+    '''
+    Adds normal barrel regions withing the given layer range.
+    Automatically detects if "multilayer" functionailty can be used
+    Args:
+        ofile: the file to be written to
+        layerRange: the range of barrel layers to be included
+    '''
+
+    barrelName = "BRL_"+str(barrelAreaID)+"_outer"
+
+    # Calcualte length of barrel
+    if len(layerRange) == 1 and layerRange[0] != 6:
+        innerRadius = radiiMap[layerRange[0]]
+        outerRadius = radiiMap[layerRange[0]] + 10
+    elif len(layerRange) == 1 and layerRange[0] == 6:
+        innerRadius = radiiMap[layerRange[0]] - 10
+        outerRadius = radiiMap[layerRange[0]]
+    else:
+        innerRadius = radiiMap[layerRange[0]]
+        outerRadius = radiiMap[layerRange[-1]]
+
+    if debug:
+        print 'Generating normal region for', barrelName
+        print '\tinnerRadius' , innerRadius
+        print '\touterRadius' , outerRadius
+
+    addNormalBarrelHeader(ofile, barrelName, innerRadius, outerRadius)
+
+    # Add layers to barrel, first add macroPixel layers
+    if layerRange[0] == 1:
+        if len(layerRange)==1:
+            # one layer of macroPixel
+            l1 = Layer(radius=-1, color=7, moduleType="macroPixel", layerNumber=1)
+        elif len(layerRange) >= 2:
+            # double layer of macroPixel
+            l1 = Layer(radius=-1, color=7, moduleType="macroPixel", layerNumber="1-2")
+        l1.addLayer(ofile)
+    elif layerRange[0] == 2:
+        # one layer of macroPixel
+        l1 = Layer(radius=-1, color=7, moduleType="macroPixel", layerNumber=2)
+        l1.addLayer(ofile)
+
+    # remove layers 1 and 2 if in list
+    if 1 in layerRange:
+        layerRange.remove(1)
+    if 2 in layerRange:
+        layerRange.remove(2)
+
+    # N layers of strips, in with N repeated layers, excluding layers 1 and 2
+    if len(layerRange) > 1:
+        layerNumbering = "{0}-{1}".format(layerRange[0], layerRange[1])
+    elif len(layerRange) == 1:
+        layerNumbering = layerRange[0]
+    else:
+        return # No remaining layers to draw
+
+    l2 = Layer(radius=-1, color=1, moduleType="strip", layerNumber=layerNumbering)
+    l2.addLayer(ofile)
+
+    # Add end of barrel region
+    ofile.write('    }\n')
+
+
+
+
+
 
 def genRegTriplet(ofile, position, spacing):
     '''
@@ -75,83 +155,19 @@ def genRegTriplet(ofile, position, spacing):
 
     # add triplet sub-region header
     addTripletHeader(ofile, barrelName, innerRadius, outerRadius)
-    '''
-      Barrel BRL_1_triplet {
-      bigDelta 5
-      smallDelta 2.5
-      numLayers 3
-      outerZ 2250
-      radiusMode fixed
-      startZMode modulecenter
-      innerRadius 677.60 // layer spacing, 4cm (+1cm tolerence either side)
-      outerRadius 777.60
-      sameRods true
-      physicalLength 102.4
-      phiSegments 2
-      moduleType strip
-      plotColor 1
 
-      trackingTags triplet,tracker
+    # Calculate radii of triplet layers (maybe put this into a function?)
+    radius1 = tripletCentroid-spacing
+    radius2 = tripletCentroid
+    radius3 = tripletCentroid+spacing
+    l1 = Layer(radius=radius1, color=7, moduleType="macroPixel", layerNumber=1)
+    l2 = Layer(radius=radius2, color=6, moduleType="macroPixel", layerNumber=2)
+    l3 = Layer(radius=radius3, color=5, moduleType="macroPixel", layerNumber=3)
 
-      Layer 1 {
-        // radius 517.45
-        radius 687.60
-        plotColor 7
-        // Layer generic properties (same for all layers)
-        width 102.4
-        // length 2250            // 256pxls x 0.4mm
-        length 102.4            // 256pxls x 0.4mm
-        moduleType macroPixel
-        moduleShape rectangular
-        @include MacroPixel_module1.cfg
-        @include MacroPixel_material.cfg
-        resolutionLocalX 0.0095 // Pitch ~100/3um
-        resolutionLocalY 0.115  // Macro-pixels ~ 400um
-      }
-      Layer 2 {
-        // radius 542.45
-        radius 727.60
-        plotColor 6
-        // Layer generic properties (same for all layers)
-        width 102.4
-        // length 2250            // 256pxls x 0.4mm
-        length 102.4            // 256pxls x 0.4mm
-        moduleType macroPixel
-        moduleShape rectangular
-        @include MacroPixel_module1.cfg
-        @include MacroPixel_material.cfg
-        resolutionLocalX 0.0095 // Pitch ~100/3um
-        resolutionLocalY 0.115  // Macro-pixels ~ 400um
-      }
-      Layer 3 {
-        // radius 562.45
-        radius 767.60
-        plotColor 5
-        // Layer generic properties (same for all layers)
-        width 102.4
-        // length 2250            // 256pxls x 0.4mm
-        length 102.4            // 256pxls x 0.4mm
-        moduleType macroPixel
-        moduleShape rectangular
-        @include MacroPixel_module1.cfg
-        @include MacroPixel_material.cfg
-        resolutionLocalX 0.0095 // Pitch ~100/3um
-        resolutionLocalY 0.115  // Macro-pixels ~ 400um
-      }
-    }
-    '''
-
-
-
-
-
-
-
-
-
-def genRegInner():
-    pass
-
+    l1.addLayer(ofile)
+    l2.addLayer(ofile)
+    l3.addLayer(ofile)
+    ofile.write('    }\n') # close brace after barrel area
 
 
 
