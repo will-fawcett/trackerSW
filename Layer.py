@@ -19,10 +19,10 @@ class Layer():
 
 
     def addModule(self, lstring):
-        lstring += "        "+self._moduleType+"\n"
+        lstring += "        moduleType "+self._moduleType+"\n"
         if self._moduleType == "macroPixel":
             lstring += "        @include MacroPixel_module1.cfg\n"
-            lstring += "        @include MacroPixel_material1.cfg\n"
+            lstring += "        @include MacroPixel_material.cfg\n"
             lstring += "        resolutionLocalX 0.0095 // Pitch ~100/3um\n"
             lstring += "        resolutionLocalY 0.115  // Macro-pixels ~ 400um\n"
         if self._moduleType == "strip":
