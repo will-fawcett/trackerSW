@@ -24,10 +24,8 @@ ecMap = {}
 # allowance within the triplet region for extra space (+ and - of the required space) [mm]
 TRIPLET_TOLERANCE = 10
 
-debug = True # development
-
 #____________________________________________________________
-def main(tripletLayer, layerSpacing, addECtriplet, ecTripletLayer, ecTripletSpacing):
+def main(tripletLayer, layerSpacing, addECtriplet, ecTripletLayer, ecTripletSpacing, path, debug):
     print 'barrel tripletLayer: {0}, {1}'.format(type(tripletLayer), tripletLayer)
     print 'barrel layerSpacing: {0}, {1}'.format(type(layerSpacing), layerSpacing)
     print 'TRIPLET_TOLERANCE', TRIPLET_TOLERANCE
@@ -38,7 +36,12 @@ def main(tripletLayer, layerSpacing, addECtriplet, ecTripletLayer, ecTripletSpac
 
 
     # Create new config file
-    ofile = open("layout.cfg", "w")
+    fName = "FCCtriplet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
+    if addECtriplet:
+        fName += "_{0}EC{1}mm".format(ecTripletLayer, ecTripletSpacing)
+    fName += ".cfg"
+    print 'Writing to file', fName
+    ofile = open(fName, "w")
 
     # Write default/unmodified information
     ofile.write("@include SimParms\n") # important first line
@@ -48,30 +51,30 @@ def main(tripletLayer, layerSpacing, addECtriplet, ecTripletLayer, ecTripletSpac
     # Now create outer tracker, with triplet
     addOuterTrackerHeader(ofile)
     if (tripletLayer==1):
-        genRegTriplet(ofile, tripletLayer, layerSpacing)
-        genRegNormal(ofile, [2,3,4,5,6], 1)
+        genRegTriplet(ofile, tripletLayer, layerSpacing, debug)
+        genRegNormal(ofile, [2,3,4,5,6], 1, debug)
     elif (tripletLayer==6):
-        genRegNormal(ofile, [1,2,3,4,5], 0)
-        genRegTriplet(ofile, tripletLayer, layerSpacing)
+        genRegNormal(ofile, [1,2,3,4,5], 0, debug)
+        genRegTriplet(ofile, tripletLayer, layerSpacing, debug)
     else:
-        genRegNormal(ofile, range(1, tripletLayer), 0)
-        genRegTriplet(ofile, tripletLayer, layerSpacing)
-        genRegNormal(ofile, range(tripletLayer+1, 7), 2)
+        genRegNormal(ofile, range(1, tripletLayer), 0, debug)
+        genRegTriplet(ofile, tripletLayer, layerSpacing, debug)
+        genRegNormal(ofile, range(tripletLayer+1, 7), 2, debug)
 
     # Now add end-caps (optional)
     if addECtriplet:
         # addECHeader(ofile)
         # addDefaultECRings(ofile)
         if (ecTripletLayer == 1):
-            genRegECTriplet(ofile, ecTripletLayer, ecTripletSpacing)
-            genRegECNormal(ofile, range(2,7), 1)
+            genRegECTriplet(ofile, ecTripletLayer, ecTripletSpacing, debug)
+            genRegECNormal(ofile, range(2,7), 1, debug)
         elif (ecTripletLayer == 6):
-            genRegECNormal(ofile, range(1,6), 0)
-            genRegECTriplet(ofile, ecTripletLayer, ecTripletSpacing)
+            genRegECNormal(ofile, range(1,6), 0, debug)
+            genRegECTriplet(ofile, ecTripletLayer, ecTripletSpacing, debug)
         else:
-            genRegECNormal(ofile, range(1, ecTripletLayer), 0)
-            genRegECTriplet(ofile, ecTripletLayer, ecTripletSpacing)
-            genRegECNormal(ofile, range(ecTripletLayer+1, 7), 2)
+            genRegECNormal(ofile, range(1, ecTripletLayer), 0, debug)
+            genRegECTriplet(ofile, ecTripletLayer, ecTripletSpacing, debug)
+            genRegECNormal(ofile, range(ecTripletLayer+1, 7), 2, debug)
     else:
         addDefaultOuterEndcap(ofile)
 
@@ -79,7 +82,7 @@ def main(tripletLayer, layerSpacing, addECtriplet, ecTripletLayer, ecTripletSpac
     ofile.write('}\n')
 
 #____________________________________________________________
-def genRegECNormal(ofile, layerRange, ecAreaID):
+def genRegECNormal(ofile, layerRange, ecAreaID, debug):
     '''
     Adds normal end-cap regions within the given layer range.
     Args:
@@ -130,7 +133,7 @@ def genRegECNormal(ofile, layerRange, ecAreaID):
 
 
 #____________________________________________________________
-def genRegECTriplet(ofile, ecTripletLayer, ecSpacing):
+def genRegECTriplet(ofile, ecTripletLayer, ecSpacing, debug):
     '''
     Add a triplet layer to the end-cap
     Args:
@@ -179,7 +182,7 @@ def genRegECTriplet(ofile, ecTripletLayer, ecSpacing):
 
 
 #____________________________________________________________
-def genRegNormal(ofile, layerRange, barrelAreaID):
+def genRegNormal(ofile, layerRange, barrelAreaID, debug):
     '''
     Adds normal barrel regions withing the given layer range.
     Automatically detects if "multilayer" functionailty can be used
@@ -224,7 +227,7 @@ def genRegNormal(ofile, layerRange, barrelAreaID):
         l1.addLayer(ofile)
     elif layerRange[0] == 2:
         # one layer of macroPixel
-        l1 = Layer(radius=-1, color=7, moduleType="macroPixel", layerNumber=2)
+        l1 = Layer(radius=-1, color=7, moduleType="macroPixel", layerNumber=1)
         l1.addLayer(ofile)
         usedLayerCounter = 1
 
@@ -265,7 +268,7 @@ def genRegNormal(ofile, layerRange, barrelAreaID):
 
 
 #____________________________________________________________
-def genRegTriplet(ofile, position, spacing):
+def genRegTriplet(ofile, position, spacing, debug):
     '''
     Adds the triplet information based on the requested barrel layer Position
     Args:
@@ -323,14 +326,14 @@ import sys
 #____________________________________________________________
 if __name__ == "__main__":
   parser = OptionParser()
-  #parser.add_option("-j", "--jsonFile", action="store", type="string", help="Input JSON file")
   parser.add_option("-l", "--tripletLayer", action="store", type="int", help="Triplet layer in barrel, choose 1--6")
   parser.add_option("-s", "--layerSpacing", action="store", type="int", help="Spacing of triplet layers in barrel in mm")
 
   parser.add_option("-e", "--addECtriplet", action="store", type="int", default=0, help="Output directory for plots")
   parser.add_option("-c", "--ecTripletLayer",      action="store", type="int", default=-1, help="Location of triplet in endcap, choose 1--6")
   parser.add_option("-p", "--ecTripletSpacing",    action="store", type="int", default=-1, help="Spacing of triplet in endcap in mm")
-  #parser.add_option("-l", "--labelFormat", action="store", type="string", default="%perc", help="label format: %val for numbers, %perc for percentages")
+  parser.add_option("-o", "--path", action="store", type="string", default="./", help="Define output path")
+  parser.add_option("-d", "--debug", action="store", type="int", default=0, help="Turn on debug mode (helpful messages)")
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(0)
