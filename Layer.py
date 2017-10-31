@@ -30,6 +30,11 @@ class Layer():
             lstring += "        @include Strip_material_2.5.cfg\n"
             lstring += "        resolutionLocalX 0.0095\n"
             lstring += "        resolutionLocalY 14.434 // Strip = 50mm\n"
+        if self._moduleType == "tripletPixel":
+            lstring += "        @include TripletPixel_module0.cfg\n"
+            lstring += "        @include TripletPixel_material.cfg\n"
+            lstring += "        resolutionLocalX  0.02 // Pitch 80um \n"
+            lstring += "        resolutionLocalY  0.02 // Pitch 80um \n"
 
         return lstring
 

@@ -58,7 +58,7 @@ def addTripletHeader(ofile, name, innerRadius, outerRadius):
       trackingTags triplet,tracker\n\n'''
     ofile.write(toWrite)
 
-def addNormalECHeader(ofile, ecName, innerZ, outerZ, numLayers):
+def addNormalECHeader(ofile, ecName, innerZ, outerZ, numLayers, tag='outer'):
     toWrite = '    Endcap '+ecName+' {\n'
     toWrite += '      numDisks '+str(numLayers)+ '\n'
     toWrite += '      innerZ '+str(innerZ)+'\n'
@@ -72,7 +72,77 @@ def addNormalECHeader(ofile, ecName, innerZ, outerZ, numLayers):
       bigDelta 5
       smallDelta 2.5
 '''
+
+    toWrite += '      trackingTags {0},tracker\n'.format(tag)
+
     ofile.write(toWrite)
+
+def addTripletECRings(ofile):
+    ofile.write('''
+          Ring 1-6 {
+           moduleShape wedge
+           moduleType tripletPixel
+           plotColor 12
+
+           @include TripletPixel_module0.cfg
+           @include TripletPixel_material.cfg
+           resolutionLocalX  0.02 // Pitch 80um
+           resolutionLocalY  0.02 // Pitch 80um
+          }
+
+          Ring 7-15 {
+           moduleShape rectangular
+           moduleType tripletPixel
+           width 102.4
+           length 102.4
+           physicalLength 102.4
+           plotColor 6
+
+           @include TripletPixel_module0.cfg
+           @include TripletPixel_material.cfg
+           resolutionLocalX  0.02 // Pitch 80um
+           resolutionLocalY  0.02 // Pitch 80um
+          }
+          Ring 16 {
+           moduleShape rectangular
+           width 102.4
+           length 52.0
+           physicalLength 52.0
+           moduleType strip
+           plotColor 6
+
+
+           @include TripletPixel_module0.cfg
+           @include TripletPixel_material.cfg
+           resolutionLocalX  0.02 // Pitch 80um
+           resolutionLocalY  0.02 // Pitch 80um
+          }
+
+          Ring 1 {
+           waferDiameter 86.2
+           additionalModules 0
+          }
+          Ring 2 {
+           waferDiameter 113.0
+           additionalModules 2
+          }
+          Ring 3 {
+           waferDiameter 114.8
+           additionalModules 3
+          }
+          Ring 4 {
+           waferDiameter 112.6
+           additionalModules 4
+          }
+          Ring 5 {
+           waferDiameter 118.6
+           additionalModules 5
+          }
+          Ring 6 {
+           waferDiameter 113.7
+           additionalModules 5
+          }\n\n''')
+
 
 def addDefaultECRings(ofile):
     ofile.write('''
@@ -81,7 +151,6 @@ def addDefaultECRings(ofile):
            moduleType pixel
            plotColor 11
 
-           trackingTags inner,tracker
            @include Pixel_OuterFwd_module0.cfg
            @include Pixel_material.cfg
            resolutionLocalX 0.0075 // Pitch ~25um
@@ -92,7 +161,6 @@ def addDefaultECRings(ofile):
            moduleType pixel
            plotColor 5
 
-           trackingTags inner,tracker
            @include Pixel_OuterFwd_module1.cfg
            @include Pixel_material.cfg
            resolutionLocalX 0.0095 // Pitch ~100/3um
@@ -103,7 +171,6 @@ def addDefaultECRings(ofile):
            moduleType macroPixel
            plotColor 7
 
-           trackingTags inner,tracker
            @include MacroPixel_OuterFwd_module0.cfg
            @include MacroPixel_material.cfg
            resolutionLocalX 0.0095 // Pitch ~100/3um
@@ -114,7 +181,6 @@ def addDefaultECRings(ofile):
            moduleType macroPixel
            plotColor 7
 
-           trackingTags inner,tracker
            @include MacroPixel_OuterFwd_module1.cfg
            @include MacroPixel_material.cfg
            resolutionLocalX 0.0095 // Pitch ~100/3um
@@ -125,7 +191,6 @@ def addDefaultECRings(ofile):
            moduleType macroPixel
            plotColor 7
 
-           trackingTags inner,tracker
            @include MacroPixel_OuterFwd_module2.cfg
            @include MacroPixel_material.cfg
            resolutionLocalX 0.0095 // Pitch ~100/3um
@@ -136,7 +201,6 @@ def addDefaultECRings(ofile):
            moduleType macroPixel
            plotColor 7
 
-           trackingTags outer,tracker
            @include MacroPixel_OuterFwd_module3.cfg
            @include MacroPixel_material.cfg
            resolutionLocalX 0.0095 // Pitch ~100/3um
@@ -150,7 +214,6 @@ def addDefaultECRings(ofile):
            physicalLength 102.4
            plotColor 7
 
-           trackingTags outer,tracker
            @include MacroPixel_module1.cfg
            @include MacroPixel_material.cfg
            resolutionLocalX 0.0095 // Pitch ~100/3um
@@ -165,7 +228,6 @@ def addDefaultECRings(ofile):
            moduleType strip
            plotColor 1
 
-           trackingTags outer,tracker
            @include Strip_Fwd_module.cfg
            @include Strip_material_2.5.cfg
            resolutionLocalX 0.0095 // Pitch ~100/3um
@@ -179,7 +241,6 @@ def addDefaultECRings(ofile):
            moduleType strip
            plotColor 1
 
-           trackingTags outer,tracker
            @include Strip_Fwd_half_module.cfg
            @include Strip_material_2.5.cfg
            resolutionLocalX 0.0095

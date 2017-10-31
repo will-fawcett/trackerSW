@@ -9,7 +9,7 @@ Variables include
     - Spacing of triplet in end-cap
 '''
 from defaultConfig import addBeampipe, addInnerTracker, addOuterTrackerHeader, addTripletHeader, addNormalBarrelHeader, \
-    addDefaultOuterEndcap, addNormalECHeader, addDefaultECRings
+    addDefaultOuterEndcap, addNormalECHeader, addDefaultECRings, addTripletECRings
 from Layer import Layer
 
 # Mapping of barrel layers to radii [mm]
@@ -36,7 +36,7 @@ def main(tripletLayer, layerSpacing, addECtriplet, ecTripletLayer, ecTripletSpac
 
 
     # Create new config file
-    fName = "FCCtriplet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
+    fName = path + "FCCtriplet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
     if addECtriplet:
         fName += "_{0}EC{1}mm".format(ecTripletLayer, ecTripletSpacing)
     fName += ".cfg"
@@ -154,7 +154,6 @@ def genRegECTriplet(ofile, ecTripletLayer, ecSpacing, debug):
         print '\nGenerating end-cap triplet "{2}" in layer {0} with spacing {1} mm'.format(ecTripletLayer, ecSpacing, ecName)
 
 
-
     # Calculate inner and outer Z based on requested position and layer spacing
     # Allow for triplet to be at the left and right edges of the endcap region
     tripletCentroid = zMap[ecTripletLayer]
@@ -167,12 +166,13 @@ def genRegECTriplet(ofile, ecTripletLayer, ecSpacing, debug):
     outerZ = tripletCentroid + (TRIPLET_TOLERANCE+ecSpacing)
 
     # Add endcap region header
-    addNormalECHeader(ofile, ecName, innerZ, outerZ, 3)
+    addNormalECHeader(ofile, ecName, innerZ, outerZ, 3, 'triplet')
 
     #ofile.write('      Disk 1-3 {\n')
 
     # Add rings
-    addDefaultECRings(ofile)
+    addTripletECRings(ofile)
+    #addDefaultECRings(ofile)
 
     # Close the disk environment
     #ofile.write('      }\n')
@@ -303,9 +303,10 @@ def genRegTriplet(ofile, position, spacing, debug):
     radius1 = tripletCentroid-spacing
     radius2 = tripletCentroid
     radius3 = tripletCentroid+spacing
-    l1 = Layer(radius=radius1, color=7, moduleType="macroPixel", layerNumber=1)
-    l2 = Layer(radius=radius2, color=6, moduleType="macroPixel", layerNumber=2)
-    l3 = Layer(radius=radius3, color=5, moduleType="macroPixel", layerNumber=3)
+    tripletModuleType = "tripletPixel"
+    l1 = Layer(radius=radius1, color=6, moduleType=tripletModuleType, layerNumber=1)
+    l2 = Layer(radius=radius2, color=6, moduleType=tripletModuleType, layerNumber=2)
+    l3 = Layer(radius=radius3, color=6, moduleType=tripletModuleType, layerNumber=3)
 
     l1.addLayer(ofile)
     l2.addLayer(ofile)
