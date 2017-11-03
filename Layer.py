@@ -33,8 +33,8 @@ class Layer():
         if self._moduleType == "tripletPixel":
             lstring += "        @include TripletPixel_module0.cfg\n"
             lstring += "        @include TripletPixel_material.cfg\n"
-            lstring += "        resolutionLocalX  0.02 // Pitch 80um \n"
-            lstring += "        resolutionLocalY  0.02 // Pitch 80um \n"
+            lstring += "        resolutionLocalX  0.01 // Pitch 40um \n"
+            lstring += "        resolutionLocalY  0.01 // Pitch 40um \n"
 
         return lstring
 

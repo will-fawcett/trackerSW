@@ -1,3 +1,5 @@
+
+#____________________________________________________________
 def addOuterTrackerHeader(ofile):
     '''
     Write to the file the default tracker parameters for the Outer tracker
@@ -21,6 +23,7 @@ Tracker Outer {
     etaCut 6\n\n'''
     ofile.write(outerHeader)
 
+#____________________________________________________________
 def addNormalBarrelHeader(ofile, name, innerRadius, outerRadius, numLayers):
     toWrite = "    Barrel "+name+"  {\n"
     toWrite += "      innerRadius "+str(innerRadius)+"\n"
@@ -38,26 +41,28 @@ def addNormalBarrelHeader(ofile, name, innerRadius, outerRadius, numLayers):
       trackingTags outer,tracker\n\n'''
     ofile.write(toWrite)
 
-def addTripletHeader(ofile, name, innerRadius, outerRadius):
+#____________________________________________________________
+def addTripletHeader(ofile, name, innerRadius, outerRadius, bigDelta, smallDelta):
     toWrite = "    Barrel "+name+" {\n"
     toWrite += "      innerRadius "+str(innerRadius)+"\n"
     toWrite += "      outerRadius "+str(outerRadius)+"\n"
+    toWrite += "      bigDelta "+str(bigDelta)+"\n"
+    toWrite += "      smallDelta "+str(smallDelta)+"\n"
     toWrite += '''
       startZMode modulecenter
-      bigDelta 5
-      smallDelta 2.5
       numLayers 3
       outerZ 2250
       radiusMode fixed
       sameRods true
       physicalLength 102.4
       phiSegments 2
-      moduleType strip
+      moduleType pixel
       plotColor 1
 
       trackingTags triplet,tracker\n\n'''
     ofile.write(toWrite)
 
+#____________________________________________________________
 def addNormalECHeader(ofile, ecName, innerZ, outerZ, numLayers, tag='outer'):
     toWrite = '    Endcap '+ecName+' {\n'
     toWrite += '      numDisks '+str(numLayers)+ '\n'
@@ -77,9 +82,15 @@ def addNormalECHeader(ofile, ecName, innerZ, outerZ, numLayers, tag='outer'):
 
     ofile.write(toWrite)
 
-def addTripletECRings(ofile):
+#____________________________________________________________
+def addTripletECRings_allwedges(ofile):
+    ''' add to file the config for the triplet end-cap rings
+    but this time with no rectangular modules
+    '''
+
+
     ofile.write('''
-          Ring 1-6 {
+          Ring 1-15 {
            moduleShape wedge
            moduleType tripletPixel
            plotColor 12
@@ -90,19 +101,6 @@ def addTripletECRings(ofile):
            resolutionLocalY  0.02 // Pitch 80um
           }
 
-          Ring 7-15 {
-           moduleShape rectangular
-           moduleType tripletPixel
-           width 102.4
-           length 102.4
-           physicalLength 102.4
-           plotColor 6
-
-           @include TripletPixel_module0.cfg
-           @include TripletPixel_material.cfg
-           resolutionLocalX  0.02 // Pitch 80um
-           resolutionLocalY  0.02 // Pitch 80um
-          }
           Ring 16 {
            moduleShape rectangular
            width 102.4
@@ -143,7 +141,75 @@ def addTripletECRings(ofile):
            additionalModules 5
           }\n\n''')
 
+#____________________________________________________________
+def addTripletECRings(ofile):
+    ofile.write('''
+          Ring 1-6 {
+           moduleShape wedge
+           moduleType tripletPixel
+           plotColor 12
 
+           @include TripletPixel_module0.cfg
+           @include TripletPixel_material.cfg
+           resolutionLocalX  0.01 // Pitch 40um
+           resolutionLocalY  0.01 // Pitch 40um
+          }
+
+          Ring 7-15 {
+           moduleShape rectangular
+           moduleType tripletPixel
+           width 102.4
+           length 102.4
+           physicalLength 102.4
+           plotColor 6
+
+           @include TripletPixel_module0.cfg
+           @include TripletPixel_material.cfg
+           resolutionLocalX  0.01 // Pitch 40um
+           resolutionLocalY  0.01 // Pitch 40um
+          }
+          Ring 16 {
+           moduleShape rectangular
+           width 102.4
+           length 52.0
+           physicalLength 52.0
+           moduleType strip
+           plotColor 6
+
+
+           @include TripletPixel_module0.cfg
+           @include TripletPixel_material.cfg
+           resolutionLocalX  0.01 // Pitch 40um
+           resolutionLocalY  0.01 // Pitch 40um
+          }
+
+          Ring 1 {
+           waferDiameter 86.2
+           additionalModules 0
+          }
+          Ring 2 {
+           waferDiameter 113.0
+           additionalModules 2
+          }
+          Ring 3 {
+           waferDiameter 114.8
+           additionalModules 3
+          }
+          Ring 4 {
+           waferDiameter 112.6
+           additionalModules 4
+          }
+          Ring 5 {
+           waferDiameter 118.6
+           additionalModules 5
+          }
+          Ring 6 {
+           waferDiameter 113.7
+           additionalModules 5
+          }\n\n''')
+
+
+#____________________________________________________________
 def addDefaultECRings(ofile):
     ofile.write('''
           Ring 1 {
@@ -273,6 +339,7 @@ def addDefaultECRings(ofile):
           }\n\n''')
 
 
+#____________________________________________________________
 def addDefaultOuterEndcap(ofile):
     endcap = '''
 
@@ -429,6 +496,7 @@ def addDefaultOuterEndcap(ofile):
 '''
     ofile.write(endcap)
 
+#____________________________________________________________
 def addBeampipe(ofile):
     bp='''
 BeamPipe Pipe {
@@ -441,6 +509,7 @@ BeamPipe Pipe {
 '''
     ofile.write(bp)
 
+#____________________________________________________________
 def addInnerTracker(ofile):
     itrk='''
 Tracker Inner {

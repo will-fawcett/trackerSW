@@ -8,8 +8,7 @@ Variables include
     - Position of triplet in end-cap
     - Spacing of triplet in end-cap
 '''
-from defaultConfig import addBeampipe, addInnerTracker, addOuterTrackerHeader, addTripletHeader, addNormalBarrelHeader, \
-    addDefaultOuterEndcap, addNormalECHeader, addDefaultECRings, addTripletECRings
+from defaultConfig import * 
 from Layer import Layer
 
 # Mapping of barrel layers to radii [mm]
@@ -24,11 +23,16 @@ ecMap = {}
 # allowance within the triplet region for extra space (+ and - of the required space) [mm]
 TRIPLET_TOLERANCE = 10
 
+# Overlaps of modules 
+BIG_DELTA = 0 
+SMALL_DELTA = 0 
+
 #____________________________________________________________
 def main(tripletLayer, layerSpacing, addECtriplet, ecTripletLayer, ecTripletSpacing, path, debug):
     print 'barrel tripletLayer: {0}, {1}'.format(type(tripletLayer), tripletLayer)
     print 'barrel layerSpacing: {0}, {1}'.format(type(layerSpacing), layerSpacing)
     print 'TRIPLET_TOLERANCE', TRIPLET_TOLERANCE
+    print 'bigDelta: {0} \t\t smallDelta {1}'.format(BIG_DELTA, SMALL_DELTA)
     print 'Add endcap triplet?', addECtriplet
     if addECtriplet:
         print 'endcap triplet layer: {0} {1}'.format(type(ecTripletLayer), ecTripletLayer)
@@ -171,7 +175,8 @@ def genRegECTriplet(ofile, ecTripletLayer, ecSpacing, debug):
     #ofile.write('      Disk 1-3 {\n')
 
     # Add rings
-    addTripletECRings(ofile)
+    #addTripletECRings(ofile)
+    addTripletECRings_allwedges(ofile)
     #addDefaultECRings(ofile)
 
     # Close the disk environment
@@ -297,7 +302,7 @@ def genRegTriplet(ofile, position, spacing, debug):
     outerRadius = tripletCentroid + (TRIPLET_TOLERANCE+spacing)
 
     # add triplet sub-region header
-    addTripletHeader(ofile, barrelName, innerRadius, outerRadius)
+    addTripletHeader(ofile, barrelName, innerRadius, outerRadius, BIG_DELTA, SMALL_DELTA)
 
     # Calculate radii of triplet layers (maybe put this into a function?)
     radius1 = tripletCentroid-spacing
