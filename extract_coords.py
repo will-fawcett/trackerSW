@@ -1,6 +1,9 @@
 from ROOT import * 
 import json
 gROOT.SetBatch(1)
+#gROOT.SetPalette(kViridis)
+gStyle.SetPalette(kViridis)
+gStyle.SetPadLeftMargin(0.15) # increase space for left margin
 
 
 # Convenience function to check if an object is a TProfile
@@ -17,6 +20,17 @@ def printPrimitiveNames(tobject):
 
 RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
 
+# variables from which to extract info from
+variableMap = {
+        'z0res'     : {'units' : '[#mu m]', 'title' : '#delta z_{0}' },
+        'd0res'     : {'units' : '[#mu m]', 'title' : '#delta d_{0}' },
+        'logptres'  : {'units' : '[%]' },
+        'pres'      : {'units' : '[%]' },
+        'phi0res'   : {'units' : '[deg]' }, # don't care so much about these
+        'ctauRes'   : {}, 
+        'cotgThres' : {},
+        }
+
 def main():
     
     #########################
@@ -24,7 +38,8 @@ def main():
     multipleScattering = True
     region = 'triplet' # could be tracker, outer, inner
     plotEtaValues = [0, 1, 2, 2.5, 3] # eta values to be extracted
-    spacings = [10, 20, 25, 30, 25, 40, 50] # Layer spacings to consider
+    #spacings = [10, 20, 25, 30, 25, 40, 50] # Layer spacings to consider
+    spacings = [20, 25, 30, 25, 40, 50] # Layer spacings to consider
     barrelLayers = [1, 2, 3] # Triplet in barrel layer? 
     #########################
 
@@ -33,18 +48,8 @@ def main():
     else:
         scattering = "noMS"
 
-    # variables from which to extract info from
-    variables = [
-            'z0res',
-            'd0res'
-            'logptres',
-            'pres',
-            'phi0res', # don't care so much about these
-            'ctauRes', 
-            'cotgThres',
-            ]
 
-    variables = ['z0res', 'd0res'] # testing
+    variables = ['z0res', 'd0res'] # variableMap.keys() testing
     #layers = [1]
     #spacings = [20]
 
@@ -106,28 +111,54 @@ def make2DPlot(variable, plotInfo, barrelLayers, spacings):
     maxSpacing = max(spacings) + 10
     nBinsx = maxSpacing *10 + 10 
 
-    print 'plot properties', 'hist', variable+';Layer spacing [mm]; Barrel layer', nBinsx, 0, maxSpacing, len(barrelLayers)+1, barrelLayers[0], barrelLayers[-1]+1
+    zTitle = variableMap[variable]['title'] + variableMap[variable]['units']
+
+    print 'plot properties', 'hist', variable+';Layer spacing [mm]; Barrel layer;'+zTitle, nBinsx, 0, maxSpacing, len(barrelLayers)+1, barrelLayers[0], barrelLayers[-1]+1
     h = TH2D('hist', '', nBinsx, 0, maxSpacing, len(barrelLayers)*10, 0, barrelLayers[-1]+1)
     xaxis = h.GetXaxis()
     yaxis = h.GetYaxis()
 
+    g = TGraph2D()
+    ipoint = 0
 
+    f = TFile.Open('test.root', 'RECREATE')
 
     for layer in barrelLayers:
         for spacing in spacings:
             xbin = xaxis.FindBin(spacing)
             ybin = yaxis.FindBin(layer)
-            print ybin, layer
+            #print ybin, layer
 
             z = plotInfo[layer][spacing][10][0]['value']
             e = plotInfo[layer][spacing][10][0]['error']
 
+            #print ipoint, spacing, layer, z
+
             h.SetBinContent(xbin,ybin,z)
             h.SetBinError(xbin,ybin,e)
+            g.SetPoint(ipoint, spacing, layer, z) 
+            #g.SetPoint(ipoint, layer, spacing, z) 
+            ipoint += 1
 
-    h.Draw('surf')
-
+    #h.Draw('surf')
+    h.Draw('cont3')
     can.SaveAs('test.pdf')
+
+    print 'offset is', g.GetXaxis().GetTitleOffset()
+    g.Draw('surf3')
+    #g.Draw('tri1')
+    g.Draw('P0same')
+    g.SetTitle(variable+';Layer spacing [mm]; Barrel layer;'+zTitle)
+    g.GetXaxis().SetTitleOffset(20)
+    print 'offset is', g.GetXaxis().GetTitleOffset()
+    can.SaveAs('graphTest.pdf')
+    g.Write()
+
+    
+    # try projecton
+    proj = g.Project('xy')
+    proj.Draw()
+    can.SaveAs('projTest.pdf')
 
     
 
