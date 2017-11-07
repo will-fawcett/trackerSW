@@ -27,7 +27,7 @@ TRIPLET_TOLERANCE = 10
 BIG_DELTA = 0 
 SMALL_DELTA = 0 
 
-#____________________________________________________________
+#____________________________________________________________________________
 def main(tripletLayer, layerSpacing, addECtriplet, ecTripletLayer, ecTripletSpacing, path, debug):
     print 'barrel tripletLayer: {0}, {1}'.format(type(tripletLayer), tripletLayer)
     print 'barrel layerSpacing: {0}, {1}'.format(type(layerSpacing), layerSpacing)

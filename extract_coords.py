@@ -1,7 +1,6 @@
 from ROOT import * 
 import json
 gROOT.SetBatch(1)
-#gROOT.SetPalette(kViridis)
 gStyle.SetPalette(kViridis)
 gStyle.SetPadLeftMargin(0.15) # increase space for left margin
 
@@ -22,6 +21,7 @@ def printPrimitiveNames(tobject):
 
 
 RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
+PLOT_DIR = 'plots/'
 
 # variables from which to extract info from
 variableMap = {
@@ -39,6 +39,7 @@ variableMap = {
         'trackEta' : {'units' : '', 'title' : 'Track #eta'},
         }
 
+#___________________________________________________________________________
 def main():
     
     #########################
@@ -116,7 +117,9 @@ def main():
     # now make some nice plots
     for variable in trackParameters:
 
-        #make2DPlot(variable, megaDict[variable], barrelLayers, tripletSpacings)
+        for pt in momentumValues:
+            for eta in plotEtaValues:
+                make2DPlot(variable, megaDict[variable], barrelLayers, tripletSpacings, pt, eta)
 
         series = { "trackMomentum" : [1, 10, 100, 1000] }
         constants = { "trackEta" : 0 , 'tripletSpacing' : 20 } 
@@ -135,6 +138,7 @@ def main():
 
 
 
+#___________________________________________________________________________
 def makePlot(plotInfo, xVar, yVar, constants, series): 
     '''
     plotInfo holds a multidimensional array of points, with values
@@ -158,7 +162,6 @@ def makePlot(plotInfo, xVar, yVar, constants, series):
     
     # extract xvalues  
     xValues = sorted(plotInfo['metadata'][xVar])
-    print 'xvals', xValues
 
     # Data series 
     seriesType = series.keys()[0] # assume only one type of series?
@@ -254,16 +257,19 @@ def makePlot(plotInfo, xVar, yVar, constants, series):
     saveName = '{0}_vs_{1}_{2}'.format(xVar, yVar, seriesType)
     for con in constants.keys():
         saveName += '_{0}{1}'.format(con, constants[con])
-    can.SaveAs(saveName +'.pdf')
+    can.SaveAs(PLOT_DIR+saveName +'.pdf')
+    print '' 
         
 
             
-def make2DPlot(variable, plotInfo, barrelLayers, tripletSpacings):
+#___________________________________________________________________________
+def make2DPlot(variable, plotInfo, barrelLayers, tripletSpacings, trackMomentum, trackEta):
     
     can = TCanvas('can', 'can', 500, 500)
-    maxSpacing = max(spacings) + 10
+    maxSpacing = max(tripletSpacings) + 10
     nBinsx = maxSpacing *10 + 10 
 
+    plotTitle = 'Track pT = {0} GeV,  track #eta = {1}'.format(trackMomentum, trackEta)
     zTitle = variableMap[variable]['title'] + variableMap[variable]['units']
 
     print 'plot properties', 'hist', variable+';Layer spacing [mm]; Barrel layer;'+zTitle, nBinsx, 0, maxSpacing, len(barrelLayers)+1, barrelLayers[0], barrelLayers[-1]+1
@@ -277,36 +283,39 @@ def make2DPlot(variable, plotInfo, barrelLayers, tripletSpacings):
     f = TFile.Open('test.root', 'RECREATE')
 
     for layer in barrelLayers:
-        for spacing in spacings:
+        for spacing in tripletSpacings:
             xbin = xaxis.FindBin(spacing)
             ybin = yaxis.FindBin(layer)
             #print ybin, layer
 
-            z = plotInfo[layer][spacing][10][0]['value']
-            e = plotInfo[layer][spacing][10][0]['error']
-
-            #print ipoint, spacing, layer, z
+            z = plotInfo[layer][spacing][trackMomentum][trackEta]['value']
+            e = plotInfo[layer][spacing][trackMomentum][trackEta]['error']
 
             h.SetBinContent(xbin,ybin,z)
             h.SetBinError(xbin,ybin,e)
             g.SetPoint(ipoint, spacing, layer, z) 
-            #g.SetPoint(ipoint, layer, spacing, z) 
             ipoint += 1
 
     #h.Draw('surf')
-    h.Draw('cont3')
-    can.SaveAs('test.pdf')
+    #h.Draw('cont3')
+    #can.SaveAs(PLOT_DIR+'test.pdf')
 
-    print 'offset is', g.GetXaxis().GetTitleOffset()
     g.Draw('surf3')
-    #g.Draw('tri1')
     g.Draw('P0same')
-    g.SetTitle(variable+';Layer spacing [mm]; Barrel layer;'+zTitle)
-    g.GetXaxis().SetTitleOffset(20)
-    print 'offset is', g.GetXaxis().GetTitleOffset()
-    can.SaveAs('graphTest.pdf')
+    g.SetTitle(plotTitle+';Layer spacing [mm]; Barrel layer;'+zTitle)
+    g.GetHistogram().GetXaxis().SetTitleOffset(2)
+    g.GetHistogram().GetYaxis().SetTitleOffset(2)
+    g.GetHistogram().GetYaxis().SetNdivisions(3,5,0)
+    g.GetHistogram().GetYaxis().SetTitleOffset(2)
+    g.GetHistogram().GetZaxis().SetTitleOffset(2.2)
+    saveName = '{0}_2D'.format(variable, 'barrelLayer', 'layerSpacing')
+    saveName += '_tackMomenta{0}_trackEta{1}'.format(trackMomentum, trackEta) 
+    can.SaveAs(PLOT_DIR+saveName+'.pdf')
     g.Write()
 
+
+    can.SetLogz()
+    can.SaveAs(PLOT_DIR+'log_'+saveName+'.pdf')
     
     # try projecton
     proj = g.Project('xy')
@@ -314,13 +323,7 @@ def make2DPlot(variable, plotInfo, barrelLayers, tripletSpacings):
     can.SaveAs('projTest.pdf')
 
     
-
-    pass 
-
-
-
-
-                        
+#___________________________________________________________________________
 def extractPlotInfo(plot, xVals):
     '''
     Extracts the y-values from a plot, from a set of x-values given in etaBins.
@@ -348,6 +351,7 @@ def extractPlotInfo(plot, xVals):
     return info
                 
 
+#___________________________________________________________________________
 def prepareLegend(position):
 
     bottomLeft  = [0.15, 0.1, 0.35, 0.3]
@@ -367,17 +371,6 @@ def prepareLegend(position):
     return TLegend(myPosition[0], myPosition[1], myPosition[2], myPosition[3])
 
 
+#___________________________________________________________________________
 if __name__ == "__main__":
-  main()
-
-'''
-if      (colorIndex==0) return 865; // blue
-else if (colorIndex==1) return 801; // orange
-else if (colorIndex==2) return 629; // red
-else if (colorIndex==3) return 418; // green
-else if (colorIndex==4) return  15; // grey
-else if (colorIndex==5) return 618; // purple
-else if (colorIndex==6) return 432; // turquoise (sorry projectors)
-else                    return kBlack;
-
-'''
+    main()
