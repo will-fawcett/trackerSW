@@ -5,6 +5,9 @@ gROOT.SetBatch(1)
 gStyle.SetPalette(kViridis)
 gStyle.SetPadLeftMargin(0.15) # increase space for left margin
 
+gStyle.SetGridStyle(3) 
+gStyle.SetGridColor(kGray)
+
 
 # Convenience function to check if an object is a TProfile
 def is_profile(p):
@@ -22,13 +25,18 @@ RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
 
 # variables from which to extract info from
 variableMap = {
-        'z0res'     : {'units' : '[#mu m]', 'title' : '#delta z_{0}' },
-        'd0res'     : {'units' : '[#mu m]', 'title' : '#delta d_{0}' },
+        'z0res'     : {'units' : '[#mum]', 'title' : '#deltaz_{0}' },
+        'd0res'     : {'units' : '[#mum]', 'title' : '#deltad_{0}' },
         'logptres'  : {'units' : '[%]' },
         'pres'      : {'units' : '[%]' },
         'phi0res'   : {'units' : '[deg]' }, # don't care so much about these
         'ctauRes'   : {}, 
         'cotgThres' : {},
+        
+        'barrelLayers' : {'units' : '' , 'title' : 'Barrel layer' },
+        'tripletSpacings' : {'units' : '[mm]', 'title' : 'Triplet spacing' },
+        'trackMomentum' : {'units' : '[GeV]', 'title' : 'Track pT'}, # Note could also have track momentum 
+        'trackEta' : {'units' : '', 'title' : 'Track #eta'},
         }
 
 def main():
@@ -37,9 +45,8 @@ def main():
     #####  Setup  ###########
     multipleScattering = True
     region = 'triplet' # could be tracker, outer, inner
-    plotEtaValues = [0, 1, 2, 2.5, 3] # eta values to be extracted
-    #spacings = [10, 20, 25, 30, 25, 40, 50] # Layer spacings to consider
-    spacings = [20, 25, 30, 25, 40, 50] # Layer spacings to consider
+    plotEtaValues = [0, 0.5, 1, 1.5] # eta values to be extracted
+    tripletSpacings = [20, 25, 30, 35, 40, 50] # Layer spacings to consider
     barrelLayers = [1, 2, 3] # Triplet in barrel layer? 
     #########################
 
@@ -49,7 +56,7 @@ def main():
         scattering = "noMS"
 
 
-    variables = ['z0res', 'd0res'] # variableMap.keys() testing
+    trackParameters = ['z0res', 'd0res'] # variableMap.keys() testing
     #layers = [1]
     #spacings = [20]
 
@@ -57,13 +64,13 @@ def main():
     megaDict = {}
 
     # First, extract all of the data and store it in a nice python dictionary 
-    for variable in variables:
+    for variable in trackParameters:
         megaDict[variable] = {}
 
         for layer in barrelLayers:
             megaDict[variable][layer] = {}
 
-            for spacing in spacings:
+            for spacing in tripletSpacings:
                 megaDict[variable][layer][spacing] = {}
 
                 # open root file and get plot 
@@ -93,6 +100,13 @@ def main():
                 f.Close() 
 
     megaDict['info'] = '{variable name -> barrel layer -> triplet spacing -> track momentum -> eta -> {value : variable value, error : variable error}'
+    megaDict['metadata'] = {
+            'barrelLayers' : barrelLayers,
+            'tripletSpacings' : tripletSpacings, 
+            'etaValues' : plotEtaValues, 
+            'trackpT' : momentumValues
+            }
+
 
     # Store the json file
     outNameJson = 'plotInfoStore.json'
@@ -100,12 +114,151 @@ def main():
         json.dump(megaDict, fp, sort_keys=True, indent=2)
     
     # now make some nice plots
-    for variable in variables:
-        #makePlot(variable, megaDict[variable], barrelLayers)
-        make2DPlot(variable, megaDict[variable], barrelLayers, spacings)
+    for variable in trackParameters:
+
+        #make2DPlot(variable, megaDict[variable], barrelLayers, tripletSpacings)
+
+        series = { "trackMomentum" : [1, 10, 100, 1000] }
+        constants = { "trackEta" : 0 , 'tripletSpacing' : 20 } 
+        xVar = 'barrelLayers' 
+        makePlot(megaDict, xVar, variable, constants, series)
+
+        series = { "trackEta" : plotEtaValues } 
+        constants = { "trackMomentum" : 10, 'tripletSpacing' : 20 }
+        xVar = 'barrelLayers' 
+        makePlot(megaDict, xVar, variable, constants, series)
+
+        series = { "trackMomentum" : [1, 10, 100, 1000] }
+        constants = { "trackEta" : 0 , 'barrelLayer' : 1 } 
+        xVar = 'tripletSpacings' 
+        makePlot(megaDict, xVar, variable, constants, series)
 
 
-def make2DPlot(variable, plotInfo, barrelLayers, spacings):
+
+def makePlot(plotInfo, xVar, yVar, constants, series): 
+    '''
+    plotInfo holds a multidimensional array of points, with values
+    [barrel layer, triplet spacing, track pT, track eta, track parameter]
+    This function will make a plot of one of these parameters versus another.
+    Typically yVar will be a track parameter
+    (the plot is a projection of this space onto a 2d plane)
+    Args:
+        plotInfo: dictionary with points in multidimensional space
+        xVar: string with the x-variable name 
+        yVar: string with the y-variable name 
+        constants:
+        series:
+    '''
+
+    print 'making plot for {0} vs {1}. {2} will be held constant. Data series {3} {4}'.format(xVar, yVar, constants, series.keys()[0], series[series.keys()[0]]) 
+    plotTitle = '{0} vs {1} : '.format(variableMap[yVar]['title'], variableMap[xVar]['title'])
+    for con in constants.keys():
+        plotTitle += '{0}={1} '.format(con,constants[con])
+
+    
+    # extract xvalues  
+    xValues = sorted(plotInfo['metadata'][xVar])
+    print 'xvals', xValues
+
+    # Data series 
+    seriesType = series.keys()[0] # assume only one type of series?
+    seriesValues = series[seriesType]
+
+    # Some nice graph colours 
+    colours = [
+        865, # blue
+        801, # orange
+        629, # red
+        418,  # green
+        15,  # grey
+        618, # purple
+        1, # black
+    ]
+
+    # array of TGraphs
+    graphArray = [] 
+
+    leg = prepareLegend('topLeft')
+    leg.SetHeader('{0} {1}'.format(variableMap[seriesType]['title'], variableMap[seriesType]['units']))
+
+    for iseries, dataSeries in enumerate(seriesValues):
+
+        # define tgraph 
+        graphArray.append(TGraphErrors()) 
+        graphName = plotTitle+';{0} {1}; {2} {3}'.format(variableMap[xVar]['title'], variableMap[xVar]['units'], variableMap[yVar]['title'], variableMap[yVar]['units'] )
+        
+        graphArray[iseries].SetTitle(graphName)
+        graphArray[iseries].SetMarkerColor(colours[iseries])
+        graphArray[iseries].SetLineColor(colours[iseries])
+
+        leg.AddEntry(graphArray[iseries], str(dataSeries), 'lp') 
+       
+        # Fill graph 
+        for ipoint, xVal in enumerate(xValues):
+
+            # find y-val (bit messy atm)  
+            if xVar == 'barrelLayers':
+                barrelLayer = xVal 
+            else:
+                barrelLayer = constants['barrelLayer']
+
+            if xVar == 'tripletSpacings':
+                tripletSpacing = xVal
+            else:
+                tripletSpacing = constants['tripletSpacing']
+
+            if series.keys()[0] == 'trackMomentum':
+                trackMomentum = dataSeries
+            else:
+                trackMomentum = constants['trackMomentum']
+
+            if series.keys()[0] == 'trackEta':
+                trackEta = dataSeries
+            else:
+                trackEta = constants['trackEta'] 
+
+            trackParam = yVar
+
+            yVal = plotInfo[trackParam][barrelLayer][tripletSpacing][trackMomentum][trackEta]['value']
+            yErr = plotInfo[trackParam][barrelLayer][tripletSpacing][trackMomentum][trackEta]['error']
+
+            graphArray[iseries].SetPoint(ipoint, xVal, yVal)
+            graphArray[iseries].SetPointError(ipoint, 0, yErr) 
+
+
+    # Now draw the plots     
+    can = TCanvas('can', 'can', 500, 500)
+    can.SetGrid()
+    #can.SetLogy()
+    mg = TMultiGraph() # takes (some) care of axis ranges
+    for iseries in range(len(seriesValues)):
+        mg.Add( graphArray[iseries], 'lp' ) 
+    mg.SetTitle(graphName)
+    mg.Draw('a') 
+    leg.Draw()
+
+    # Change the axis limits
+    mgMin = mg.GetHistogram().GetYaxis().GetXmin()
+    mgMax = mg.GetHistogram().GetYaxis().GetXmax()
+    #print mgMin, mgMax
+    mg.GetHistogram().GetYaxis().SetRangeUser(mgMin, mgMax*1.1) # make space for legend
+
+    #gPad->Modified();
+    #mg->GetXaxis()->SetLimits(1.5,7.5);
+    #mg->SetMinimum(0.);
+    #mg->SetMaximum(10.);
+
+
+
+
+    saveName = '{0}_vs_{1}_{2}'.format(xVar, yVar, seriesType)
+    for con in constants.keys():
+        saveName += '_{0}{1}'.format(con, constants[con])
+    can.SaveAs(saveName +'.pdf')
+        
+
+            
+def make2DPlot(variable, plotInfo, barrelLayers, tripletSpacings):
     
     can = TCanvas('can', 'can', 500, 500)
     maxSpacing = max(spacings) + 10
@@ -164,19 +317,7 @@ def make2DPlot(variable, plotInfo, barrelLayers, spacings):
 
     pass 
 
-def makePlot(variable, plotInfo, spacings):
 
-    print 'making plot for', variable
-    #print plotInfo
-
-    can = TCanvas('can', 'can', 500, 500)
-
-    p = TGraphErrors()
-    for i, layer in enumerate(barrelLayers):
-        
-
-
-        p.SetPoint(i, x, y)
 
 
                         
@@ -207,6 +348,23 @@ def extractPlotInfo(plot, xVals):
     return info
                 
 
+def prepareLegend(position):
+
+    bottomLeft  = [0.15, 0.1, 0.35, 0.3]
+    bottomRight = [0.7, 0.1, 0.9, 0.3]
+    topRight    = [0.7, 0.7, 0.9, 0.9]
+    topLeft     = [0.15, 0.7, 0.35, 0.9]
+
+    if (position == "topLeft"):
+        myPosition = topLeft
+    if (position == "topRight"):
+        myPosition = topRight
+    if (position == "bottomLeft"):
+        myPosition = bottomLeft
+    if (position == "bottomRight"):
+        myPosition = bottomRight
+
+    return TLegend(myPosition[0], myPosition[1], myPosition[2], myPosition[3])
 
 
 if __name__ == "__main__":
