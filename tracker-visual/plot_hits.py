@@ -2,6 +2,7 @@
 Quick plotting script for visualizing FCCSW tracker hits.
 Reads space point from a plain text file -- generate the spacepoints with the corresponding read_cluster* script.
 """
+
 import matplotlib
 matplotlib.use("Agg")
 

@@ -1,3 +1,12 @@
+# WJF add: parse args
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--geo', type=str, default=None, help='specify compact file for the geometry')
+args, _ = parser.parse_known_args()
+
+
+
+
 from Gaudi.Configuration import *
 
 # Data service
@@ -31,13 +40,12 @@ myFile = "FCChh_triplet_layer2_4cm.xml"
 myFile = "FCCtriplet_4barrel35mm.xml"
 myFile = "FCCtriplet_1barrel30mm.xml"
 
+myFilePath =pathToXML 
+myFilePath = 'file:'+args.geo
+
 
 geoservice = GeoSvc("GeoSvc", detectors=['file:Detector/DetFCChhBaseline1/compact/FCChh_DectEmptyMaster.xml',
-  #'file:Detector/DetFCChhTrackerTkLayout/compact/Tracker.xml'
-  #'file:Detector/DetFCChhTrackerTkLayout/compact/FCChh_triplet_layer2_4cm.xml'
-  #'file:Detector/DetFCChhTrackerTkLayout/compact/FCChh_triplet_layer2_4cm.xml'
-  #'file:Detector/DetFCChhTrackerTkLayout/compact/FCChh_v3.03_triplet.xml'
-  pathToXML+myFile
+  myFilePath
   ],
                     OutputLevel = DEBUG)
 
