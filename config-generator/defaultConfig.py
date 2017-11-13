@@ -42,15 +42,15 @@ def addNormalBarrelHeader(ofile, name, innerRadius, outerRadius, numLayers):
     ofile.write(toWrite)
 
 #____________________________________________________________
-def addTripletHeader(ofile, name, innerRadius, outerRadius, bigDelta, smallDelta):
+def addSpecialBarrelHeader(ofile, name, innerRadius, outerRadius, bigDelta, smallDelta, numLayers=3):
     toWrite = "    Barrel "+name+" {\n"
     toWrite += "      innerRadius "+str(innerRadius)+"\n"
     toWrite += "      outerRadius "+str(outerRadius)+"\n"
     toWrite += "      bigDelta "+str(bigDelta)+"\n"
     toWrite += "      smallDelta "+str(smallDelta)+"\n"
+    toWrite += "      numLayers "+str(numLayers)+"\n"
     toWrite += '''
       startZMode modulecenter
-      numLayers 3
       outerZ 2250
       radiusMode fixed
       sameRods true

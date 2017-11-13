@@ -86,7 +86,8 @@ from Configurables import PodioOutput
 out = PodioOutput("out",
                    OutputLevel=DEBUG)
 out.outputCommands = ["keep *"]
-out.filename = "tracker_with_field.root"
+#out.filename = "tracker_with_field.root"
+out.filename = myFilePath.split('/')[-1].replace('.xml','_hits.root') 
 
 # ApplicationMgr
 from Configurables import ApplicationMgr
