@@ -10,6 +10,7 @@ Variables include
 '''
 from defaultConfig import * 
 from Layer import Layer
+import math
 
 # Mapping of barrel layers to radii [mm]
 radiiMap = {1: 522.0, 2:727.56, 3:932.67, 4:1137.78, 5:1342.89, 6:1548.0}
@@ -26,8 +27,8 @@ TRIPLET_TOLERANCE = 10
 # spacing between doublet layers in the quartet [mm]
 QUARTET_WIDTH = 1.0 
 
-# 
-QUARTET_TOLERANCE = 2.0 
+# allowence within the (split) quartet region for extra space, grows logarithmically  
+QUARTET_TOLERANCE = QUARTET_WIDTH + math.log(QUARTET_WIDTH)  
 
 # Overlaps of modules 
 BIG_DELTA = 0 
@@ -50,7 +51,7 @@ def main(tripletLayer, layerSpacing, QUARTET, addECtriplet, ecTripletLayer, ecTr
 
     # Create new config file
     if QUARTET:
-        fName = path + "FCCquartet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
+        fName = path + "FCCquartet{2}mm_{0}barrel{1}mm".format(tripletLayer, layerSpacing, int(QUARTET_WIDTH))
     else:
         fName = path + "FCCtriplet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
     if addECtriplet:

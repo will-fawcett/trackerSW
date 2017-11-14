@@ -59,7 +59,12 @@ def addSpecialBarrelHeader(ofile, name, innerRadius, outerRadius, bigDelta, smal
       moduleType pixel
       plotColor 1
 
-      trackingTags triplet,tracker\n\n'''
+      '''
+
+
+    toWrite += "      trackingTags {0},tracker\n\n".format( 
+                                                        'quartet' if not numLayers==3 else 'triplet',
+                                                        )
     ofile.write(toWrite)
 
 #____________________________________________________________
