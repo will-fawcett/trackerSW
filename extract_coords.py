@@ -48,7 +48,7 @@ def main():
     region = 'triplet' # could be tracker, outer, inner
     plotEtaValues = [0, 0.5, 1, 1.5] # eta values to be extracted
     tripletSpacings = [20, 25, 30, 35, 40, 50] # Layer spacings to consider
-    barrelLayers = [1, 2, 3] # Triplet in barrel layer? 
+    barrelLayers = [1, 2, 3, 4, 5] # Triplet in barrel layer? 
     #########################
 
     if multipleScattering:
@@ -110,7 +110,7 @@ def main():
 
 
     # Store the json file
-    outNameJson = 'plotInfoStore.json'
+    outNameJson = 'infoStore.json'
     with open(outNameJson, 'w') as fp:
         json.dump(megaDict, fp, sort_keys=True, indent=2)
     
@@ -119,27 +119,34 @@ def main():
 
         for pt in momentumValues:
             for eta in plotEtaValues:
-                make2DPlot(variable, megaDict[variable], barrelLayers, tripletSpacings, pt, eta)
+                make2DPlot(variable, megaDict[variable], barrelLayers=[1,2,3], tripletSpacings=tripletSpacings, trackMomentum=pt, trackEta=eta)
 
         series = { "trackMomentum" : [1, 10, 100, 1000] }
         constants = { "trackEta" : 0 , 'tripletSpacing' : 20 } 
         xVar = 'barrelLayers' 
         makePlot(megaDict, xVar, variable, constants, series)
 
+        '''
         series = { "trackEta" : plotEtaValues } 
         constants = { "trackMomentum" : 10, 'tripletSpacing' : 20 }
         xVar = 'barrelLayers' 
         makePlot(megaDict, xVar, variable, constants, series)
+        '''
 
         series = { "trackMomentum" : [1, 10, 100, 1000] }
         constants = { "trackEta" : 0 , 'barrelLayer' : 1 } 
         xVar = 'tripletSpacings' 
-        makePlot(megaDict, xVar, variable, constants, series)
+        if variable == "z0res":
+            legendPosition = "bottomLeft"
+        if variable == "d0res": 
+            legendPosition = "topRight"
+
+        makePlot(megaDict, xVar, variable, constants, series, legendPosition)
 
 
 
 #___________________________________________________________________________
-def makePlot(plotInfo, xVar, yVar, constants, series): 
+def makePlot(plotInfo, xVar, yVar, constants, series, legendPosition="topLeft"): 
     '''
     plotInfo holds a multidimensional array of points, with values
     [barrel layer, triplet spacing, track pT, track eta, track parameter]
@@ -181,7 +188,7 @@ def makePlot(plotInfo, xVar, yVar, constants, series):
     # array of TGraphs
     graphArray = [] 
 
-    leg = prepareLegend('topLeft')
+    leg = prepareLegend(legendPosition)
     leg.SetHeader('{0} {1}'.format(variableMap[seriesType]['title'], variableMap[seriesType]['units']))
 
     for iseries, dataSeries in enumerate(seriesValues):
@@ -197,6 +204,7 @@ def makePlot(plotInfo, xVar, yVar, constants, series):
         leg.AddEntry(graphArray[iseries], str(dataSeries), 'lp') 
        
         # Fill graph 
+        smallestYval = 999999999
         for ipoint, xVal in enumerate(xValues):
 
             # find y-val (bit messy atm)  
@@ -228,9 +236,12 @@ def makePlot(plotInfo, xVar, yVar, constants, series):
             graphArray[iseries].SetPoint(ipoint, xVal, yVal)
             graphArray[iseries].SetPointError(ipoint, 0, yErr) 
 
+            if yVal < smallestYval:
+                smallestYval = yVal
+
 
     # Now draw the plots     
-    can = TCanvas('can', 'can', 500, 500)
+    can = TCanvas('can', 'can', 800, 600)
     can.SetGrid()
     #can.SetLogy()
     mg = TMultiGraph() # takes (some) care of axis ranges
@@ -245,6 +256,7 @@ def makePlot(plotInfo, xVar, yVar, constants, series):
     mgMax = mg.GetHistogram().GetYaxis().GetXmax()
     #print mgMin, mgMax
     mg.GetHistogram().GetYaxis().SetRangeUser(mgMin, mgMax*1.1) # make space for legend
+        
 
     #gPad->Modified();
     #mg->GetXaxis()->SetLimits(1.5,7.5);
@@ -258,6 +270,15 @@ def makePlot(plotInfo, xVar, yVar, constants, series):
     for con in constants.keys():
         saveName += '_{0}{1}'.format(con, constants[con])
     can.SaveAs(PLOT_DIR+saveName +'.pdf')
+
+
+    if int(mgMin) == 0: 
+        print 'adding space'
+        mg.GetHistogram().GetYaxis().SetRangeUser(smallestYval*0.5, mgMax*1.1) # needed for log plots, so much for TMultiGraph :/ 
+    gPad.Modified()
+
+    can.SetLogy()
+    can.SaveAs(PLOT_DIR+'log_'+saveName+'.pdf')
     print '' 
         
 
@@ -305,11 +326,11 @@ def make2DPlot(variable, plotInfo, barrelLayers, tripletSpacings, trackMomentum,
     g.SetTitle(plotTitle+';Layer spacing [mm]; Barrel layer;'+zTitle)
     g.GetHistogram().GetXaxis().SetTitleOffset(2)
     g.GetHistogram().GetYaxis().SetTitleOffset(2)
-    g.GetHistogram().GetYaxis().SetNdivisions(3,5,0)
+    g.GetHistogram().GetYaxis().SetNdivisions( len(barrelLayers) ,5,0)
     g.GetHistogram().GetYaxis().SetTitleOffset(2)
     g.GetHistogram().GetZaxis().SetTitleOffset(2.2)
     saveName = '{0}_2D'.format(variable, 'barrelLayer', 'layerSpacing')
-    saveName += '_tackMomenta{0}_trackEta{1}'.format(trackMomentum, trackEta) 
+    saveName += '_tackMomenta{0}_trackEta{1}'.format(int(trackMomentum), int(trackEta*10)) 
     can.SaveAs(PLOT_DIR+saveName+'.pdf')
     g.Write()
 
