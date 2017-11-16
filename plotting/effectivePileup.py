@@ -9,7 +9,7 @@ gStyle.SetPalette(kViridis)
 
 RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
 
-from extract_coords import is_profile
+from extract_coords import is_profile, prepareLegend
 
 gStyle.SetGridStyle(3)
 gStyle.SetGridColor(kGray)
@@ -27,8 +27,12 @@ def main():
 
     # Make canvas and style
     newCan = TCanvas('can', 'can', 800, 600)
+    newCan.cd()
     newCan.SetLogy()
     newCan.SetGrid()
+
+    #barrelLayers = [1]
+    #tripletSpacings = [50]
 
     # make plots for each tracker layout
     for variable in trackParameters:
@@ -47,9 +51,11 @@ def main():
                 momentumValues = [float(x.split('_')[-1]) for x in primNames if 'eta' in x]
                 print momentumValues
 
-                # declare multigraphs
-                effectivePU    = TMultiGraph()
-                fractionTracks = TMultiGraph()
+                puGraphs = []
+                fracGraphs = [] 
+
+                leg = prepareLegend('topRight')
+                leg.SetHeader('Track p_{T} [GeV]')
 
                 for prim in primList:
                     if is_profile(prim):
@@ -66,7 +72,24 @@ def main():
                         graphData = extractBinInfo(prim)
                         pprint(graphData)
 
-                        pu = TGraphErrors()
+                        puGraphs.append(TGraphErrors())
+                        puGraphs[-1].SetMarkerColor(mColor)
+                        puGraphs[-1].SetMarkerStyle(mStyle)
+                        puGraphs[-1].SetMarkerSize(mSize)
+                        puGraphs[-1].SetLineColor(mColor)
+
+                        fracGraphs.append(TGraphErrors())
+                        fracGraphs[-1].SetMarkerColor(mColor)
+                        fracGraphs[-1].SetMarkerStyle(mStyle)
+                        fracGraphs[-1].SetMarkerSize(mSize)
+                        fracGraphs[-1].SetLineColor(mColor)
+
+
+                        trackPt = prim.GetName().split('_')[-1]
+                        leg.AddEntry(puGraphs[-1], trackPt, 'lp')
+
+
+                        counter = 0
                         for ibin in range(1, prim.GetNbinsX()+1):
                             resolution = graphData[ibin]['yvalue']
                             error      = graphData[ibin]['error']
@@ -75,24 +98,60 @@ def main():
                             effPU = resolution / Z_VERTEX_SPACING
                             effPUerr = error / Z_VERTEX_SPACING
 
-                            fracTracks = 1 - effPU
-                            fracTracksErr = effPUerr
 
-                            pu.SetPoint(ibin, eta, effPU)
-                            pu.SetPointError(ibin, 0, effPUerr)
+                            puGraphs[-1].SetPoint(ibin, eta, effPU)
+                            puGraphs[-1].SetPointError(ibin, 0, effPUerr)
 
-                        pu.SetMarkerColor(mColor)
-                        pu.SetMarkerStyle(mStyle)
-                        pu.SetMarkerSize(mSize)
-                        pu.SetLineColor(mColor)
 
-                        effectivePU.Add(pu, 'p')
+                            try:
+                                fracTracks = 1.0 / effPU
+                                fracTracksErr = effPUerr
+                                fracGraphs[-1].SetPoint(counter, eta, fracTracks)
+                                counter += 1
+                                #fracGraphs[-1].SetPointError(ibin, 0, fracTracksErr)
+                            except ZeroDivisionError:
+                                continue # don't add point if 0 
 
+
+                        puGraphs[-1].Draw('AP') # due to the mysteries of ROOTs drawing, one needs to do this first, for no reason
+                        fracGraphs[-1].Draw('AP')
+
+                        newCan.SaveAs(prim.GetName()+'.pdf')
+
+                # declare multigraphs
+                effectivePU    = TMultiGraph()
+                fractionTracks = TMultiGraph()
+
+                # Add graphs to multigraph
+                for g in puGraphs:
+                    effectivePU.Add(g, 'p')
+
+                for g in fracGraphs:
+                    fractionTracks.Add(g, 'lp')
+
+
+
+                # Drawing for fraction of tracks plot 
+                newCan.SetLogy(0)
+                fractionTracks.SetTitle('Fracton of tracks being unambiguously assigned to the PV @95% CL: #sigma_{z}^{Gauss}=75 mm <#mu>=1000; #eta;Fraction')
+                fractionTracks.Draw('a')
+                leg.Draw()
+                fractionTracks.GetHistogram().GetXaxis().SetRangeUser(0, 4) # won't be respected since no pointes here. Thanks ROOT
+                newCan.SaveAs('plots/fracTracks_{0}barrel{1}mm.pdf'.format(layer, spacing))
+
+                # Drawing for effective pileup plot 
+                newCan.SetLogy(1)
+                location = 'L={0}, S={1}'.format(layer, spacing)
+                effectivePU.SetTitle('Effective pile-up@ 95% CL: #sigma_{z}^{Gauss}=75 mm <#mu>=1000 '+location+';#eta;Effective pile-up')
                 effectivePU.Draw('a')
-                #effectivePU.SetTitle('Effective pile-up;#eta;Effective pile-up')
-                #effectivePU.GetHistogram().GetXaxis().SetRangeUser(0, 4) # make space for legend
-                newCan.SaveAs('effPu.pdf')
-                sys.exit()
+                newCan.Update()
+                effectivePU.GetHistogram().GetXaxis().SetRangeUser(0, 4)
+                effectivePU.Draw('a')
+                leg.Draw()
+                effectivePU.GetHistogram().GetXaxis().SetRangeUser(0, 4)
+                newCan.SaveAs('plots/effPu_{0}barrel{1}mm.pdf'.format(layer, spacing))
+
+                f.Close()
 
 def extractBinInfo(plot):
     '''

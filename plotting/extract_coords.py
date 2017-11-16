@@ -35,7 +35,7 @@ variableMap = {
         
         'barrelLayers' : {'units' : '' , 'title' : 'Barrel layer' },
         'tripletSpacings' : {'units' : '[mm]', 'title' : 'Triplet spacing' },
-        'trackMomentum' : {'units' : '[GeV]', 'title' : 'Track pT'}, # Note could also have track momentum 
+        'trackMomentum' : {'units' : '[GeV]', 'title' : 'Track p_{T}'}, # Note could also have track momentum 
         'trackEta' : {'units' : '', 'title' : 'Track #eta'},
         }
 
