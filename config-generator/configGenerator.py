@@ -11,6 +11,7 @@ Variables include
 from defaultConfig import * 
 from Layer import Layer
 import math
+import sys
 
 # Mapping of barrel layers to radii [mm]
 radiiMap = {1: 522.0, 2:727.56, 3:932.67, 4:1137.78, 5:1342.89, 6:1548.0}
@@ -35,7 +36,7 @@ BIG_DELTA = 0
 SMALL_DELTA = 0 
 
 #____________________________________________________________________________
-def main(tripletLayer, layerSpacing, QUARTET, addECtriplet, ecTripletLayer, ecTripletSpacing, path, debug):
+def main(tripletLayer, layerSpacing, QUARTET, splitQuartet, addECtriplet, ecTripletLayer, ecTripletSpacing, path, debug):
 
     print 'barrel tripletLayer: {0}, {1}'.format(type(tripletLayer), tripletLayer)
     print 'barrel layerSpacing: {0}, {1}'.format(type(layerSpacing), layerSpacing)
@@ -46,11 +47,19 @@ def main(tripletLayer, layerSpacing, QUARTET, addECtriplet, ecTripletLayer, ecTr
         print 'endcap triplet layer: {0} {1}'.format(type(ecTripletLayer), ecTripletLayer)
         print 'endcap triplet spacing: {0} {1}'.format(type(ecTripletSpacing), ecTripletSpacing)
 
-    if QUARTET:
+    if splitQuartet:
+        print 'Will add split-quartet instead of triplet'
+    if quartet:
         print 'Will add quartet instead of triplet'
 
+    if splitQuartet and quartet:
+        print 'ERROR: can\'t have both quartet and split quartet'
+        sys.exit()
+
     # Create new config file
-    if QUARTET:
+    if splitQuartet:
+        fName = path + "FCCsplitQuartet{2}mm_{0}barrel{1}mm".format(tripletLayer, layerSpacing, int(QUARTET_WIDTH))
+    elif: quartet:
         fName = path + "FCCquartet{2}mm_{0}barrel{1}mm".format(tripletLayer, layerSpacing, int(QUARTET_WIDTH))
     else:
         fName = path + "FCCtriplet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
@@ -69,23 +78,29 @@ def main(tripletLayer, layerSpacing, QUARTET, addECtriplet, ecTripletLayer, ecTr
     addOuterTrackerHeader(ofile)
     if (tripletLayer==1):
         # innermost layer
-        if QUARTET:
+        if splitQuartet:
             genRegQuartet(ofile, tripletLayer, layerSpacing, debug)
+        elif quartet:
+            genRegTriplet(ofile, tripletLayer, layerSpacing, debug, nLayers=4)
         else:
             genRegTriplet(ofile, tripletLayer, layerSpacing, debug)
         genRegNormal(ofile, [2,3,4,5,6], 1, debug)
     elif (tripletLayer==6):
         # outermost layer
         genRegNormal(ofile, [1,2,3,4,5], 0, debug)
-        if QUARTET:
+        if splitQuartet:
             genRegQuartet(ofile, tripletLayer, layerSpacing, debug)
+        elif quartet:
+            genRegTriplet(ofile, tripletLayer, layerSpacing, debug, nLayers=4)
         else:
             genRegTriplet(ofile, tripletLayer, layerSpacing, debug)
     else:
         # intermediate layer 
         genRegNormal(ofile, range(1, tripletLayer), 0, debug)
-        if QUARTET:
+        if splitQuartet:
             genRegQuartet(ofile, tripletLayer, layerSpacing, debug)
+        elif quartet:
+            genRegTriplet(ofile, tripletLayer, layerSpacing, debug, nLayers=4)
         else:
             genRegTriplet(ofile, tripletLayer, layerSpacing, debug)
         genRegNormal(ofile, range(tripletLayer+1, 7), 2, debug)
@@ -110,8 +125,6 @@ def main(tripletLayer, layerSpacing, QUARTET, addECtriplet, ecTripletLayer, ecTr
     # End the outer-tracker
     ofile.write('}\n')
 
-
-    
 #____________________________________________________________
 def genRegQuartet(ofile, position, spacing, debug):
     '''
@@ -122,7 +135,6 @@ def genRegQuartet(ofile, position, spacing, debug):
         position: requested position of the barrel layer
         spacing: requested spacing between the triplet layers [mm]
     '''
-
 
     if debug:
         print '\nGenerating quartet "{2}" in layer {0} with spacing {1} mm'.format(position, spacing, barrelName)
@@ -138,7 +150,7 @@ def genRegQuartet(ofile, position, spacing, debug):
     innerRadius = quartetCentroid - (QUARTET_TOLERANCE+spacing)
     outerRadius = quartetCentroid + (QUARTET_TOLERANCE+spacing)
 
-    # The quartet actually needs two sub-regions
+    # The spit-quartet actually needs two sub-regions
     if position == 1:
         barrelName1 = "BRL_00_quartet"
         barrelName2 = "BRL_01_quartet"
@@ -363,19 +375,26 @@ def genRegNormal(ofile, layerRange, barrelAreaID, debug):
 
 
 #____________________________________________________________
-def genRegTriplet(ofile, position, spacing, debug):
+def genRegTriplet(ofile, position, spacing, debug, nLayers=3):
     '''
     Adds the triplet information based on the requested barrel layer Position
     Args:
         ofile: the file to be written to
         position: requested position of the barrel layer
         spacing: requested spacing between the triplet layers [mm]
+        debug: print debug messages
+        nLayers (optional): if !=3 will add more than 3 layers to the triplet 
     '''
 
+    if nLayers == 3:
+        multi = 'triplet'
+    elif nLayers:
+        multi = 'quartet'
+
     if position == 1:
-        barrelName = "BRL_0_triplet"
+        barrelName = "BRL_0_"+multi
     else:
-        barrelName = "BRL_1_triplet"
+        barrelName = "BRL_1_"+multi
 
     if debug:
         print '\nGenerating triplet "{2}" in layer {0} with spacing {1} mm'.format(position, spacing, barrelName)
@@ -388,24 +407,41 @@ def genRegTriplet(ofile, position, spacing, debug):
     if position == 6:
         tripletCentroid -= (TRIPLET_TOLERANCE+spacing)
 
-    innerRadius = tripletCentroid - (TRIPLET_TOLERANCE+spacing)
-    outerRadius = tripletCentroid + (TRIPLET_TOLERANCE+spacing)
+    if nLayers == 3:
+        innerRadius = tripletCentroid - (TRIPLET_TOLERANCE+spacing)
+        outerRadius = tripletCentroid + (TRIPLET_TOLERANCE+spacing)
+    if nLayers == 4:
+        innerRadius = tripletCentroid - (TRIPLET_TOLERANCE+1.5*spacing)
+        outerRadius = tripletCentroid + (TRIPLET_TOLERANCE+1.5*spacing)
 
     # add triplet sub-region header
-    addSpecialBarrelHeader(ofile, barrelName, innerRadius, outerRadius, BIG_DELTA, SMALL_DELTA)
+    addSpecialBarrelHeader(ofile, barrelName, innerRadius, outerRadius, BIG_DELTA, SMALL_DELTA, nLayers)
 
     # Calculate radii of triplet layers (maybe put this into a function?)
-    radius1 = tripletCentroid-spacing
-    radius2 = tripletCentroid
-    radius3 = tripletCentroid+spacing
+    if nLayers == 3:
+        radius1 = tripletCentroid-spacing
+        radius2 = tripletCentroid
+        radius3 = tripletCentroid+spacing
+    elif nLayers == 4:
+        radius1 = tripletCentroid - 1.5*spacing
+        radius2 = tripletCentroid - 0.5*spacing
+        radius3 = tripletCentroid + 0.5*spacing
+        radius4 = tripletCentroid + 1.5*spacing 
+
+
+    # Add the layers
     tripletModuleType = "tripletPixel"
     l1 = Layer(radius=radius1, color=6, moduleType=tripletModuleType, layerNumber=1)
     l2 = Layer(radius=radius2, color=6, moduleType=tripletModuleType, layerNumber=2)
     l3 = Layer(radius=radius3, color=6, moduleType=tripletModuleType, layerNumber=3)
+    if nLayers == 4:
+        l4 = Layer(radius=radius4, color=6, moduleType=tripletModuleType, layerNumber=4)
 
     l1.addLayer(ofile)
     l2.addLayer(ofile)
     l3.addLayer(ofile)
+    if nLayers == 4:
+        l4.addLayer(ofile)
     ofile.write('    }\n') # close brace after barrel area
 
     if debug:
@@ -425,6 +461,7 @@ if __name__ == "__main__":
   parser.add_option("-l", "--tripletLayer", action="store", type="int", help="Triplet layer in barrel, choose 1--6")
   parser.add_option("-s", "--layerSpacing", action="store", type="int", help="Spacing of triplet layers in barrel in mm")
   parser.add_option("-q", "--QUARTET", action="store", type="int", default=0, help="Add quartet instead of triplet")
+  parser.add_option("-s", "--splitQuartet", action="store", type="int", default=0, help="Add split quartet instead of triplet")
 
   parser.add_option("-e", "--addECtriplet", action="store", type="int", default=0, help="Output directory for plots")
   parser.add_option("-c", "--ecTripletLayer",      action="store", type="int", default=-1, help="Location of triplet in endcap, choose 1--6")
