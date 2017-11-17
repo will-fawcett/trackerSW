@@ -60,7 +60,7 @@ def main(tripletLayer, layerSpacing, quartet, splitQuartet, addECtriplet, ecTrip
     if splitQuartet:
         fName = path + "FCCsplitQuartet{2}mm_{0}barrel{1}mm".format(tripletLayer, layerSpacing, int(QUARTET_WIDTH))
     elif quartet:
-        fName = path + "FCCquartet{2}mm_{0}barrel{1}mm".format(tripletLayer, layerSpacing, int(QUARTET_WIDTH))
+        fName = path + "FCCquartet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
     else:
         fName = path + "FCCtriplet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
     if addECtriplet:
