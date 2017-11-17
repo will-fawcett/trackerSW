@@ -36,7 +36,7 @@ BIG_DELTA = 0
 SMALL_DELTA = 0 
 
 #____________________________________________________________________________
-def main(tripletLayer, layerSpacing, QUARTET, splitQuartet, addECtriplet, ecTripletLayer, ecTripletSpacing, path, debug):
+def main(tripletLayer, layerSpacing, quartet, splitQuartet, addECtriplet, ecTripletLayer, ecTripletSpacing, path, debug):
 
     print 'barrel tripletLayer: {0}, {1}'.format(type(tripletLayer), tripletLayer)
     print 'barrel layerSpacing: {0}, {1}'.format(type(layerSpacing), layerSpacing)
@@ -48,9 +48,9 @@ def main(tripletLayer, layerSpacing, QUARTET, splitQuartet, addECtriplet, ecTrip
         print 'endcap triplet spacing: {0} {1}'.format(type(ecTripletSpacing), ecTripletSpacing)
 
     if splitQuartet:
-        print 'Will add split-quartet instead of triplet'
+        print '>>> Will add split-quartet instead of triplet <<< '
     if quartet:
-        print 'Will add quartet instead of triplet'
+        print '>>> Will add quartet instead of triplet <<<'
 
     if splitQuartet and quartet:
         print 'ERROR: can\'t have both quartet and split quartet'
@@ -59,7 +59,7 @@ def main(tripletLayer, layerSpacing, QUARTET, splitQuartet, addECtriplet, ecTrip
     # Create new config file
     if splitQuartet:
         fName = path + "FCCsplitQuartet{2}mm_{0}barrel{1}mm".format(tripletLayer, layerSpacing, int(QUARTET_WIDTH))
-    elif: quartet:
+    elif quartet:
         fName = path + "FCCquartet{2}mm_{0}barrel{1}mm".format(tripletLayer, layerSpacing, int(QUARTET_WIDTH))
     else:
         fName = path + "FCCtriplet_{0}barrel{1}mm".format(tripletLayer, layerSpacing)
@@ -460,8 +460,8 @@ if __name__ == "__main__":
   parser = OptionParser()
   parser.add_option("-l", "--tripletLayer", action="store", type="int", help="Triplet layer in barrel, choose 1--6")
   parser.add_option("-s", "--layerSpacing", action="store", type="int", help="Spacing of triplet layers in barrel in mm")
-  parser.add_option("-q", "--QUARTET", action="store", type="int", default=0, help="Add quartet instead of triplet")
-  parser.add_option("-s", "--splitQuartet", action="store", type="int", default=0, help="Add split quartet instead of triplet")
+  parser.add_option("-q", "--quartet", action="store", type="int", default=0, help="Add quartet instead of triplet")
+  parser.add_option("-t", "--splitQuartet", action="store", type="int", default=0, help="Add split quartet instead of triplet")
 
   parser.add_option("-e", "--addECtriplet", action="store", type="int", default=0, help="Output directory for plots")
   parser.add_option("-c", "--ecTripletLayer",      action="store", type="int", default=-1, help="Location of triplet in endcap, choose 1--6")
