@@ -26,7 +26,7 @@ ecMap = {}
 TRIPLET_TOLERANCE = 10
 
 # spacing between doublet layers in the quartet [mm]
-QUARTET_WIDTH = 1.0 
+QUARTET_WIDTH = 5.0 
 
 # allowence within the (split) quartet region for extra space, grows logarithmically  
 QUARTET_TOLERANCE = QUARTET_WIDTH + math.log(QUARTET_WIDTH)  
@@ -128,7 +128,7 @@ def main(tripletLayer, layerSpacing, quartet, splitQuartet, addECtriplet, ecTrip
 #____________________________________________________________
 def genRegQuartet(ofile, position, spacing, debug):
     '''
-    Adds the quartet information based on the requested barrel layer Position
+    Adds the split-quartet information based on the requested barrel layer Position
     The idea of the quartet is to have two layers of doublets
     Args:
         ofile: the file to be written to
@@ -160,14 +160,14 @@ def genRegQuartet(ofile, position, spacing, debug):
 
     # first sub-region "lower quartet"
     addSpecialBarrelHeader(ofile, barrelName1, innerRadius-QUARTET_TOLERANCE, innerRadius+QUARTET_TOLERANCE, BIG_DELTA, SMALL_DELTA, 2)
-    [l1, l2] = generateDoublet(innerRadius, (-0.1 * spacing/2.0), QUARTET_WIDTH)
+    [l1, l2] = generateDoublet(innerRadius, QUARTET_WIDTH)
     l1.addLayer(ofile)
     l2.addLayer(ofile)
     ofile.write('    }\n') # close brace after barrel area
 
     # second sub-region "upper quartet"
     addSpecialBarrelHeader(ofile, barrelName2, outerRadius-QUARTET_TOLERANCE, outerRadius+QUARTET_TOLERANCE, BIG_DELTA, SMALL_DELTA, 2)
-    [l1, l2] = generateDoublet(outerRadius, spacing/2.0 , QUARTET_WIDTH)
+    [l1, l2] = generateDoublet(outerRadius, QUARTET_WIDTH)
     l1.addLayer(ofile)
     l2.addLayer(ofile)
     ofile.write('    }\n') # close brace after barrel area
@@ -175,10 +175,10 @@ def genRegQuartet(ofile, position, spacing, debug):
 
 
 
-def generateDoublet(centroid, spacing, width, moduleType="tripletPixel", color=6):
+def generateDoublet(centroid,  width, moduleType="tripletPixel", color=6):
 
-    radius1 = centroid + spacing + QUARTET_WIDTH/2.0
-    radius2 = centroid + spacing - QUARTET_WIDTH/2.0 
+    radius1 = centroid - width/2.0 
+    radius2 = centroid + width/2.0
     l1 = Layer(radius1, color, moduleType, layerNumber=1)
     l2 = Layer(radius2, color, moduleType, layerNumber=2)
     return [l1, l2]
