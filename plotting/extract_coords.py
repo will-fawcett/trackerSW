@@ -7,6 +7,25 @@ gStyle.SetPadLeftMargin(0.15) # increase space for left margin
 gStyle.SetGridStyle(3) 
 gStyle.SetGridColor(kGray)
 
+#____________________________________________________________________________
+def checkDir(dir, CHECK=False):
+    import os
+    ''' Create a directory if it does not exist,
+        overwrite it otherwise
+    '''
+    # if output directory does not exist, then create it
+    if not os.path.isdir(dir):
+        print 'Creating directory', dir
+        os.mkdir(dir)
+        os.system('chmod g+w '+dir)
+    # If it already exists, check if one wants to overwrite
+    elif CHECK:
+        print dir, "already exists... are you sure you want to overwrite it?",
+        yesno = raw_input("y/n? ")
+        if yesno != "y": sys.exit("Exiting, try again with a new name")
+    else:
+        print dir, "already exists and will be overwritten"
+        print 'Dir will be', dir
 
 # Convenience function to check if an object is a TProfile
 def is_profile(p):
@@ -21,7 +40,9 @@ def printPrimitiveNames(tobject):
 
 
 RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
-PLOT_DIR = 'plots/'
+layoutType = 'quartet' # triplet|quartet|splitQuartet
+PLOT_DIR = 'plots_{0}/'.format(layoutType)
+checkDir(PLOT_DIR)
 
 # variables from which to extract info from
 variableMap = {
@@ -45,7 +66,7 @@ def main():
     #########################
     #####  Setup  ###########
     multipleScattering = True
-    region = 'triplet' # could be tracker, outer, inner
+    region = layoutType # could be tracker, outer, inner
     plotEtaValues = [0, 0.5, 1, 1.5] # eta values to be extracted
     tripletSpacings = [20, 25, 30, 35, 40, 50] # Layer spacings to consider
     barrelLayers = [1, 2, 3, 4, 5] # Triplet in barrel layer? 
@@ -55,6 +76,13 @@ def main():
         scattering = "withMS"
     else:
         scattering = "noMS"
+
+    # check layout type 
+    if not layoutType in ['triplet', 'quartet', 'splitQuartet']:
+        print 'ERROR: layout type must be triplet|quartet|splitQuartet' 
+        sys.exit()
+    else:
+        print 'Will generate plots for layout type: ', layoutType
 
 
     trackParameters = ['z0res', 'd0res'] # variableMap.keys() testing
@@ -75,7 +103,7 @@ def main():
                 megaDict[variable][layer][spacing] = {}
 
                 # open root file and get plot 
-                path = RESULTS_PATH + '/results_FCCtriplet_{0}barrel{1}mm/'.format(layer, spacing)
+                path = RESULTS_PATH + '/results_FCC{0}_{1}barrel{2}mm/'.format(layoutType, layer, spacing)
                 fName = "{0}_{1}_{2}_Pt000".format(variable, region, scattering) # Note also can have P000 (for momentum)
                 f = TFile.Open(path+fName+'.root') 
                 tempCan = f.Get(fName) 
@@ -390,6 +418,7 @@ def prepareLegend(position):
         myPosition = bottomRight
 
     return TLegend(myPosition[0], myPosition[1], myPosition[2], myPosition[3])
+
 
 
 #___________________________________________________________________________
