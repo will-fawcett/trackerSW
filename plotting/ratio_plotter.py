@@ -19,14 +19,13 @@ def main():
 
 
     trackParameters = {
-            'z0res': { 'title': '#deltaz_{0}', 'id' : 'z0'},
-            'd0res': { 'title': '#deltad_{0}', 'id' : 'd0'},
-            
-            'logptres' : {'title' : 'ratio #deltap_{T}/p_{T}', 'id' : 'pT'},
-            'pres'     : {'title' : 'ratio #deltap/p', 'id' : 'p'},
-            'phi0res'  : {'title' : 'ratio #phi_{0}', 'id' : 'phi0'},
-            'ctauRes'  : {'title' : 'ratio c#tau', 'id' : 'ctau'},
-            'cotgThres': {'title' : 'ratio cot(#theta)', 'id' : 'cotgTh'},
+            'z0res'    : { 'title': '#deltaz_{0}', 'id' : 'z0'},
+            'd0res'    : { 'title': '#deltad_{0}', 'id' : 'd0'},
+            'logptres' : { 'title' : '#deltap_{T}/p_{T}', 'id' : 'pT'},
+            'pres'     : { 'title' : '#deltap/p', 'id' : 'p'},
+            'phi0res'  : { 'title' : '#phi_{0}', 'id' : 'phi0'},
+            'ctauRes'  : { 'title' : 'c#tau', 'id' : 'ctau'},
+            'cotgThres': { 'title' : 'cot(#theta)', 'id' : 'cotgTh'},
 
                     }
 
