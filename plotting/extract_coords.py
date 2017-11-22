@@ -40,6 +40,7 @@ def printPrimitiveNames(tobject):
 
 
 RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
+layoutType = 'triplet' # triplet|quartet|splitQuartet
 layoutType = 'quartet' # triplet|quartet|splitQuartet
 PLOT_DIR = 'plots_{0}/'.format(layoutType)
 checkDir(PLOT_DIR)
@@ -69,7 +70,7 @@ def main():
     region = layoutType # could be tracker, outer, inner
     plotEtaValues = [0, 0.5, 1, 1.5] # eta values to be extracted
     tripletSpacings = [20, 25, 30, 35, 40, 50] # Layer spacings to consider
-    barrelLayers = [1, 2, 3, 4, 5] # Triplet in barrel layer? 
+    barrelLayers = [1, 2, 3, 4] #, 5] # Triplet in barrel layer? 
     #########################
 
     if multipleScattering:
@@ -133,12 +134,13 @@ def main():
             'barrelLayers' : barrelLayers,
             'tripletSpacings' : tripletSpacings, 
             'etaValues' : plotEtaValues, 
-            'trackpT' : momentumValues
+            'trackpT' : momentumValues,
+            'layoutType': layoutType
             }
 
 
     # Store the json file
-    outNameJson = 'infoStore.json'
+    outNameJson = 'infoStore{0}.json'.format(layoutType)
     with open(outNameJson, 'w') as fp:
         json.dump(megaDict, fp, sort_keys=True, indent=2)
     
@@ -193,6 +195,8 @@ def makePlot(plotInfo, xVar, yVar, constants, series, legendPosition="topLeft"):
     plotTitle = '{0} vs {1} : '.format(variableMap[yVar]['title'], variableMap[xVar]['title'])
     for con in constants.keys():
         plotTitle += '{0}={1} '.format(con,constants[con])
+    plotTitle += ' ('+layoutType+')'
+
 
     
     # extract xvalues  
