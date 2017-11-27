@@ -108,6 +108,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
   // can we have track jets?
 
   TClonesArray *branchParticle = treeReader->UseBranch("Particle");
+  TClonesArray *branchTruthTrack = treeReader->UseBranch("TruthTrack");
   TClonesArray *branchTrack = treeReader->UseBranch("Track");
 
   Long64_t allEntries = treeReader->GetEntries();
