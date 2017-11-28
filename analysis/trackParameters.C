@@ -27,7 +27,7 @@ void PrintTrack(Track *track)
   std::cout << "pT "       << track->PT       << std::endl;
   std::cout << "eta "      << track->Eta      << std::endl;
   std::cout << "phi "      << track->Phi      << std::endl;
-  std::cout << "CtgTheta " << track->CtgTheta << std::endl;
+  std::cout << "CotTheta " << track->CtgTheta << std::endl;
   std::cout << "Charge "   << track->Charge   << std::endl;
   std::cout << "D0 "       << track->DZ       << std::endl;
   std::cout << "DZ "       << track->D0       << std::endl;
@@ -46,19 +46,25 @@ struct TestPlots
   //TH1 *fMuonDeltaPT;
   //TH1 *fMuonDeltaEta;
   //TH1 *fJetDeltaPT;
-  TH1 *eta;
-  TH1 *pt;
 
   TH1 *z0Res; 
-  TH1 *d0Res;
-  TH1 *ptRes;
-  TH1 *etaRes;
-
   TH2 *z0Res_pt;
   TH2 *z0Res_eta;
+
+  TH1 *d0Res;
   TH2 *d0Res_pt;
   TH2 *d0Res_eta;
+
+  TH1 *CtgThetaRes;
+  TH2 *CtgThetaRes_pt;
+  TH2 *CtgThetaRes_eta;
+
+  TH1 *pt;
+  TH1 *ptRes;
   TH2 *ptRes_pt;
+
+  TH1 *eta;
+  TH1 *etaRes;
   TH2 *etaRes_eta;
 
 };
@@ -109,17 +115,35 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
       100, z0Min, z0Max, 100, -2, 2);
 
   // d0 
+  float d0Min(-100), d0Max(100);
   plots->d0Res = result->AddHist1D(
-      "d0_resolution", "d0 resolution", "#deltad_{0} [mm]", "y",
-      100, -5, 5);
+      "d0_resolution", "d0 resolution", "#deltad_{0} [mm]", "Number of Tracks",
+      100, d0Min, d0Max);
 
   plots->d0Res_pt = result->AddHist2D(
       "d0_resolution_pt", "d0 resolution", "#deltad_{0} [mm]", "Truth p_{T} [GeV]",
-      100, -5, 5, 100, 0, 1000);
+      100, d0Min, d0Max, 100, 0, 1000);
 
   plots->d0Res_eta = result->AddHist2D(
       "d0_resolution_eta", "d0 resolution", "#deltad_{0} [mm]", "Truth #eta",
-      100, -5, 5, 100, -2, 2);
+      100, d0Min, d0Max, 100, -2, 2);
+
+  // cot(theta)
+  float CtgThMin(-0.001), CtgThMax(0.001);
+  plots->CtgThetaRes = result->AddHist1D(
+      "CtgThetaRes", "CtgThetaRes", "#deltacot(#theta)", "Number of Tracks",
+      100, CtgThMin, CtgThMax);
+  plots->CtgThetaRes_pt = result->AddHist2D(
+      "CtgThetaRes_pt", "CtgThetaRes_pt", "#deltacot(#theta)", "Truth p_{T} [GeV]",
+      100, CtgThMin, CtgThMax, 100, 0, 1000);
+  plots->CtgThetaRes_eta = result->AddHist2D(
+      "CtgThetaRes_eta", "CtgThetaRes_eta", "#deltacot(#theta)", "Truth #eta",
+      100, CtgThMin, CtgThMax, 100, -2, 2);
+  
+
+    //TH2 *CtgThetaRes_eta;
+
+
   
 
   /***********
@@ -239,6 +263,8 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
           double ptResolution = track->PT - truthTrack->PT;
           double d0Resolution = track->D0 - truthTrack->D0;
           double etaResolution = track->Eta - truthTrack->Eta;
+          double CtgThetaResolution = track->CtgTheta - truthTrack->CtgTheta;
+
           //std::cout << "ptRes: " << ptResolution << std::endl;
           //std::cout << "etaRes: " << etaResolution << std::endl;
 
@@ -252,23 +278,26 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
 
           //std::cout << "Match found for i " << i << "\tj " << j << std::endl;
           //std::cout << "z0 res: " << z0resolution << std::endl;
-          //
+          
           plots->pt->Fill(track->PT);
-          plots->eta->Fill(track->Eta);
-
-          plots->z0Res->Fill(z0Resolution);
-          plots->d0Res->Fill(d0Resolution);
           plots->ptRes->Fill(ptResolution);
-          plots->etaRes->Fill(etaResolution);
-
-          plots->etaRes_eta->Fill(etaResolution, truthTrack->Eta);
           plots->ptRes_pt->Fill(ptResolution, truthTrack->PT);
 
-          plots->z0Res_pt->Fill(z0Resolution, truthTrack->PT);
-          plots->d0Res_pt->Fill(d0Resolution, truthTrack->PT);
+          plots->eta->Fill(track->Eta);
+          plots->etaRes->Fill(etaResolution);
+          plots->etaRes_eta->Fill(etaResolution, truthTrack->Eta);
 
+          plots->z0Res->Fill(z0Resolution);
+          plots->z0Res_pt->Fill(z0Resolution, truthTrack->PT);
           plots->z0Res_eta->Fill(z0Resolution, truthTrack->Eta);
+
+          plots->d0Res->Fill(d0Resolution);
+          plots->d0Res_pt->Fill(d0Resolution, truthTrack->PT);
           plots->d0Res_eta->Fill(d0Resolution, truthTrack->Eta);
+
+          plots->CtgThetaRes->Fill(CtgThetaResolution);
+          plots->CtgThetaRes_pt->Fill(CtgThetaResolution, truthTrack->PT);
+          plots->CtgThetaRes_eta->Fill(CtgThetaResolution, truthTrack->Eta);
         }
 
 
