@@ -24,6 +24,7 @@ set ExecutionPath {
 
   TrackMergerTruth
   TrackMerger
+  TrackSmearing
 
   NeutrinoFilter
 
@@ -138,7 +139,8 @@ module MomentumSmearing ChargedHadronMomentumSmearing {
 
   #source momentumResolutionVsP.tcl 
   #source triplet_1barrel50mm_pRes_Delphes.tcl
-  source tripletFCCresolutions.tcl
+  #source tripletFCCresolutions.tcl
+  set ResolutionFormula { 0.0 } 
 }
 
 
@@ -152,7 +154,9 @@ module MomentumSmearing ElectronMomentumSmearing {
 
   #source momentumResolutionVsP.tcl 
   #source triplet_1barrel50mm_pRes_Delphes.tcl
-  source tripletFCCresolutions.tcl
+  #source tripletFCCresolutions.tcl
+  set ResolutionFormula { 0.0 } 
+
 }
 
 
@@ -168,7 +172,9 @@ module MomentumSmearing MuonMomentumSmearing {
 
   #source muonMomentumResolutionVsP.tcl 
   #source triplet_1barrel50mm_pRes_Delphes.tcl
-  source tripletFCCresolutions.tcl 
+  #source tripletFCCresolutions.tcl 
+  set ResolutionFormula { 0.0 } 
+   
 }
 
 ##############
@@ -182,6 +188,19 @@ module Merger TrackMerger {
   set OutputArray tracks
 }
 
+module TrackSmearing TrackSmearing {
+  set InputArray TrackMerger/tracks
+  #set BeamSpotInputArray BeamSpotFilter/beamSpotParticle
+  set OutputArray tracks
+  #set ApplyToPileUp true
+
+  # magnetic field
+  set Bz 4.0
+
+  source tripletFCCresolutions.tcl 
+}
+
+
 
 # WJF attempt: truth tracks
 module Merger TrackMergerTruth {
@@ -189,9 +208,9 @@ module Merger TrackMergerTruth {
   #add InputArray ChargedHadronTrackingEfficiency/chargedHadrons
   #add InputArray ElectronTrackingEfficiency/electrons
   #add InputArray MuonTrackingEfficiency/muons
-  set InputArray ParticlePropagator/chargedHadrons
-  set InputArray ParticlePropagator/muons
-  set InputArray ParticlePropagator/electrons
+  add InputArray ParticlePropagator/chargedHadrons
+  add InputArray ParticlePropagator/muons
+  add InputArray ParticlePropagator/electrons
   set OutputArray tracks 
 
 }
@@ -274,7 +293,8 @@ module TreeWriter TreeWriter {
   add Branch TrackJets/jets TrackJet Jet
   add Branch GenMissingET/momentum GenMissingET MissingET
 
-  add Branch TrackMerger/tracks Track Track
+  #add Branch TrackMerger/tracks Track Track
+  add Branch TrackSmearing/tracks Track Track
   add Branch TrackMergerTruth/tracks TruthTrack Track
   
   #add Branch Calorimeter/towers Tower Tower

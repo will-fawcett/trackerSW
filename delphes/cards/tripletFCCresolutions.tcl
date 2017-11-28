@@ -1,5 +1,4 @@
 set PResolutionFormula { 0.0 }
-set CtgThetaResolutionFormula { 0.0 }
 set PhiResolutionFormula { 0.0 }
 
 

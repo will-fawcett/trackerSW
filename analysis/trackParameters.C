@@ -20,6 +20,18 @@ class ExRootResult;
 
 #include "TROOT.h"
 
+//------------------------------------------------------------------------------
+
+void PrintTrack(Track *track)
+{
+  std::cout << "pT "       << track->PT       << std::endl;
+  std::cout << "eta "      << track->Eta      << std::endl;
+  std::cout << "phi "      << track->Phi      << std::endl;
+  std::cout << "CtgTheta " << track->CtgTheta << std::endl;
+  std::cout << "Charge "   << track->Charge   << std::endl;
+  std::cout << "D0 "       << track->DZ       << std::endl;
+  std::cout << "DZ "       << track->D0       << std::endl;
+}
 
 //------------------------------------------------------------------------------
 
@@ -34,9 +46,23 @@ struct TestPlots
   //TH1 *fMuonDeltaPT;
   //TH1 *fMuonDeltaEta;
   //TH1 *fJetDeltaPT;
+  TH1 *eta;
+  TH1 *pt;
 
-  TH1 *fz0Res; 
+  TH1 *z0Res; 
+  TH1 *d0Res;
+  TH1 *ptRes;
+  TH1 *etaRes;
+
+  TH2 *z0Res_pt;
+  TH2 *z0Res_eta;
+  TH2 *d0Res_pt;
+  TH2 *d0Res_eta;
+  TH2 *ptRes_pt;
+  TH2 *etaRes_eta;
+
 };
+
 
 //------------------------------------------------------------------------------
 
@@ -44,10 +70,57 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
 {
   TLegend *legend;
   TPaveText *comment;
+  
+  // Basic kinematics
+  // pt
+  plots->pt = result->AddHist1D(
+      "pt", "pt", "Track p_{T} [GeV]", "Number of Tracks",
+      100, 0, 1000, 0, 1);
+  plots->ptRes = result->AddHist1D(
+      "ptRes", "pt resolution", "x", "y",
+      100, -3, 3, 0, 0);
+  plots->ptRes_pt = result->AddHist2D(
+      "ptRes_pt", "pt resolution", "x", "y", 
+      100, -1, 1, 100, 0, 100);
+  //eta
+  plots->eta = result->AddHist1D(
+      "eta", "eta", "Track #eta", "Number of Tracks",
+      100, -6, 6);
+  plots->etaRes = result->AddHist1D(
+      "etaRes", "eta resolution", "x", "y", 
+      100, -6, 6);
+  plots->etaRes_eta = result->AddHist2D(
+      "etaRes_eta", "eta resolution", "#eta resolution", "Truth #eta", 
+      100, -6, 6, 100, -6, 6);
 
-  plots->fz0Res = result->AddHist1D(
-      "z0_resolution", "z0 resolution", "x", "y", 
-      600, -3, 3);
+
+  // z0
+  float z0Min(-10), z0Max(10);
+  plots->z0Res = result->AddHist1D(
+      "z0_resolution", "z0 resolution", "#deltaz_{0} [mm]", "Number of Tracks", 
+      100, z0Min, z0Max);
+
+  plots->z0Res_pt = result->AddHist2D(
+      "z0_resolution_pt", "z0 resolution", "#deltaz_{0} [mm]", "Truth p_{T} [GeV]", 
+      100, z0Min, z0Max, 100, 0, 1000);
+
+  plots->z0Res_eta = result->AddHist2D(
+      "z0_resolution_eta", "z0 resolution", "#deltaz_{0} [mm]", "Truth #eta", 
+      100, z0Min, z0Max, 100, -2, 2);
+
+  // d0 
+  plots->d0Res = result->AddHist1D(
+      "d0_resolution", "d0 resolution", "#deltad_{0} [mm]", "y",
+      100, -5, 5);
+
+  plots->d0Res_pt = result->AddHist2D(
+      "d0_resolution_pt", "d0 resolution", "#deltad_{0} [mm]", "Truth p_{T} [GeV]",
+      100, -5, 5, 100, 0, 1000);
+
+  plots->d0Res_eta = result->AddHist2D(
+      "d0_resolution_eta", "d0 resolution", "#deltad_{0} [mm]", "Truth #eta",
+      100, -5, 5, 100, -2, 2);
+  
 
   /***********
   plots->fElectronDeltaPT = result->AddHist1D(
@@ -115,12 +188,12 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
 
   cout << "** Chain contains " << allEntries << " events" << endl;
 
-  GenParticle *particle;
+  GenParticle *particle, *truthParticle;
   Electron *electron;
   Photon *photon;
   Muon *muon;
 
-  Track *track;
+  Track *track, *truthTrack;
   Tower *tower;
 
   Jet *jet;
@@ -141,12 +214,68 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
 
-    // Loop over all tracks in event
-    for(i=0; i<branchTrack->GetEntriesFast(); ++i)
-    {
-      track = (Track*) branchTrack->At(i);
-      plots->fz0Res->Fill(track->DZ);
+    
+
+    //std::cout << "ntracks: " << branchTrack->GetEntriesFast()  << std::endl;
       
+
+    // loop over all truth tracks
+    for(j=0; j<branchTruthTrack->GetEntriesFast(); ++j){
+      truthTrack      = (Track*) branchTruthTrack->At(j);
+      truthParticle   = (GenParticle*) truthTrack->Particle.GetObject(); 
+      if( fabs(truthTrack->Eta) > 2.0 ) continue; // remove tracks with |eta| > 2.0 
+      if(truthTrack->PT < 0.5) continue;
+
+      // Loop over all tracks in event
+      for(i=0; i<branchTrack->GetEntriesFast(); ++i)
+      {
+        track = (Track*) branchTrack->At(i);
+        particle = (GenParticle*) track->Particle.GetObject(); 
+
+        //if (i==0) std::cout << gen->fUniqueID << std::endl;
+        //if(particle == truthParticle){
+        if(particle->GetUniqueID() == truthParticle->GetUniqueID()){
+          double z0Resolution = track->DZ - truthTrack->DZ; 
+          double ptResolution = track->PT - truthTrack->PT;
+          double d0Resolution = track->D0 - truthTrack->D0;
+          double etaResolution = track->Eta - truthTrack->Eta;
+          //std::cout << "ptRes: " << ptResolution << std::endl;
+          //std::cout << "etaRes: " << etaResolution << std::endl;
+
+          //std::cout << track->DZ << std::endl;
+          //std::cout << truthTrack->DZ << std::endl;
+          
+          //std::cout << "\tsmeered" << std::endl; 
+          //PrintTrack(track);
+          //std::cout << "\ttruth" << std::endl; 
+          //PrintTrack(truthTrack);
+
+          //std::cout << "Match found for i " << i << "\tj " << j << std::endl;
+          //std::cout << "z0 res: " << z0resolution << std::endl;
+          //
+          plots->pt->Fill(track->PT);
+          plots->eta->Fill(track->Eta);
+
+          plots->z0Res->Fill(z0Resolution);
+          plots->d0Res->Fill(d0Resolution);
+          plots->ptRes->Fill(ptResolution);
+          plots->etaRes->Fill(etaResolution);
+
+          plots->etaRes_eta->Fill(etaResolution, truthTrack->Eta);
+          plots->ptRes_pt->Fill(ptResolution, truthTrack->PT);
+
+          plots->z0Res_pt->Fill(z0Resolution, truthTrack->PT);
+          plots->d0Res_pt->Fill(d0Resolution, truthTrack->PT);
+
+          plots->z0Res_eta->Fill(z0Resolution, truthTrack->Eta);
+          plots->d0Res_eta->Fill(d0Resolution, truthTrack->Eta);
+        }
+
+
+        
+      }
+
+      //plots->fz0Res->Fill(track->DZ);
     }
 
     /*******************
@@ -230,12 +359,15 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
   } // end loop over entries
 } // end AnalyseEvents 
 
+
+
 //------------------------------------------------------------------------------
 
 void PrintHistograms(ExRootResult *result, TestPlots *plots)
 {
   result->Print("pdf");
 }
+
 
 //------------------------------------------------------------------------------
 
