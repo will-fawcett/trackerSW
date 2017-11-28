@@ -59,9 +59,17 @@ struct TestPlots
   TH2 *CtgThetaRes_pt;
   TH2 *CtgThetaRes_eta;
 
+  TH1 *phiRes;
+  TH2 *phiRes_pt;
+  TH2 *phiRes_eta;
+
   TH1 *pt;
   TH1 *ptRes;
   TH2 *ptRes_pt;
+  TH2 *ptRes_eta;
+  TH1 *ptResRaw;
+  TH2 *ptResRaw_pt;
+  TH2 *ptResRaw_eta;
 
   TH1 *eta;
   TH1 *etaRes;
@@ -82,12 +90,29 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
   plots->pt = result->AddHist1D(
       "pt", "pt", "Track p_{T} [GeV]", "Number of Tracks",
       100, 0, 1000, 0, 1);
+  float ptMinRaw(-10), ptMaxRaw(10);
+  plots->ptResRaw = result->AddHist1D(
+      "ptResRaw", "pt resolution", "#deltap_{T} [GeV]", "Number of Tracks",
+      100, ptMinRaw, ptMaxRaw, 0, 0);
+  plots->ptResRaw_pt = result->AddHist2D(
+      "ptResRaw_pt", "pt resolution", "#deltap_{T} [GeV]", "Truth p_{T} [GeV]", 
+      100, ptMinRaw, ptMaxRaw, 100, 0, 100);
+  plots->ptResRaw_eta = result->AddHist2D(
+      "ptResRaw_eta", "eta resolution", "#deltap_{T} [GeV]", "Truth #eta", 
+      100, ptMinRaw, ptMaxRaw, 100, -2, 2);
+
+  float ptMin(-2), ptMax(2);
   plots->ptRes = result->AddHist1D(
-      "ptRes", "pt resolution", "x", "y",
-      100, -3, 3, 0, 0);
+      "ptRes", "pt resolution", "#deltap_{T}/p_{T}", "Number of Tracks",
+      100, ptMin, ptMax, 0, 0);
   plots->ptRes_pt = result->AddHist2D(
-      "ptRes_pt", "pt resolution", "x", "y", 
-      100, -1, 1, 100, 0, 100);
+      "ptRes_pt", "pt resolution", "#deltap_{T}/p_{T}", "Truth p_{T} [GeV]", 
+      100, ptMin, ptMax, 100, 0, 100);
+  plots->ptRes_eta = result->AddHist2D(
+      "ptRes_eta", "eta resolution", "#deltap_{T}/p_{T}", "Truth #eta", 
+      100, ptMin, ptMax, 100, -2, 2);
+
+
   //eta
   plots->eta = result->AddHist1D(
       "eta", "eta", "Track #eta", "Number of Tracks",
@@ -141,7 +166,20 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
       100, CtgThMin, CtgThMax, 100, -2, 2);
   
 
-    //TH2 *CtgThetaRes_eta;
+  // phi
+  float phiMin(-0.1), phiMax(0.1);
+  plots->phiRes = result->AddHist1D(
+      "phi_resolution", "phi resolution", "#delta#phi", "Number of Tracks",
+      100, phiMin, phiMax);
+
+  plots->phiRes_pt = result->AddHist2D(
+      "phi_resolution_pt", "phi resolution", "#delta#phi", "Truth p_{T} [GeV]",
+      100, phiMin, phiMax, 100, 0, 1000);
+
+  plots->phiRes_eta = result->AddHist2D(
+      "phi_resolution_eta", "phi resolution", "#delta#phi", "Truth #eta",
+      100, phiMin, phiMax, 100, -2, 2);
+
 
 
   
@@ -264,6 +302,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
           double d0Resolution = track->D0 - truthTrack->D0;
           double etaResolution = track->Eta - truthTrack->Eta;
           double CtgThetaResolution = track->CtgTheta - truthTrack->CtgTheta;
+          double phiResolution = track->Phi - truthTrack->Phi;
 
           //std::cout << "ptRes: " << ptResolution << std::endl;
           //std::cout << "etaRes: " << etaResolution << std::endl;
@@ -280,8 +319,12 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
           //std::cout << "z0 res: " << z0resolution << std::endl;
           
           plots->pt->Fill(track->PT);
-          plots->ptRes->Fill(ptResolution);
-          plots->ptRes_pt->Fill(ptResolution, truthTrack->PT);
+          plots->ptResRaw->Fill(ptResolution);
+          plots->ptResRaw_pt->Fill(ptResolution, truthTrack->PT);
+          plots->ptResRaw_eta->Fill(ptResolution, truthTrack->Eta);
+          plots->ptRes->Fill(ptResolution/truthTrack->PT);
+          plots->ptRes_pt->Fill(ptResolution/truthTrack->PT, truthTrack->PT);
+          plots->ptRes_eta->Fill(ptResolution/truthTrack->PT, truthTrack->Eta);
 
           plots->eta->Fill(track->Eta);
           plots->etaRes->Fill(etaResolution);
@@ -298,6 +341,10 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
           plots->CtgThetaRes->Fill(CtgThetaResolution);
           plots->CtgThetaRes_pt->Fill(CtgThetaResolution, truthTrack->PT);
           plots->CtgThetaRes_eta->Fill(CtgThetaResolution, truthTrack->Eta);
+
+          plots->phiRes->Fill(phiResolution);
+          plots->phiRes_pt->Fill(phiResolution, truthTrack->PT);
+          plots->phiRes_eta->Fill(phiResolution, truthTrack->Eta);
         }
 
 
