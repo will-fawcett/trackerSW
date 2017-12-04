@@ -3,8 +3,21 @@ import datetime
 import os
 import sys
 
+# Detect location 
+isGeneva = False
+isLXplus = False
+if os.environ['isLXplus'] == 'True':
+    isLXplus = True
+if os.environ['isGeneva'] == 'True':
+    isGeneva = True
+
+    
 # Create directory structure in data 
-BASE_DIR = '/afs/cern.ch/work/w/wfawcett/private/geneva/delphes/'
+if isLXplus:
+    BASE_DIR = '/afs/cern.ch/work/w/wfawcett/private/geneva/delphes/'
+if isGeneva:
+    BASE_DIR = '/afs/cern.ch/work/w/wfawcett/private/geneva/delphes/'
+
 JOB_DIR  = BASE_DIR+'batch/'
 OUTPUT_DIR = BASE_DIR+'samples/'
 
@@ -15,12 +28,13 @@ USER     = os.environ['USER']
 #____________________________________________________________________________
 def main():
 
-    nEvents = 1000
+    nEvents    = 100
     randomSeed = 10
-    pileup = 200 # 0 | 200 | 1000  
+    pileup     = 200 # 0 | 200 | 1000
 
-    process = 'MinBias' # MinBias | ttbar 
+    process = 'pileup' # maybe don't need this? 
     process = 'ttbar' # MinBias | ttbar 
+    process = 'MinBias' # MinBias | ttbar 
 
     if not process.lower() in ['ttbar', 'minbias']:
         print 'ERROR: process {0} not defined'.format(process)
@@ -42,25 +56,48 @@ def main():
 
     # estimate job time based on nevents 
     jobDemand = nEvents*(pileup+1)
+
+    # change to jobDir
+    print 'cd', jobDirName
+    os.chdir(jobDirName)
     
-    queue = '1nh'
-    if jobDemand > 3000:
-        queue = '8nh'
-    if jobDemand > 25000: 
-        queue = '1nd'
-    if jobDemand > 10**6:
-        queue == '2nd'
-        print 'Greater than 1M events ... are you sure you want to do this?'
-        yesno             = raw_input("y/n? ")
-        if yesno != "y": sys.exit("Exiting, try again with a new name")
+    # select job queue 
+    if isLXplus:
+        print 'LXplus environment detected'
+        queue = '1nh'
+        if jobDemand > 3000:
+            queue = '8nh'
+        if jobDemand > 25000: 
+            queue = '1nd'
+        if jobDemand > 10**6:
+            queue == '2nd'
+            print 'Greater than 1M events ... are you sure you want to do this?!'
+            yesno = raw_input("y/n? ")
+            if yesno != "y": 
+                sys.exit("Exiting, try again with a new name")
+    elif isGeneva:
+        print 'Geneva environment detected'
+        queue = 'veryshort' 
+        if jobDemand > 3000:
+            queue = 'short' 
+        elif jobDemand > 100000:
+            queue = 'medium'
+        else:
+            queue = 'production' 
+        
+    else:
+        print 'Not using either Geneva or Lxplus cluster. Exit'
+        sys.exit()
+
 
     # submit the batch job
     batchName = 'py8_{0}'.format(identifier) 
-    print 'cd', jobDirName
-    os.chdir(jobDirName)
-    command = 'bsub -q {0} -J {1} < submit.sh'.format(queue, batchName)
+    if isLXplus:
+        command = 'bsub -q {0} -J {1} < submit.sh'.format(queue, batchName)
+    if isGeneva:
+        command = 'qsub -q {0} -N {1} -e {2} -o {2} submit.sh'.format(queue, batchName, jobDirName)
     print command
-    os.system(command)
+    #os.system(command)
 
     '''
     8nm (8 minutes)
@@ -80,6 +117,11 @@ def writeSubmissionScript(jobDirName, outputSampleDir, identifier, pythiaCardNam
     outputSampleName = outputSampleDir + '{0}.root'.format(identifier)
     
     ofile = open(jobDirName+'submit.sh', 'w')
+    
+    # tracking
+    ofile.write('hostname\n')
+    ofile.write('date\n')
+
     ofile.write('cd /afs/cern.ch/user/w/wfawcett/private/geneva/fcc/delphes\n')
     ofile.write('source /afs/cern.ch/user/w/wfawcett/private/geneva/fcc/delphes/setup.sh\n')
     if pileup == 0:
