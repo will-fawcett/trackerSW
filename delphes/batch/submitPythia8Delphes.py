@@ -15,9 +15,9 @@ USER     = os.environ['USER']
 #____________________________________________________________________________
 def main():
 
-    nEvents = 100000
-    randomSeed = 15
-    pileup = 0 
+    nEvents = 1000
+    randomSeed = 10
+    pileup = 200 # 0 | 200 | 1000  
 
     process = 'MinBias' # MinBias | ttbar 
     process = 'ttbar' # MinBias | ttbar 
@@ -38,15 +38,17 @@ def main():
 
     # Write batch submission script 
     outputSampleDir = OUTPUT_DIR+'{0}/'.format(process)
-    writeSubmissionScript(jobDirName, outputSampleDir, identifier, pythiaCardName)
+    writeSubmissionScript(jobDirName, outputSampleDir, identifier, pythiaCardName, pileup)
 
     # estimate job time based on nevents 
+    jobDemand = nEvents*(pileup+1)
+    
     queue = '1nh'
-    if nEvents > 3000:
+    if jobDemand > 3000:
         queue = '8nh'
-    if nEvents > 25000: 
+    if jobDemand > 25000: 
         queue = '1nd'
-    if nEvents > 10**6:
+    if jobDemand > 10**6:
         queue == '2nd'
         print 'Greater than 1M events ... are you sure you want to do this?'
         yesno             = raw_input("y/n? ")
@@ -60,9 +62,19 @@ def main():
     print command
     os.system(command)
 
+    '''
+    8nm (8 minutes)
+    1nh (1 hour)
+    8nh
+    1nd (1day)
+    2nd
+    1nw (1 week)
+    2nw
+    '''
+
 
 #____________________________________________________________________________
-def writeSubmissionScript(jobDirName, outputSampleDir, identifier, pythiaCardName):
+def writeSubmissionScript(jobDirName, outputSampleDir, identifier, pythiaCardName, pileup):
 
     checkDir(outputSampleDir, False)
     outputSampleName = outputSampleDir + '{0}.root'.format(identifier)
@@ -70,7 +82,11 @@ def writeSubmissionScript(jobDirName, outputSampleDir, identifier, pythiaCardNam
     ofile = open(jobDirName+'submit.sh', 'w')
     ofile.write('cd /afs/cern.ch/user/w/wfawcett/private/geneva/fcc/delphes\n')
     ofile.write('source /afs/cern.ch/user/w/wfawcett/private/geneva/fcc/delphes/setup.sh\n')
-    ofile.write('./DelphesPythia8 cards/triplet/FCChh.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
+    if pileup == 0:
+        ofile.write('./DelphesPythia8 cards/triplet/FCChh.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
+    elif pileup == 200:
+        ofile.write('./DelphesPythia8 cards/triplet/FCChh_PileUp.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
+    
 
 
 

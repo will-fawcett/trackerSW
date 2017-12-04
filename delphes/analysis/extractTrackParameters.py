@@ -8,7 +8,6 @@ gStyle.SetGridStyle(3)
 gStyle.SetPadLeftMargin(0.15) # increase space for left margin
 gStyle.SetGridColor(kGray)
 
-resultsDir = '/afs/cern.ch/work/w/wfawcett/private/geneva/delphes/results/'
 
 colours = [
     865, # blue
@@ -20,20 +19,29 @@ colours = [
     1, # black
 ]
 
-def main():
+PI = 3.14159265
 
+# Convenience function to check if an object is a TH3
+def is_TH3(h):
+        return isinstance(h, TH3)
+
+def appendSlash(path):
+    if path[-1] != '/':
+        return path+'/'
+    else:
+        return path
+
+def main(inputFile, outputDir):
+
+    outputDir = appendSlash(outputDir)
 
     # open file 
-    iFile = TFile.Open(resultsDir+'histograms_ttbar_mu0_s10_10k.root')
-
-
-    # want to get z0 resolution 
-    resPlot = iFile.Get('z0Res_pt_eta')
+    iFile = TFile.Open(inputFile)
 
     ptRanges = [
             [0,2],
-            [9, 11],
-            [50, 101]
+            #[9, 11],
+            #[50, 101]
             ]
     etaRanges = [
             [0, 0.2],
@@ -47,37 +55,68 @@ def main():
             [1.8, 2.0]
             ]
 
-    leg = prepareLegend('bottomRight')
-    leg.SetHeader('Track p_{T} [GeV]')
+    parameters = {
+            'z0Res'   : {'title' : 'z0 resolution' , 'units' : '[mm]', 'label': '#deltaz_{0}'},
+            'd0Res'   : {'title' : 'd0 resolution' , 'units' : '[mm]', 'label': '#deltad_{0}'},
+            'ptRes'   : {'title' : 'pt resolution' , 'units' : '[%]',    'label': '#deltap_{T}/p_{T}'},
+            'CtgThetaRes': {'title' : 'cot(#theta) resolution', 'units' : '',      'label' : '#deltacot(#theta)'},
+            'ptResRaw': {'title' : 'p_{T} resolution',       'units' : '[GeV]', 'label' : '#deltap_{T}'},
+            'phiRes'  : {'title' : '#phi resolution',        'units' : '[deg]',      'label' : '#delta#phi'},
+            }
 
-    graphs = []
-    for n, ptRange in enumerate(ptRanges):
-        graphs.append(TGraphErrors())
-        for i, etaRange in enumerate(etaRanges):
+    for par in parameters.keys():
 
-            xposition = (etaRange[0] + etaRange[1])/2.0
-            fitResults = extractResolution(resPlot, ptRange, etaRange)
-            graphs[n].SetPoint(i, xposition, fitResults['Sigma'][0])
-            graphs[n].SetPointError(i, 0, fitResults['Sigma'][1])
-            graphs[n].SetMarkerColor(colours[n])
-            graphs[n].SetLineColor(colours[n])
-        leg.AddEntry(graphs[n], '{0} < pT < {1}'.format(ptRange[0], ptRange[1]), 'lp')
+        # Get 3D plot
+        plotName = par+'_pt_eta'
+        resPlot = iFile.Get(plotName)
+        if not is_TH3(resPlot):
+            print plotName
+            print 'ERROR, {0} is not of type TH3, it is {1}'.format(resPlot.GetName(), type(resPlot))
+            sys.exti()
 
-    # Draw graphs 
-    can = TCanvas('can', 'can', 500, 500)
-    can.SetGrid()
-    can.SetLogy()
-    mg = TMultiGraph()
-    for g in graphs:
-        mg.Add(g, 'p')
-    mg.SetTitle('z0 resolutions from Delphes; #eta;#deltaz_{0} [mm]')
-    mg.Draw('a')
-    leg.Draw()
+        # Create legend 
+        leg = prepareLegend('bottomRight')
+        leg.SetHeader('Track p_{T} [GeV]')
 
-    
-    can.SaveAs('graphs.pdf')
+        # Fit resolution, extract sigma  
+        graphs = []
+        for n, ptRange in enumerate(ptRanges):
+            graphs.append(TGraphErrors())
+            for i, etaRange in enumerate(etaRanges):
 
-def extractResolution(plot3D, ptRange, etaRange):
+                xposition = (etaRange[0] + etaRange[1])/2.0
+                fitResults = extractResolution(resPlot, ptRange, etaRange, par, outputDir)
+                yVal = fitResults['Sigma'][0]
+                yErr = fitResults['Sigma'][1]
+                if par == "phiRes": # want phi resolution to be in degrees (to compare with tkLayout)
+                    yVal *= 180.0/PI
+                    yErr *= 180.0/PI 
+                graphs[n].SetPoint(i, xposition, yVal)
+                graphs[n].SetPointError(i, 0, yErr)
+                graphs[n].SetMarkerColor(colours[n])
+                graphs[n].SetLineColor(colours[n])
+            leg.AddEntry(graphs[n], '{0} < pT < {1}'.format(ptRange[0], ptRange[1]), 'lp')
+
+        # Draw graphs 
+        can = TCanvas('can', 'can', 500, 500)
+        can.SetGrid()
+        can.SetLogy()
+        mg = TMultiGraph()
+        for g in graphs:
+            mg.Add(g, 'p')
+        mg.SetTitle('{0} from Delphes; #eta;{1} {2}'.format(parameters[par]['title'], parameters[par]['label'], parameters[par]['units']) )
+        mg.Draw('a')
+        leg.Draw()
+
+        # Change the axis limits
+        mgMin = mg.GetHistogram().GetYaxis().GetXmin()
+        mgMax = mg.GetHistogram().GetYaxis().GetXmax()
+        if mgMax/10 < mgMin:
+            mg.GetHistogram().GetYaxis().SetRangeUser(mgMin*0.5, mgMax*5) # make space for legend
+        
+        can.SaveAs(outputDir+par+'_graphs.pdf')
+
+def extractResolution(plot3D, ptRange, etaRange, parameterName, outputDir):
     # projection of a slice (resolution, pT, eta) 
 
     yaxis = plot3D.GetYaxis()
@@ -119,7 +158,7 @@ def extractResolution(plot3D, ptRange, etaRange):
     res.GetXaxis().SetRangeUser(-sigma*4, sigma*4)
 
     res.Draw()
-    tempCan.SaveAs('z0Res_{0}.pdf'.format(name))
+    tempCan.SaveAs(outputDir+'{0}_{1}.pdf'.format(parameterName, name))
 
     return fitResults
 
@@ -145,4 +184,17 @@ def prepareLegend(position):
 
 
 if __name__ == "__main__":
-    main()
+    from optparse import OptionParser
+    import sys
+
+    parser = OptionParser()
+    parser.add_option("-i", "--inputFile", action="store", type="string", help="Input ROOT file")
+    parser.add_option("-o", "--outputDir", action="store", type="string",  default='./', help="Output directory for plots")
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(0)
+
+    options, args = parser.parse_args()
+    option_dict = dict( (k, v) for k, v in vars(options).iteritems() if v is not None)
+    main(**option_dict)
+
