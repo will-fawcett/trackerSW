@@ -20,6 +20,12 @@ class ExRootResult;
 
 #include "TROOT.h"
 
+#include "modules/Delphes.h"
+#include "classes/DelphesClasses.h"
+#include "classes/DelphesFactory.h"
+
+
+
 bool DEBUG = false;
 //bool DEBUG = true;
 
@@ -31,6 +37,27 @@ std::string PrintTLorentz(TLorentzVector &v){
   s <<  " (" << v.Pt() << ", " << v.Eta() << ", " << v.Phi() << ", " << v.M() << ")"; 
   return s.str();
 }
+
+// poor mans version of a container class to replace TLorentzVector
+class threeVec
+{
+  private:
+    float m_Pt;
+    float m_Rapidity;
+    float m_Phi;
+  public:
+    threeVec();
+    void SetPtEtaPhi(float pt, float eta, float phi){
+      m_Pt=pt;
+      m_Rapidity=eta;
+      m_Phi=phi;
+    }
+    float Pt(){return m_Pt;}
+    float Rapidity(){return m_Rapidity;}
+    float Eta(){return m_Rapidity;}
+    float Phi(){return m_Phi;}
+    ~threeVec();
+};
 
 //------------------------------------------------------------------------------
 
@@ -176,6 +203,8 @@ struct TestPlots
 
 
 };
+
+    
 
 
 //------------------------------------------------------------------------------
@@ -433,6 +462,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
 
     // print every 10% complete
     if( entry % 100==0 ) std::cout << "Event " << entry << " out of " << allEntries << std::endl;
+    if(entry > 1) break;
 
     /////////////////////////////////////////
     // Calculate track parameter resolutions  
@@ -448,6 +478,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
 
     // collect tracks
     std::vector<TLorentzVector> goodTracks;
+    std::cout << "Number of tracks" << branchTrack->GetEntries() << std::endl;
     for(Int_t i=0; i<branchTrack->GetEntriesFast(); ++i)
     {
       if(DEBUG) std::cout << "about to get tracks" << std::endl; 
@@ -467,13 +498,14 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots)
 
         if(DEBUG) plots->track_eta_phi_pt->Fill(track->Eta, track->Phi, trackPt); 
         TLorentzVector vec;
-        vec.SetPtEtaPhiM( trackPt, track->Eta, track->Phi, particle->Mass);
+        vec.SetPtEtaPhiM( trackPt, track->Eta, track->Phi, 0.14); // pion mass in GeV 
         goodTracks.push_back(vec);
         if(DEBUG) std::cout << "Filled track vector" << std::endl;
       }
     }
 
     if(DEBUG) std::cout << "n tracks " << goodTracks.size() << std::endl;
+
 
     // recluster tracks into jets 
     std::vector<TLorentzVector> trackJets;

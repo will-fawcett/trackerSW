@@ -15,8 +15,11 @@ if os.environ['isGeneva'] == 'True':
 # Create directory structure in data 
 if isLXplus:
     BASE_DIR = '/afs/cern.ch/work/w/wfawcett/private/geneva/delphes/'
+    CODE_DIR = ''
 if isGeneva:
-    BASE_DIR = '/afs/cern.ch/work/w/wfawcett/private/geneva/delphes/'
+    #BASE_DIR = '/beegfs/users/wfawcett/delphes/'
+    BASE_DIR = '/atlas/data4/userdata/wfawcett/delphes/'
+    CODE_DIR = '/atlas/users/wfawcett/fcc/delphes/'
 
 JOB_DIR  = BASE_DIR+'batch/'
 OUTPUT_DIR = BASE_DIR+'samples/'
@@ -28,8 +31,8 @@ USER     = os.environ['USER']
 #____________________________________________________________________________
 def main():
 
-    nEvents    = 100
-    randomSeed = 10
+    nEvents    = 1000
+    randomSeed = 31
     pileup     = 200 # 0 | 200 | 1000
 
     process = 'pileup' # maybe don't need this? 
@@ -39,6 +42,10 @@ def main():
     if not process.lower() in ['ttbar', 'minbias']:
         print 'ERROR: process {0} not defined'.format(process)
         sys.exit()
+
+    # estimate job time based on nevents 
+    jobDemand = nEvents*(pileup+1)
+    print 'Job demands: Nevents {0}\t pileup {1}\t demand\t{2}'.format(nEvents, pileup, jobDemand)
 
     # Identifier for this submission
     identifier = '{0}_mu{1}_s{2}_n{3}'.format(process, pileup, randomSeed, nEvents)
@@ -52,10 +59,10 @@ def main():
 
     # Write batch submission script 
     outputSampleDir = OUTPUT_DIR+'{0}/'.format(process)
-    writeSubmissionScript(jobDirName, outputSampleDir, identifier, pythiaCardName, pileup)
+    submission = open(jobDirName+'submit.sh', 'w')
+    writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup)
 
-    # estimate job time based on nevents 
-    jobDemand = nEvents*(pileup+1)
+
 
     # change to jobDir
     print 'cd', jobDirName
@@ -77,11 +84,14 @@ def main():
                 sys.exit("Exiting, try again with a new name")
     elif isGeneva:
         print 'Geneva environment detected'
-        queue = 'veryshort' 
-        if jobDemand > 3000:
+        if jobDemand > 0 and  jobDemand < 30000:
+            queue = 'veryshort' 
+        elif jobDemand > 30000 and jobDemand < 100000:
             queue = 'short' 
-        elif jobDemand > 100000:
+        elif jobDemand > 100000 and jobDemand < 300000:
             queue = 'medium'
+        elif jobDemand > 300000 and jobDemand < 10**6:
+            queue = 'long'
         else:
             queue = 'production' 
         
@@ -89,15 +99,20 @@ def main():
         print 'Not using either Geneva or Lxplus cluster. Exit'
         sys.exit()
 
-
-    # submit the batch job
+    # Create the submisson command
     batchName = 'py8_{0}'.format(identifier) 
     if isLXplus:
         command = 'bsub -q {0} -J {1} < submit.sh'.format(queue, batchName)
     if isGeneva:
-        command = 'qsub -q {0} -N {1} -e {2} -o {2} submit.sh'.format(queue, batchName, jobDirName)
+        command = 'qsub -q {0} -N {1} -e {2} -o {3} submit.sh'.format(queue, batchName, jobDirName+batchName+'.err', jobDirName+batchName+'.out')
+    
+    # Add submit command to script
+    submission.write('#Sumbitted with command: {0}\n'.format(command))
+    submission.close()
+
+    # Submit the batch job
     print command
-    #os.system(command)
+    os.system(command)
 
     '''
     8nm (8 minutes)
@@ -111,23 +126,22 @@ def main():
 
 
 #____________________________________________________________________________
-def writeSubmissionScript(jobDirName, outputSampleDir, identifier, pythiaCardName, pileup):
+def writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup):
 
     checkDir(outputSampleDir, False)
     outputSampleName = outputSampleDir + '{0}.root'.format(identifier)
     
-    ofile = open(jobDirName+'submit.sh', 'w')
     
     # tracking
-    ofile.write('hostname\n')
-    ofile.write('date\n')
+    submission.write('hostname\n')
+    submission.write('date\n')
 
-    ofile.write('cd /afs/cern.ch/user/w/wfawcett/private/geneva/fcc/delphes\n')
-    ofile.write('source /afs/cern.ch/user/w/wfawcett/private/geneva/fcc/delphes/setup.sh\n')
+    submission.write('cd '+CODE_DIR+'\n')
+    submission.write('source '+CODE_DIR+'setup.sh\n')
     if pileup == 0:
-        ofile.write('./DelphesPythia8 cards/triplet/FCChh.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
+        submission.write('./DelphesPythia8 cards/triplet/FCChh.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
     elif pileup == 200:
-        ofile.write('./DelphesPythia8 cards/triplet/FCChh_PileUp.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
+        submission.write('./DelphesPythia8 cards/triplet/FCChh_PileUp.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
     
 
 
