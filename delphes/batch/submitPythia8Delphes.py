@@ -32,12 +32,12 @@ USER     = os.environ['USER']
 def main():
 
     nEvents    = 1000
-    randomSeed = 31
+    randomSeed = 42
     pileup     = 200 # 0 | 200 | 1000
 
     process = 'pileup' # maybe don't need this? 
-    process = 'ttbar' # MinBias | ttbar 
     process = 'MinBias' # MinBias | ttbar 
+    process = 'ttbar' # MinBias | ttbar 
 
     if not process.lower() in ['ttbar', 'minbias']:
         print 'ERROR: process {0} not defined'.format(process)
@@ -61,8 +61,6 @@ def main():
     outputSampleDir = OUTPUT_DIR+'{0}/'.format(process)
     submission = open(jobDirName+'submit.sh', 'w')
     writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup)
-
-
 
     # change to jobDir
     print 'cd', jobDirName
