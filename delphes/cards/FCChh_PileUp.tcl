@@ -12,7 +12,7 @@ set ExecutionPath {
   ParticlePropagator
 
   TrackMerger
-  TrackMergerTruth
+  TrackEfficiency
   TrackSmearing
 
   NeutrinoFilter
@@ -82,11 +82,12 @@ module ParticlePropagator ParticlePropagator {
 #################################
 # Truth tracks full pT and Eta range 
 #################################
-
+# Creates truth tracks 
 module Merger TrackMerger {
   add InputArray ParticlePropagator/chargedHadrons
   add InputArray ParticlePropagator/muons
   add InputArray ParticlePropagator/electrons
+  set TrackPtMax 100
   set OutputArray tracks 
 }
 
@@ -95,7 +96,7 @@ module Merger TrackMerger {
 # Remove tracks with pT < 0.5 GeV and |eta| > 2.1 
 #################################
 
-module Efficiency TrackMergerTruth {
+module Efficiency TrackEfficiency {
   set InputArray TrackMerger/tracks
   set OutputArray tracks 
   set EfficiencyFormula { (pt <= 0.5) * (0.00) +
@@ -109,7 +110,7 @@ module Efficiency TrackMergerTruth {
 #################################
 
 module TrackSmearing TrackSmearing {
-  set InputArray TrackMergerTruth/tracks
+  set InputArray TrackEfficiency/tracks
   #set BeamSpotInputArray BeamSpotFilter/beamSpotParticle
   set OutputArray tracks
   set ApplyToPileUp true 
@@ -163,7 +164,7 @@ module FastJetFinder GenJetFinder {
 #####################
 
 module FastJetFinder TrackTruthJetFinder {
-  set InputArray TrackMergerTruth/tracks
+  set InputArray TrackEfficiency/tracks
 
   set OutputArray jets
 
@@ -204,7 +205,7 @@ module TreeWriter TreeWriter {
 
   add Branch PileUpMerger/vertices Vertex Vertex
 
-  add Branch TrackMergerTruth/tracks TruthTrack Track
+  add Branch TrackEfficiency/tracks TruthTrack Track
   add Branch TrackSmearing/tracks Track Track
 
   #add Branch GenJetFinder/jets GenJet Jet # WJF don't want GenJets? 
