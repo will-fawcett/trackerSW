@@ -8,6 +8,16 @@ gStyle.SetGridColor(kGray)
 gStyle.SetPadTickX(1) # add tics on top x
 gStyle.SetPadTickY(1) # add tics on right y
 
+colours = [
+    865, # blue
+    801, # orange
+    629, # red
+    418,  # green
+    15,  # grey
+    618, # purple
+    1, # black
+]
+
 def main(inputFile, outputDir):
     outputDir = appendSlash(outputDir)
 
@@ -16,6 +26,9 @@ def main(inputFile, outputDir):
     # extract jet pT histogram
     h = ifile.Get('jet4Pt')
     c = getReverseCumulativeHisto(h)
+
+    h2 = ifile.Get('associatedJet4Pt')
+    c2 = getReverseCumulativeHisto(h2)
 
     
     can = TCanvas('can', 'can', 500, 500)
@@ -28,7 +41,12 @@ def main(inputFile, outputDir):
     c.SetLineColor(865)
     c.GetYaxis().SetTitle('Relative Rate')
 
-    c.DrawNormalized()
+    c2.SetMarkerColor(629)
+    c2.SetLineColor(629)
+
+    #c.DrawNormalized()
+    c.Draw()
+    c2.Draw('same')
     can.SaveAs(outputDir+'testJetCumulativePt.pdf')
 
 

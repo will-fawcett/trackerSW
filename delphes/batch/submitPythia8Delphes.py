@@ -31,13 +31,13 @@ USER     = os.environ['USER']
 #____________________________________________________________________________
 def main():
 
-    nEvents    = 1000
+    nEvents    = 100000
     randomSeed = 60
     pileup     = 200 # 0 | 200 | 1000
 
     process = 'pileup' # maybe don't need this? 
-    process = 'MinBias' # MinBias | ttbar 
     process = 'ttbar' # MinBias | ttbar 
+    process = 'MinBias' # MinBias | ttbar 
 
     if not process.lower() in ['ttbar', 'minbias']:
         print 'ERROR: process {0} not defined'.format(process)
