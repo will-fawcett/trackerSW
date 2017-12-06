@@ -29,8 +29,8 @@ class ExRootResult;
 bool DEBUG = false;
 //bool DEBUG = true;
 
-bool calculateTrackParameters = false; 
-//bool calculateTrackParameters = true; 
+//bool calculateTrackParameters = false; 
+bool calculateTrackParameters = true; 
 
 std::string PrintTLorentz(TLorentzVector &v){
   std::ostringstream s;
@@ -365,8 +365,23 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
     truthTrack      = (Track*) branchTruthTrack->At(j);
     truthParticle   = (GenParticle*) truthTrack->Particle.GetObject(); 
     if(DEBUG) std::cout << "Extract particle info" << std::endl;
+
     if( fabs(truthTrack->Eta) > 2.0 ) continue; // remove tracks with |eta| > 2.0 
     if( truthTrack->PT < 1.0) continue;
+
+
+    UInt_t truthParticleUID = 0;
+    //if(truthParticle->GetName() != "GenParticle") continue;
+    //if( !strncmp(truthParticle->GetName(), "GenParticle", 11)){
+    //std::cout << "Warning: found particle of type '" << truthParticle->GetName() << "'" << std::endl;
+    if(truthParticle == NULL){
+        continue;
+      }
+    truthParticleUID = truthParticle->GetUniqueID(); 
+
+
+    std::cout << "truthID: "  << truthParticleUID << std::endl; 
+
 
     // Loop over all tracks in event
     for(Int_t i=0; i<branchTrack->GetEntriesFast(); ++i)

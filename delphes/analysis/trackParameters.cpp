@@ -8,29 +8,40 @@ Re-tooled to make plots of track parameters
 
 */
 
-//#ifdef __CLING__
-//R__LOAD_LIBRARY(libDelphes)
+
+// Delphes classes
 #include "classes/DelphesClasses.h"
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
 #include "external/ExRootAnalysis/ExRootResult.h"
-
 #include "modules/Delphes.h"
 #include "classes/DelphesClasses.h"
 #include "classes/DelphesFactory.h"
+#include "modules/FastJetFinder.h"
 
+// my classes
+
+// c++ libs
 #include <iostream>
 #include <sstream>
+#include <exception>
 
 // stuff for ROOT
 #include "TROOT.h"
 #include "TFile.h"
-//#include "TLorentzVector.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
 #include "TLegend.h"
 #include "TPaveText.h"
 #include "TClonesArray.h"
+
+// fastjet (presumably the version inside Delphes)
+#include "fastjet/PseudoJet.hh"
+#include "fastjet/JetDefinition.hh"
+#include "fastjet/ClusterSequence.hh"
+
+using namespace fastjet;
+
 
 std::string PrintTLorentz(TLorentzVector &v){
   std::ostringstream s;
@@ -54,78 +65,6 @@ void PrintTrack(Track *track)
 
 inline float calculatDeltaPhi(float phi1, float phi2){
   return acos( cos( phi1 - phi2 ));
-}
-
-//------------------------------------------------------------------------------
-
-void antiKt(std::vector<TLorentzVector>& inputs, std::vector<TLorentzVector>& outputJets )
-{
-  //////////////////////////////////////////////////
-  // Manual implementation of the anti-kT algorithm 
-  //////////////////////////////////////////////////
-
-  float RADIUS_PARAMETER = 0.4; 
-
-
-  // anti kt algorithm 
-  int nInputs = inputs.size();
-  while (nInputs>0){
-    Double_t dRij  = 999999999.;
-    Double_t dRi   = 999999999.;
-    int dRiindex   = 0;
-    int dRijindex1 = 0;
-    int dRijindex2 = 0;
-
-    // Calculate the beam distance ( 1/pT_i^2 ), find the entity with the smallest beam distance  
-    for (Int_t i=0; i<nInputs; ++i){
-      if (pow(1./(inputs.at(i)).Pt(),2)<dRi){
-        dRi      = pow(1.0/(inputs.at(i)).Pt(),2);
-        dRiindex = i;
-        }
-    }
-
-
-    // Calculate the distance metric between all entities, find the smallest distance
-    for (Int_t i=0; i<nInputs-1; ++i){
-      float pT_i       = inputs.at(i).Pt();
-      float rapidity_i = inputs.at(i).Rapidity();
-      float phi_i      = inputs.at(i).Phi();
-
-      for (Int_t j=i+1; j<nInputs; ++j){
-        float pT_j       = inputs.at(j).Pt();
-        float rapidity_j = inputs.at(j).Rapidity();
-        float phi_j      = inputs.at(j).Phi();
-
-        // distance metric calculation
-        //Double_t tempdRij = std::min(pow(1.0/(inputs.at(i)).Pt(),2),pow(1.0/(inputs.at(j)).Pt(),2)) * (pow((inputs.at(i)).Rapidity()-(inputs.at(j)).Rapidity(),2)+pow(acos(cos(inputs.at(i).Phi()-inputs.at(j).Phi())),2));
-        float deltaRapidity = rapidity_i-rapidity_j;
-        float deltaPhi = calculatDeltaPhi(phi_i, phi_j); 
-        Double_t tempdRij = std::min( pT_i*pT_i, pT_j*pT_j ) * ( deltaRapidity*deltaRapidity + deltaPhi*deltaPhi ) / RADIUS_PARAMETER*RADIUS_PARAMETER;
-
-        // find the smallest distance 
-        if (tempdRij<dRij){
-          dRij=tempdRij;
-          dRijindex1 = i;
-          dRijindex2 = j;
-        }
-      }
-    }
-
-    //if(DEBUG) std::cout << "smallest distance metric: " << dRij << " between: " << dRijindex1 << PrintTLorentz(inputs.at(dRijindex1)) << " and " << dRijindex2 << PrintTLorentz(inputs.at(dRijindex2)) << std::endl;
-
-    int deleteIndex=0;
-    if (dRi<dRij){ // label entity as a jet 
-      deleteIndex=dRiindex;
-      TLorentzVector aJet = inputs.at(dRiindex);
-      outputJets.push_back( aJet ); 
-    }else{ // cluster: add input entity j to entity i
-      inputs.at(dRijindex1) += inputs.at(dRijindex2);
-      deleteIndex=dRijindex2;
-    }
-    //remove the entity from the collection
-    inputs.erase(inputs.begin()+deleteIndex);
-    nInputs = nInputs-1;
-  }
 }
 
 
@@ -155,6 +94,7 @@ struct TestPlots
   TH3 *phiRes_pt_eta;
 
   TH1 *pt;
+  TH1 *truthPt;
   TH1 *ptRes;
   TH2 *ptRes_pt;
   TH2 *ptRes_eta;
@@ -179,6 +119,14 @@ struct TestPlots
   std::vector<TH1*> jetNEta;
   std::vector<TH1*> jetNPhi;
 
+  TH1 *nAssociatedJets;
+  std::vector<TH1*> associatedJetNPt;
+  std::vector<TH1*> associatedJetNEta;
+  std::vector<TH1*> associatedJetNPhi;
+
+  TH1 *binnedZpT; 
+  TH1 *binnedZnVertices; 
+
 
 };
 
@@ -197,7 +145,7 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
   // jet histograms
   for(int i=0; i<7; ++i){
     plots->jetNPt.push_back(
-        result->AddHist1D( ("jet"+std::to_string(i+1)+"Pt").c_str(), "", (std::to_string(i+1)+" Jet p_{T} [GeV]").c_str(), "",  100, 0, 1000, 0, 0) 
+        result->AddHist1D( ("jet"+std::to_string(i+1)+"Pt").c_str(), "", (std::to_string(i+1)+" Jet p_{T} [GeV]").c_str(), "",  1000, 0, 1000, 0, 0) 
         );
     plots->jetNEta.push_back(
         result->AddHist1D( ("jet"+std::to_string(i+1)+"Eta").c_str(), "", (std::to_string(i+1)+" Jet #eta").c_str(), "",  100, -2.5, 2.5) 
@@ -205,9 +153,24 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
     plots->jetNPhi.push_back(
         result->AddHist1D( ("jet"+std::to_string(i+1)+"Phi").c_str(), "", (std::to_string(i+1)+" Jet #phi").c_str(), "",  100, -M_PI, M_PI) 
         );
+    // Jets associated to PV
+    plots->associatedJetNPt.push_back(
+        result->AddHist1D( ("associatedJet"+std::to_string(i+1)+"Pt").c_str(), "", (std::to_string(i+1)+" Jet p_{T} [GeV]").c_str(), "",  1000, 0, 1000, 0, 0) 
+        );
+    plots->associatedJetNEta.push_back(
+        result->AddHist1D( ("associatedJet"+std::to_string(i+1)+"Eta").c_str(), "", (std::to_string(i+1)+" Jet #eta").c_str(), "",  100, -2.5, 2.5) 
+        );
+    plots->associatedJetNPhi.push_back(
+        result->AddHist1D( ("associatedJet"+std::to_string(i+1)+"Phi").c_str(), "", (std::to_string(i+1)+" Jet #phi").c_str(), "",  100, -M_PI, M_PI) 
+        );
+
   }
   plots->nJets = result->AddHist1D( "nJets", "nJets", "Number of Jets", "", 100, 0, 100, 0, 0 );
+  plots->nAssociatedJets = result->AddHist1D( "nAssociatedJets", "nAssociatedJets", "Number of Jets", "", 100, 0, 100, 0, 0 );
   plots->allJetPt = result->AddHist1D("allJetPt", "", "Jet p_{T} (all jets) [GeV]", "", 100, 0, 1000);
+
+  // z pt
+  plots->binnedZpT = result->AddHist1D( "binnedZpT", "", "z position [mm]", "Sum(p_{T}) [GeV]", 600, -300, 300);
 
   // Plots only used if track parameters are calculated 
   if(calculateTrackParameters){
@@ -216,6 +179,9 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
     // pt
     plots->pt = result->AddHist1D(
         "pt", "pt", "Track p_{T} [GeV]", "Number of Tracks",
+        1000, 0, 2000, 0, 1);
+    plots->truthPt = result->AddHist1D(
+        "truthPt", "pt", "Truth Track p_{T} [GeV]", "Number of Tracks",
         1000, 0, 2000, 0, 1);
     float ptMinRaw(-200), ptMaxRaw(200); // wont be able to calculate pT resolutions for tracks with > 200 GeV 
     plots->ptResRaw = result->AddHist1D(
@@ -348,6 +314,12 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
     if( fabs(truthTrack->Eta) > 2.0 ) continue; // remove tracks with |eta| > 2.0 
     if( truthTrack->PT < 1.0) continue;
 
+    // Check is the truth track is from pileup
+    if(truthParticle == NULL) continue; 
+
+    // Extract the UID of the particle
+    UInt_t truthParticleUID = truthParticle->GetUniqueID();
+
     // Loop over all tracks in event
     for(Int_t i=0; i<branchTrack->GetEntriesFast(); ++i)
     {
@@ -355,13 +327,17 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
       track = (Track*) branchTrack->At(i);
       particle = (GenParticle*) track->Particle.GetObject(); 
       if(DEBUG) std::cout << "extracted track and particle" << std::endl;
-      if(DEBUG) std::cout << "particleID: "  << particle->GetUniqueID() << std::endl;
+
+      // Check is the reco track is from pileup
+      if(particle == NULL) continue;
+
+      UInt_t particleUID = particle->GetUniqueID();
+
       if(DEBUG) std::cout << "truthParticleID: "  << truthParticle->GetUniqueID() << std::endl;
+      if(DEBUG) std::cout << "particleID: "  << particle->GetUniqueID() << std::endl;
 
-
-      //if (i==0) std::cout << gen->fUniqueID << std::endl;
-      //if(particle == truthParticle){
-      if(particle->GetUniqueID() == truthParticle->GetUniqueID()){
+      // Match the track with the corresponding truth track 
+      if(truthParticleUID == particleUID){
         if(DEBUG) std::cout << "Matched track to particle" << std::endl;
         double z0Resolution = track->DZ - truthTrack->DZ; 
         double ptResolution = track->PT - truthTrack->PT;
@@ -374,6 +350,7 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
         float truthEta = truthTrack->Eta;
         
         plots->pt->Fill(track->PT);
+        plots->truthPt->Fill(truthTrack->PT);
         plots->ptResRaw->Fill(ptResolution);
         plots->ptResRaw_pt->Fill(ptResolution, truthPt);
         plots->ptResRaw_eta->Fill(ptResolution, truthEta);
@@ -421,29 +398,28 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
 
 
   // Define branches 
-  TClonesArray *branchParticle       = treeReader->UseBranch("Particle");
-  TClonesArray *branchTruthTrack     = treeReader->UseBranch("TruthTrack");
-  TClonesArray *branchTrack          = treeReader->UseBranch("Track");
+  TClonesArray *branchParticle   = treeReader->UseBranch("Particle");
+  TClonesArray *branchTruthTrack = treeReader->UseBranch("TruthTrack");
+  TClonesArray *branchTrack      = treeReader->UseBranch("Track");
+  TClonesArray *branchTrackJet   = treeReader->UseBranch("TrackJet");
   //TClonesArray *branchPileupParticle = treeReader->UseBranch("PileupParticle");
 
-  // Declare delphes physics objects 
-  GenParticle *particle, *truthParticle;
-  Track *track, *truthTrack;
+  // Setup FastJet
+  JetDefinition *definition = 0;
+  definition = new JetDefinition(antikt_algorithm, 0.4);
 
-  Long64_t allEntries = treeReader->GetEntries();
-  std::cout << "** Chain contains " << allEntries << " events" << std::endl;
 
   // Loop over all events
-  Long64_t entry;
-  for(entry = 0; entry < allEntries; ++entry)
+  Long64_t allEntries = treeReader->GetEntries();
+  std::cout << "** Chain contains " << allEntries << " events" << std::endl;
+  for(Long64_t entry = 0; entry < allEntries; ++entry)
   {
-    //if (entry>0)break;
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
 
     // print every 10% complete
+    //if(entry>10) break;
     if( entry % 100==0 ) std::cout << "Event " << entry << " out of " << allEntries << std::endl;
-    if(entry > 1) break;
 
     /////////////////////////////////////////
     // Calculate track parameter resolutions  
@@ -453,67 +429,128 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
       calculateResolutions(branchTruthTrack, branchTrack, plots, DEBUG);
     }
 
-    /////////////////////////////////////////
-    // Create track jets  
-    /////////////////////////////////////////
 
-    // collect tracks
+    // Fill plots with track jet properties
+    int nJets = branchTrackJet->GetEntriesFast();
+    plots->nJets->Fill( nJets ); 
+    for(int i=0; i<nJets && i<7; ++i){
+      Jet * jet = (Jet*) branchTrackJet->At(i);
+      plots->jetNPt.at(i)->Fill( jet->PT );
+      plots->jetNEta.at(i)->Fill( jet->Eta );
+      plots->jetNPhi.at(i)->Fill( jet->Phi );
+    }
+
+    ///////////////////////////////////
+    // loop over all reco tracks, and find the "primary bin"
+    //////////////////////////////////
+
+    // let bin width be 1 mm ?
+    TH1F * eventBinnedZpT = new TH1F("eventBinnedZpT", "", 600, -300, 300); // for 5mm use 120 bins 
+    for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+      float trackPt = static_cast<Track*>(*itTrack)->PT;
+      float zPosition = static_cast<Track*>(*itTrack)->DZ;
+      plots->binnedZpT->Fill(zPosition, trackPt);
+      eventBinnedZpT->Fill(zPosition, trackPt); 
+    } // end iteration over tracks 
+
+    // get bin with largest sum(pT) 
+    Int_t binWithPtMax = eventBinnedZpT->GetMaximumBin();
+
+    // get z range of bin with largest sum(pT)
+    TAxis * xaxis = static_cast<TAxis*>(eventBinnedZpT->GetXaxis());
+    float zMin = xaxis->GetBinLowEdge(binWithPtMax);
+    float zMax = xaxis->GetBinUpEdge(binWithPtMax);
+    float zWidth = xaxis->GetBinWidth(binWithPtMax);
+    delete eventBinnedZpT;
+
     
-    std::cout << "Number of tracks: " << branchTrack->GetEntriesFast() << std::endl; 
-    std::vector<TLorentzVector> goodTracks;
-    for(Int_t i=0; i<branchTrack->GetEntriesFast(); ++i)
-    {
-      if(DEBUG) std::cout << "about to get tracks" << std::endl; 
-      track = (Track*) branchTrack->At(i);
-      if(DEBUG) std::cout << "about to get particles" << std::endl; 
-      particle = (GenParticle*) track->Particle.GetObject(); 
-      if(DEBUG) std::cout << "Extracted tracks and particles"  << std::endl; 
+    ///////////////////////////////////
+    // Select tracks which belong to the PB
+    ///////////////////////////////////
+    std::vector<Track*> tracksAssociatedToPB;
+    std::vector<TLorentzVector> vectorsAssociatedToPB;
+    for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+      float zPosition = static_cast<Track*>(*itTrack)->DZ;
+      if(zPosition > zMin && zPosition < zMax){
+        tracksAssociatedToPB.push_back( static_cast<Track*>(*itTrack) );
+        vectorsAssociatedToPB.push_back( static_cast<Track*>(*itTrack)->P4());
+      }
+    }
 
-      if( track->PT > 1 && fabs(track->Eta) < 2.0)
-      {
-      
-        // It is impossible for the tracker to measure the pT if it's greater than 100 GeV
-        auto trackPt = track->PT;
-        if (trackPt > 100){
-          trackPt = 100;
+    // Use FastJetFinder inside delphes to cluster jets 
+    std::vector<PseudoJet> inputList, outputList;
+    for(auto track : tracksAssociatedToPB){
+      TLorentzVector momentum = track->P4();
+      PseudoJet jet = PseudoJet(momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E());
+      inputList.push_back(jet);
+    }
+    // run clustering 
+    ClusterSequence sequence(inputList, *definition);
+    outputList.clear();
+    outputList = sorted_by_pt(sequence.inclusive_jets(0.0));
+
+    // plots for associated jets
+    for(int i=0; i<outputList.size() && i<7; ++i){
+      plots->associatedJetNPt.at(i)->Fill( outputList.at(i).pt() );
+      plots->associatedJetNEta.at(i)->Fill( outputList.at(i).eta() );
+      plots->associatedJetNPhi.at(i)->Fill( outputList.at(i).phi() );
+    }
+    plots->nAssociatedJets->Fill( outputList.size() );
+
+
+
+
+
+    /*********************
+    ///////////////////////////////////
+    // Loop over all jets and find which tracks are associated to the PB 
+    // WJF: idea was to find the jets with tracks that came from the PB
+    // This was almost all jets, as there is no "directional" information"
+    ///////////////////////////////////
+
+    std::vector<Jet*> jetsFromPV;
+    std::vector<std::pair<int, int>> jetsFromPVProperties ; 
+    // Loop over jets (or tracks), select tracks with dz inside the window with the largets pT
+    for(int i = 0; i < branchTrackJet->GetEntriesFast(); ++i){
+      jet = (Jet*) branchTrackJet->At(i);
+      int nConstituents = jet->Constituents.GetEntriesFast();
+      int nConstituentsInPV(0);
+
+      for(int j = 0; j < nConstituents; ++j){
+
+        TLorentzVector momentum;
+        momentum.SetPtEtaPhiM(0.0, 0.0, 0.0, 0.0);
+        TObject *object = jet->Constituents.At(j);
+
+        if(object == 0) continue; // Check if the constituent is accessible
+        if(object->IsA() == Track::Class()){
+          track = (Track*) object;
+          if(track->DZ > zMin && track->DZ < zMax){
+            nConstituentsInPV++;
+          }
+          //std::cout << "    Track pt: " << track->PT << ", eta: " << track->Eta << ", phi: " << track->Phi << std::endl;
         }
-
-        if(DEBUG) plots->track_eta_phi_pt->Fill(track->Eta, track->Phi, trackPt); 
-        TLorentzVector vec;
-        vec.SetPtEtaPhiM( trackPt, track->Eta, track->Phi, 0.14); // pion mass in GeV 
-        goodTracks.push_back(vec);
-        if(DEBUG) std::cout << "Filled track vector" << std::endl;
+        else{
+          // add exception handling if this ever happens?
+          std::cerr << "Unidentified object in jet collection (not a track): " << object->GetName() << std::endl;
+        }
       }
-    }
-
-    if(DEBUG) std::cout << "n tracks " << goodTracks.size() << std::endl;
-
-
-    // recluster tracks into jets 
-    std::vector<TLorentzVector> trackJets;
-    antiKt(goodTracks, trackJets); 
-
-    if(DEBUG) std::cout << "Found " << trackJets.size() << " jets" << std::endl;
-
-    if(DEBUG){
-      for(auto jet : trackJets){
-        plots->jet_eta_phi_pt->Fill(jet.Eta(), jet.Phi(), jet.Pt());
+      if(nConstituentsInPV > 0){
+        jetsFromPV.push_back( jet );
+        jetsFromPVProperties.push_back( std::make_pair(nConstituents, nConstituentsInPV));
       }
+    } // end of loop over jets
+    // Loop over jets that are associated to the PV
+    plots->nAssociatedJets->Fill(jetsFromPV.size() );
+    for(int i=0; i<jetsFromPV.size() && i<7; ++i){
+      //std::cout << "jet with " << jetsFromPVProperties.at(i).first << " constituents, and " << jetsFromPVProperties.at(i).second << " associated to PV. Fraction: " << static_cast<float>(jetsFromPVProperties.at(i).second)/static_cast<float>(jetsFromPVProperties.at(i).first) << std::endl;
+      plots->associatedJetNPt.at(i)->Fill(jetsFromPV.at(i)->PT);
+      
     }
+    *******************************/
 
-    for(auto jet : trackJets) plots->allJetPt->Fill(jet.Pt());
-    plots->nJets->Fill(trackJets.size());
-
-    // nth jet plots 
-    for(unsigned int i=0; i<trackJets.size() && i<7; ++i){
-      plots->jetNPt.at(i)->Fill( trackJets.at(i).Pt() );
-      plots->jetNEta.at(i)->Fill( trackJets.at(i).Eta() );
-      plots->jetNPhi.at(i)->Fill( trackJets.at(i).Phi() );
-    }
 
   } // end loop over entries
-  
-
 } // end AnalyseEvents 
 
 
@@ -528,11 +565,33 @@ void PrintHistograms(ExRootResult *result, TestPlots *plots)
 
 //------------------------------------------------------------------------------
 
-void trackParameters(std::string inputFile, std::string outputFile, bool DEBUG, bool calculateTrackParameters)
-{
-  //gSystem->Load("libDelphes");
-  gROOT->SetBatch(1);
 
+
+//------------------------------------------------------------------------------
+
+int main(int argc, char *argv[])
+{
+
+  gROOT->SetBatch(1);
+  bool DEBUG = false;
+  //bool calculateTrackParameters = true; 
+  bool calculateTrackParameters = false; 
+
+  std::string appName = "trackParameters";
+  std::string inputFile = argv[1]; // doesn't complain about cast? Maybe compiler can deal with it :p 
+  std::string outputFile = argv[2];
+
+  if(argc < 3)
+  {
+    std::cout << " Usage: " << appName << " input_file" << " output_file" << std::endl;
+    std::cout << " config_file - configuration file in Tcl format,"       << std::endl;
+    std::cout << " output_file - output file in ROOT format,"             << std::endl;
+    std::cout << " input_file(s) - input file(s) in STDHEP format,"       << std::endl;
+    std::cout << " with no input_file, or when input_file is -, read standard input." << std::endl;
+    return 1;
+  }
+
+  // control analysis 
   TChain *chain = new TChain("Delphes");
   std::cout << "Adding " << inputFile << " to chain" << std::endl;
   chain->Add(inputFile.c_str());
@@ -554,31 +613,57 @@ void trackParameters(std::string inputFile, std::string outputFile, bool DEBUG, 
   delete result;
   delete treeReader;
   delete chain;
-}
-
-//------------------------------------------------------------------------------
-
-int main(int argc, char *argv[])
-{
-
-  bool DEBUG = false;
-  bool calculateTrackParameters = false; 
-
-  std::string appName = "trackParameters";
-  std::string inputFile = argv[1]; // doesn't complain about cast? Maybe compiler can deal with it :p 
-  std::string outputFile = argv[2];
-
-  if(argc < 3)
-  {
-    std::cout << " Usage: " << appName << " input_file" << " output_file" << std::endl;
-    std::cout << " config_file - configuration file in Tcl format,"       << std::endl;
-    std::cout << " output_file - output file in ROOT format,"             << std::endl;
-    std::cout << " input_file(s) - input file(s) in STDHEP format,"       << std::endl;
-    std::cout << " with no input_file, or when input_file is -, read standard input." << std::endl;
-    return 1;
-  }
-
-  trackParameters(inputFile, outputFile, DEBUG, calculateTrackParameters);
 
   return 0;
 }
+
+    /////////////////////////////////////////
+    // Manually create track jets  
+    /////////////////////////////////////////
+
+    /*******************************8
+    std::cout << "Number of tracks: " << branchTrack->GetEntriesFast() << std::endl; 
+    std::vector<TLorentzVector> goodTracks;
+    for(Int_t i=0; i<branchTrack->GetEntriesFast(); ++i)
+    {
+      track = (Track*) branchTrack->At(i);
+      particle = (GenParticle*) track->Particle.GetObject(); 
+
+      if( track->PT > 1 && fabs(track->Eta) < 2.0)
+      {
+      
+        // It is impossible for the tracker to measure the pT if it's greater than 100 GeV
+        auto trackPt = track->PT;
+        if (trackPt > 100){
+          trackPt = 100;
+        }
+
+        if(DEBUG) plots->track_eta_phi_pt->Fill(track->Eta, track->Phi, trackPt); 
+        TLorentzVector vec;
+        vec.SetPtEtaPhiM( trackPt, track->Eta, track->Phi, 0.14); // pion mass in GeV 
+        goodTracks.push_back(vec);
+        if(DEBUG) std::cout << "Filled track vector" << std::endl;
+      }
+    }
+    if(DEBUG) std::cout << "n tracks " << goodTracks.size() << std::endl;
+
+    // recluster tracks into jets 
+    std::vector<TLorentzVector> trackJets;
+    antiKt(goodTracks, trackJets); 
+    if(DEBUG) std::cout << "Found " << trackJets.size() << " jets" << std::endl;
+    if(DEBUG){
+      for(auto jet : trackJets){
+        plots->jet_eta_phi_pt->Fill(jet.Eta(), jet.Phi(), jet.Pt());
+      }
+    }
+
+    for(auto jet : trackJets) plots->allJetPt->Fill(jet.Pt());
+    plots->nJets->Fill(trackJets.size());
+
+    // nth jet plots 
+    for(unsigned int i=0; i<trackJets.size() && i<7; ++i){
+      plots->jetNPt.at(i)->Fill( trackJets.at(i).Pt() );
+      plots->jetNEta.at(i)->Fill( trackJets.at(i).Eta() );
+      plots->jetNPhi.at(i)->Fill( trackJets.at(i).Phi() );
+    }
+    ******************/
