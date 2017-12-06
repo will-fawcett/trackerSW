@@ -32,7 +32,7 @@ USER     = os.environ['USER']
 def main():
 
     nEvents    = 1000
-    randomSeed = 42
+    randomSeed = 60
     pileup     = 200 # 0 | 200 | 1000
 
     process = 'pileup' # maybe don't need this? 
@@ -88,7 +88,7 @@ def main():
             queue = 'short' 
         elif jobDemand > 100000 and jobDemand < 300000:
             queue = 'medium'
-        elif jobDemand > 300000 and jobDemand < 10**6:
+        elif jobDemand > 300000 and jobDemand < 10**7:
             queue = 'long'
         else:
             queue = 'production' 
