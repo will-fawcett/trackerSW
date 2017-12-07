@@ -40,8 +40,8 @@ def main(inputFile, outputDir):
 
     ptRanges = [
             [0,2],
-            #[9, 11],
-            #[50, 101]
+            [9, 11],
+            [50, 101]
             ]
     etaRanges = [
             [0, 0.2],
@@ -75,7 +75,8 @@ def main(inputFile, outputDir):
             sys.exti()
 
         # Create legend 
-        leg = prepareLegend('bottomRight')
+        #leg = prepareLegend('bottomRight')
+        leg = prepareLegend('topLeft')
         leg.SetHeader('Track p_{T} [GeV]')
 
         # Fit resolution, extract sigma  

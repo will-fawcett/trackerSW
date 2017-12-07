@@ -18,36 +18,44 @@ colours = [
     1, # black
 ]
 
-def main(inputFile, outputDir):
+def main(inputFile, outputDir, text):
     outputDir = appendSlash(outputDir)
 
+    can = TCanvas('can', 'can', 500, 500)
     ifile = TFile.Open(inputFile)
-
-    # extract jet pT histogram
-    h = ifile.Get('jet4Pt')
-    c = getReverseCumulativeHisto(h)
-
-    h2 = ifile.Get('associatedJet4Pt')
-    c2 = getReverseCumulativeHisto(h2)
+    
+    for nJet in range(1,8):
 
     
-    can = TCanvas('can', 'can', 500, 500)
-    h.GetXaxis().SetRangeUser(0, 200)
-    h.Draw()
-    can.SaveAs(outputDir+'testJetPt.pdf')
+        # extract jet pT histogram
+        hName = 'jet{0}Pt'.format(nJet)
+        print hName
+        h = ifile.Get(hName)
+        c = getReverseCumulativeHisto(h)
 
-    c.GetXaxis().SetRangeUser(0, 200)
-    c.SetMarkerColor(865)
-    c.SetLineColor(865)
-    c.GetYaxis().SetTitle('Relative Rate')
+        # get associated jet pT histogram
+        h2 = ifile.Get('associatedJet{0}Pt'.format(nJet))
+        c2 = getReverseCumulativeHisto(h2)
 
-    c2.SetMarkerColor(629)
-    c2.SetLineColor(629)
+        
+        h.GetXaxis().SetRangeUser(0, 200)
+        h.Draw()
+        saveName =  outputDir+'jet{0}Pt{1}.pdf'.format(nJet, text)
+        can.SaveAs(saveName)
 
-    #c.DrawNormalized()
-    c.Draw()
-    c2.Draw('same')
-    can.SaveAs(outputDir+'testJetCumulativePt.pdf')
+        c.GetXaxis().SetRangeUser(0, 200)
+        c.SetMarkerColor(865)
+        c.SetLineColor(865)
+        c.GetYaxis().SetTitle('Relative Rate')
+
+        c2.SetMarkerColor(629)
+        c2.SetLineColor(629)
+
+        #c.DrawNormalized()
+        c.Draw()
+        c2.Draw('same')
+        saveName = outputDir+'jet{0}RateCumulativePt{1}.pdf'.format(nJet, text)
+        can.SaveAs(saveName)
 
 
 def appendSlash(path):
@@ -82,6 +90,8 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("-i", "--inputFile", action="store", type="string", help="Input ROOT file")
     parser.add_option("-o", "--outputDir", action="store", type="string",  default='./', help="Output directory for plots")
+    parser.add_option("-t", "--text", action="store", type="string",  default="", help="text to add to plot names")
+
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(0)

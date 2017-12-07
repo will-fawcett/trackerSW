@@ -402,6 +402,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
   TClonesArray *branchTruthTrack = treeReader->UseBranch("TruthTrack");
   TClonesArray *branchTrack      = treeReader->UseBranch("Track");
   TClonesArray *branchTrackJet   = treeReader->UseBranch("TrackJet");
+  TClonesArray *branchVertex     = treeReader->UseBranch("Vertex");
   //TClonesArray *branchPileupParticle = treeReader->UseBranch("PileupParticle");
 
   // Setup FastJet
@@ -411,6 +412,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
 
   // Loop over all events
   Long64_t allEntries = treeReader->GetEntries();
+  int nEventsCorrectlyIdentifiedVertex(0);
   std::cout << "** Chain contains " << allEntries << " events" << std::endl;
   for(Long64_t entry = 0; entry < allEntries; ++entry)
   {
@@ -418,7 +420,6 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     treeReader->ReadEntry(entry);
 
     // print every 10% complete
-    //if(entry>10) break;
     if( entry % 100==0 ) std::cout << "Event " << entry << " out of " << allEntries << std::endl;
 
     /////////////////////////////////////////
@@ -463,6 +464,30 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     float zWidth = xaxis->GetBinWidth(binWithPtMax);
     delete eventBinnedZpT;
 
+
+    ///////////////////////////////////
+    // Find the location of the real PV
+    ///////////////////////////////////
+    float vertexZ(0.0); 
+    for(int i=0; i<branchVertex->GetEntriesFast(); ++i){
+      Vertex * vertex = (Vertex*) branchVertex->At(i);
+      if(vertex->IsPU) continue;
+      else{
+        vertexZ = vertex->Z;
+        //std::cout << "Event: " << entry << " vertex z: " << vertexZ << std::endl;
+      }
+    }
+    
+    // Check to see that real PV is in the PB
+    if(vertexZ > zMin && vertexZ < zMax){
+      nEventsCorrectlyIdentifiedVertex++;
+      //std::cout << "Vertex is inside PB" << std::endl; 
+      //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]" << std::endl;
+    }
+    else{
+      //std::cout << "Vertex isn't inside PB" << std::endl;
+      //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]" << std::endl;
+    }
     
     ///////////////////////////////////
     // Select tracks which belong to the PB
@@ -551,6 +576,8 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
 
 
   } // end loop over entries
+
+  std::cout << "Of " << allEntries << " events, " << nEventsCorrectlyIdentifiedVertex << " had the vertex correctly identified, i.e. " << static_cast<float>(nEventsCorrectlyIdentifiedVertex)/static_cast<float>(allEntries) << " of events."  << std::endl;
 } // end AnalyseEvents 
 
 
@@ -574,8 +601,8 @@ int main(int argc, char *argv[])
 
   gROOT->SetBatch(1);
   bool DEBUG = false;
-  //bool calculateTrackParameters = true; 
-  bool calculateTrackParameters = false; 
+  bool calculateTrackParameters = true; 
+  //bool calculateTrackParameters = false; 
 
   std::string appName = "trackParameters";
   std::string inputFile = argv[1]; // doesn't complain about cast? Maybe compiler can deal with it :p 
