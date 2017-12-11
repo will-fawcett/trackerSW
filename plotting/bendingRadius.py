@@ -38,12 +38,12 @@ def main():
     #graph('(x - np.sqrt(x*x - 0.25))', range(1, 10), 'deviation', 'Bending radius [m]', 'deviaton[$\mu$m]')
 
     # deviation as a function of momentum, triplet spacing 0.05 m (so total distance 0.1m) 
-    #graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.1)**2 ))*10**6', range(40, 201), 'deviation100mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 100mm')
+    graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.1)**2 ))*10**6', range(40, 201), 'deviation100mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 100mm')
     #graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.05)**2 ))*10**6', range(1, 61), 'deviation50mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 50mm')
     
     # spacing required for deviation of 40 um as a function of pT
     #graph( 'np.sqrt( (x*5.0/6.0)**2 - (x*5.0/6.0 - 40*10**(-6))**2 )*1000', range(1, 101), 'spacing', '$p_{\mathrm{T}}$ [GeV]', 'Spacing [mm]', 'Tracker layer spacing required for 40 $\mu$m track deviation as a function of $p_{\mathrm{T}}$')
-    graph( 'np.sqrt( (x*5.0/6.0)**2 - (x*5.0/6.0 - 40*10**(-6))**2 )*1000', range(1, 101), 'spacingInverse', 'Spacing [mm]', ptGeV, 'Tracker layer spacing required for 40 $\mu$m track deviation as a function of $p_{\mathrm{T}}$', True)
+    #graph( 'np.sqrt( (x*5.0/6.0)**2 - (x*5.0/6.0 - 40*10**(-6))**2 )*1000', range(1, 101), 'spacingInverse', 'Spacing [mm]', ptGeV, 'Tracker layer spacing required for 40 $\mu$m track deviation as a function of $p_{\mathrm{T}}$', True)
 
     printRad(1*GeV/lightSpeed,  4.0)
     printRad(2*GeV/lightSpeed,  4.0)
@@ -140,6 +140,7 @@ def graph3(formula, x_range, save, x_title='', y_title='', title='', inverse=Fal
     plt.xlabel(x_title)
     plt.ylabel(y_title)
     plt.title(title)
+    maxy = plt.gca().grid()
     plt.axhline(y=40, ls='--')
     plt.savefig(save+'.pdf')
     
