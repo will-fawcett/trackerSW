@@ -99,9 +99,9 @@ module Merger TrackMerger {
 module Efficiency TrackEfficiency {
   set InputArray TrackMerger/tracks
   set OutputArray tracks 
-  set EfficiencyFormula { (pt <= 0.5) * (0.00) +
-                        (abs(eta) <= 2.1) * (pt > 0.5) * (1.00) +
-                        (abs(eta) > 2.1)  * (0.00)}
+  set EfficiencyFormula { (pt <= 0.76) * (0.00) +
+                        (abs(eta) <= 2.0) * (pt > 0.76) * (1.00) +
+                        (abs(eta) > 2.0)  * (0.00)}
 }
 
 

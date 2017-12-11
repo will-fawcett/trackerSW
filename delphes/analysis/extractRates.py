@@ -1,3 +1,4 @@
+
 from ROOT import * 
 gROOT.SetBatch(1)
 gROOT.SetBatch(1)
@@ -7,6 +8,8 @@ gStyle.SetPadBottomMargin(0.15) # increase space for left margin
 gStyle.SetGridColor(kGray)
 gStyle.SetPadTickX(1) # add tics on top x
 gStyle.SetPadTickY(1) # add tics on right y
+
+from extractTrackParameters import prepareLegend
 
 colours = [
     865, # blue
@@ -23,6 +26,7 @@ def main(inputFile, outputDir, text):
 
     can = TCanvas('can', 'can', 500, 500)
     ifile = TFile.Open(inputFile)
+
     
     for nJet in range(1,8):
 
@@ -37,12 +41,18 @@ def main(inputFile, outputDir, text):
         h2 = ifile.Get('associatedJet{0}Pt'.format(nJet))
         c2 = getReverseCumulativeHisto(h2)
 
-        
+        # draw jet pT histo     
         h.GetXaxis().SetRangeUser(0, 200)
         h.Draw()
         saveName =  outputDir+'jet{0}Pt{1}.pdf'.format(nJet, text)
         can.SaveAs(saveName)
 
+        leg = prepareLegend('topRight')
+        leg.SetHeader(text)
+        leg.AddEntry(c, 'All jets', 'lp')
+        leg.AddEntry(c2, 'Jets from PB', 'lp')
+        
+        # rate plots
         c.GetXaxis().SetRangeUser(0, 200)
         c.SetMarkerColor(865)
         c.SetLineColor(865)
@@ -50,10 +60,12 @@ def main(inputFile, outputDir, text):
 
         c2.SetMarkerColor(629)
         c2.SetLineColor(629)
+        
 
         #c.DrawNormalized()
         c.Draw()
         c2.Draw('same')
+        leg.Draw()
         saveName = outputDir+'jet{0}RateCumulativePt{1}.pdf'.format(nJet, text)
         can.SaveAs(saveName)
 

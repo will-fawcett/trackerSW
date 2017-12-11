@@ -5,9 +5,7 @@ This macro shows how to access the particle-level reference for reconstructed ob
 It is also shown how to loop over the jet constituents.
 
 Re-tooled to make plots of track parameters 
-
 */
-
 
 // Delphes classes
 #include "classes/DelphesClasses.h"
@@ -18,12 +16,11 @@ Re-tooled to make plots of track parameters
 #include "classes/DelphesFactory.h"
 #include "modules/FastJetFinder.h"
 
-// my classes
-
 // c++ libs
 #include <iostream>
 #include <sstream>
 #include <exception>
+#include <map>
 
 // stuff for ROOT
 #include "TROOT.h"
@@ -66,6 +63,82 @@ void PrintTrack(Track *track)
 inline float calculatDeltaPhi(float phi1, float phi2){
   return acos( cos( phi1 - phi2 ));
 }
+
+
+std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float binWidth, float slideStep, int beamMinZ, int beamMaxZ){
+
+    /*************************
+     *
+     * Simple fixed bin algorithm. May split PV
+     *
+    // let bin width be 1 mm ?
+    TH1F * eventBinnedZpT = new TH1F("eventBinnedZpT", "", 600, -300, 300); // for 5mm use 120 bins 
+    for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+      float trackPt = static_cast<Track*>(*itTrack)->PT;
+      float zPosition = static_cast<Track*>(*itTrack)->DZ;
+      plots->binnedZpT->Fill(zPosition, trackPt);
+      eventBinnedZpT->Fill(zPosition, trackPt); 
+    } // end iteration over tracks 
+
+    // get bin with largest sum(pT) 
+    Int_t binWithPtMax = eventBinnedZpT->GetMaximumBin();
+
+    // get z range of bin with largest sum(pT)
+    TAxis * xaxis = static_cast<TAxis*>(eventBinnedZpT->GetXaxis());
+    float zMin = xaxis->GetBinLowEdge(binWithPtMax);
+    float zMax = xaxis->GetBinUpEdge(binWithPtMax);
+    float zWidth = xaxis->GetBinWidth(binWithPtMax);
+    delete eventBinnedZpT;
+
+    *
+    *************************/
+
+    int nBins = (beamMaxZ-beamMinZ)/binWidth;
+
+    // define histograms for sliding window algorithm 
+    std::vector<TH1F*> windowHists;
+    for(int i=0; i< binWidth/slideStep; ++i){
+      windowHists.push_back( new TH1F( (std::to_string(i)+"hist").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i) );
+    }
+
+    // loop over all tracks, fill histograms
+    for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+      float trackPt   = static_cast<Track*>(*itTrack)->PT;
+      float zPosition = static_cast<Track*>(*itTrack)->DZ;
+      for(auto hist : windowHists){
+        hist->Fill(zPosition, trackPt); 
+      }
+    }
+
+    // Extract the largest sum(pT) 
+    float previousMaxPt(0), zBinLow(0), zBinHigh(0), zBinWidth(0);
+    for(auto hist : windowHists){
+      Int_t binWithPtMax = hist->GetMaximumBin();
+      TAxis * xaxis = static_cast<TAxis*>(hist->GetXaxis());
+      float maxPt = hist->GetBinContent(binWithPtMax);
+      if(maxPt > previousMaxPt){
+        previousMaxPt = maxPt;
+        zBinLow   = xaxis->GetBinLowEdge(binWithPtMax);
+        zBinHigh  = xaxis->GetBinUpEdge(binWithPtMax);
+        zBinWidth = xaxis->GetBinWidth(binWithPtMax);
+      }
+    }
+
+    // store results
+    std::map<std::string, float> results;
+    results["zMin"]   = zBinLow;
+    results["zMax"]   = zBinHigh;
+    results["zWidth"] = zBinWidth;
+
+    // delete histograms
+    for(auto hist : windowHists){
+      delete hist;
+    }
+    windowHists.clear();
+
+    return results;
+
+} // end of find primary bin
 
 
 //------------------------------------------------------------------------------
@@ -127,6 +200,9 @@ struct TestPlots
   TH1 *binnedZpT; 
   TH1 *binnedZnVertices; 
 
+  TH1 *misidPV;
+  TH1 *misidPVLogx;
+
 
 };
 
@@ -140,6 +216,9 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
 
   //TLegend *legend;
   //TPaveText *comment;
+  
+  plots->misidPVLogx = result->AddHist1D("misidPVLogx", "Misidentified primary vertices", "Distance between PB and true PV [mm]", "Number of events", 200, 0, 400, 1, 0); // probably will be some overflow
+  plots->misidPV = result->AddHist1D("misidPV", "Misidentified primary vertices", "Distance between PB and true PV [mm]", "Number of events", 200, 0, 200, 0, 0); // probably will be some overflow
   
 
   // jet histograms
@@ -445,24 +524,15 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     // loop over all reco tracks, and find the "primary bin"
     //////////////////////////////////
 
-    // let bin width be 1 mm ?
-    TH1F * eventBinnedZpT = new TH1F("eventBinnedZpT", "", 600, -300, 300); // for 5mm use 120 bins 
-    for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
-      float trackPt = static_cast<Track*>(*itTrack)->PT;
-      float zPosition = static_cast<Track*>(*itTrack)->DZ;
-      plots->binnedZpT->Fill(zPosition, trackPt);
-      eventBinnedZpT->Fill(zPosition, trackPt); 
-    } // end iteration over tracks 
-
-    // get bin with largest sum(pT) 
-    Int_t binWithPtMax = eventBinnedZpT->GetMaximumBin();
-
-    // get z range of bin with largest sum(pT)
-    TAxis * xaxis = static_cast<TAxis*>(eventBinnedZpT->GetXaxis());
-    float zMin = xaxis->GetBinLowEdge(binWithPtMax);
-    float zMax = xaxis->GetBinUpEdge(binWithPtMax);
-    float zWidth = xaxis->GetBinWidth(binWithPtMax);
-    delete eventBinnedZpT;
+    // scan parameters
+    int beamMinZ    = -300; // mm
+    int beamMaxZ    = 300; // mm
+    float binWidth  = 1.0; // mm
+    float slideStep = 0.1; // mm
+    std::map<std::string, float> PBInfo = findPrimaryBin(branchTrack, binWidth, slideStep, beamMinZ, beamMaxZ);
+    float zMin   = PBInfo["zMin"];
+    float zMax   = PBInfo["zMax"];
+    float zWidth = PBInfo["zWidth"];
 
 
     ///////////////////////////////////
@@ -477,6 +547,11 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
         //std::cout << "Event: " << entry << " vertex z: " << vertexZ << std::endl;
       }
     }
+
+    // distance between PB (centre) and PV 
+    //std::cout << "True vertex position: " << vertexZ << " PB  << std::endl;
+    //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]\t" << fabs(vertexZ - (zMax-zMin)/2) << std::endl;
+
     
     // Check to see that real PV is in the PB
     if(vertexZ > zMin && vertexZ < zMax){
@@ -486,6 +561,9 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     }
     else{
       //std::cout << "Vertex isn't inside PB" << std::endl;
+      std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]\t" << fabs(vertexZ - (zMax+zMin)/2) << std::endl;
+      plots->misidPV->Fill( fabs(vertexZ - (zMax+zMin)/2) );
+      plots->misidPVLogx->Fill( fabs(vertexZ - (zMax+zMin)/2) );
       //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]" << std::endl;
     }
     
@@ -521,8 +599,6 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
       plots->associatedJetNPhi.at(i)->Fill( outputList.at(i).phi() );
     }
     plots->nAssociatedJets->Fill( outputList.size() );
-
-
 
 
 
