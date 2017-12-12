@@ -93,14 +93,14 @@ module Merger TrackMerger {
 
 
 #################################
-# Remove tracks with pT < 0.5 GeV and |eta| > 2.1 
+# Remove truth tracks with pT < 0.5 GeV and |eta| > 2.0 
 #################################
 
 module Efficiency TrackEfficiency {
   set InputArray TrackMerger/tracks
   set OutputArray tracks 
   set EfficiencyFormula { (pt <= 1.00) * (0.00) +
-                        (abs(eta) <= 2.0) * (pt > 1.00 * (1.00) +
+                        (abs(eta) <= 2.0) * (pt > 1.00) * (1.00) +
                         (abs(eta) > 2.0)  * (0.00)}
 }
 
