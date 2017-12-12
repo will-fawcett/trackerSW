@@ -4,10 +4,10 @@ root -l examples/Example3.C'("delphes_output.root")'
 This macro shows how to access the particle-level reference for reconstructed objects.
 It is also shown how to loop over the jet constituents.
 
-Re-tooled to make plots of track parameters 
+Re-tooled to make plots of track parameters
 */
 
-#include "modules/TestClass.h"
+//#include "modules/TestClass.h"
 //#include "modules/ClusteredJet.h"
 
 // Delphes classes
@@ -46,7 +46,7 @@ using namespace fastjet;
 
 std::string PrintTLorentz(TLorentzVector &v){
   std::ostringstream s;
-  s <<  " (" << v.Pt() << ", " << v.Eta() << ", " << v.Phi() << ", " << v.M() << ")"; 
+  s <<  " (" << v.Pt() << ", " << v.Eta() << ", " << v.Phi() << ", " << v.M() << ")";
   return s.str();
 }
 
@@ -55,24 +55,24 @@ std::string PrintTLorentz(TLorentzVector &v){
 
 using MyClusteredJet = std::pair<PseudoJet, std::vector<float> >;
 
-// Use FastJetFinder inside delphes to cluster jets 
+// Use FastJetFinder inside delphes to cluster jets
 std::vector<MyClusteredJet> jetCluster(std::vector<Track*> inputTracks, const JetDefinition* definition, const float minJetPt, const float minTrackPt){
 
-    // Convert tracks to PseudoJets, dress with unique ID 
+    // Convert tracks to PseudoJets, dress with unique ID
     std::vector<PseudoJet> inputList;
     std::map<int, Track*> inputTrackMap;
     for(auto track : inputTracks){
       TLorentzVector momentum = track->P4();
-      if(momentum.Pt() < minTrackPt) continue; // only add tracks above a certain jet pT thresold 
+      if(momentum.Pt() < minTrackPt) continue; // only add tracks above a certain jet pT thresold
       PseudoJet jet = PseudoJet(momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E());
-      jet.set_user_index(track->GetUniqueID()); // add info to the jet 
+      jet.set_user_index(track->GetUniqueID()); // add info to the jet
       inputList.push_back(jet);
       inputTrackMap[track->GetUniqueID()] = track;
     }
 
-    // run clustering 
+    // run clustering
     ClusterSequence sequence(inputList, *definition);
-    
+
     // sort pT
     std::vector<PseudoJet> outputList;
     outputList = sorted_by_pt(sequence.inclusive_jets(minJetPt));
@@ -81,16 +81,16 @@ std::vector<MyClusteredJet> jetCluster(std::vector<Track*> inputTracks, const Je
     std::vector<MyClusteredJet> outputJets;
     for(auto fastJet : outputList){
 
-      // extract tracks that were actually associated to jets 
+      // extract tracks that were actually associated to jets
       std::vector<PseudoJet> clusteredTracks = sequence.constituents(fastJet);
       std::vector<float> uIDs;
       for(auto track : clusteredTracks){
-        //std::cout << "ID: " << track.user_index() << std::endl; 
+        //std::cout << "ID: " << track.user_index() << std::endl;
         uIDs.push_back(track.user_index());
       }
-      
+
       MyClusteredJet outputJet;
-      outputJet.first  = fastJet; 
+      outputJet.first  = fastJet;
       outputJet.second = uIDs;
     }
 
@@ -133,15 +133,15 @@ std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float bin
      * Simple fixed bin algorithm. May split PV
      *
     // let bin width be 1 mm ?
-    TH1F * eventBinnedZpT = new TH1F("eventBinnedZpT", "", 600, -300, 300); // for 5mm use 120 bins 
+    TH1F * eventBinnedZpT = new TH1F("eventBinnedZpT", "", 600, -300, 300); // for 5mm use 120 bins
     for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
       float trackPt = static_cast<Track*>(*itTrack)->PT;
       float zPosition = static_cast<Track*>(*itTrack)->DZ;
       plots->binnedZpT->Fill(zPosition, trackPt);
-      eventBinnedZpT->Fill(zPosition, trackPt); 
-    } // end iteration over tracks 
+      eventBinnedZpT->Fill(zPosition, trackPt);
+    } // end iteration over tracks
 
-    // get bin with largest sum(pT) 
+    // get bin with largest sum(pT)
     Int_t binWithPtMax = eventBinnedZpT->GetMaximumBin();
 
     // get z range of bin with largest sum(pT)
@@ -156,16 +156,16 @@ std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float bin
 
     int nBins = (beamMaxZ-beamMinZ)/binWidth;
 
-    // define histograms for sliding window algorithm 
+    // define histograms for sliding window algorithm
     //std::vector<TH1F*> windowHists;
     //std::vector<TH1F*> nTrackHists;
-    std::vector< std::pair< TH1F*, TH1F*> > hists; 
+    std::vector< std::pair< TH1F*, TH1F*> > hists;
     for(int i=0; i< binWidth/slideStep; ++i){
 
       //windowHists.push_back( new TH1F( (std::to_string(i)+"window").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i) );
       //nTrackHists.push_back( new TH1F( (std::to_string(i)+"nTrack").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i) );
       TH1F * windowHist = new TH1F( (std::to_string(i)+"window").c_str(),  "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i );
-      TH1F * nTrackHist = new TH1F( (std::to_string(i)+"nTrack").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i ); 
+      TH1F * nTrackHist = new TH1F( (std::to_string(i)+"nTrack").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i );
       hists.push_back( std::make_pair(windowHist, nTrackHist) );
     }
 
@@ -173,14 +173,14 @@ std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float bin
     for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
       float trackPt   = dynamic_cast<Track*>(*itTrack)->PT;
       float zPosition = dynamic_cast<Track*>(*itTrack)->DZ;
-      //for(auto hist : windowHists)  hist->Fill(zPosition, trackPt); 
+      //for(auto hist : windowHists)  hist->Fill(zPosition, trackPt);
       for(auto histPair : hists){
         histPair.first->Fill(zPosition, trackPt);
-        histPair.second->Fill(zPosition, 1); // number of tracks, maybe could have used a TH2D?  
+        histPair.second->Fill(zPosition, 1); // number of tracks, maybe could have used a TH2D?
       }
     }
 
-    // Extract the largest sum(pT) 
+    // Extract the largest sum(pT)
     float previousMaxPt(0), zBinLow(0), zBinHigh(0), zBinWidth(0);
     int nTracks(0);
     //for(auto hist : windowHists){
@@ -202,7 +202,7 @@ std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float bin
     results["zMin"]   = zBinLow;
     results["zMax"]   = zBinHigh;
     results["zWidth"] = zBinWidth;
-    results["nTracks"] = nTracks; 
+    results["nTracks"] = nTracks;
 
     // delete histograms
     /********
@@ -227,7 +227,7 @@ std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float bin
 struct TestPlots
 {
 
-  TH1 *z0Res; 
+  TH1 *z0Res;
   TH2 *z0Res_pt;
   TH2 *z0Res_eta;
   TH3 *z0Res_pt_eta;
@@ -265,10 +265,10 @@ struct TestPlots
   TH2 *etaRes_eta;
   TH3 *etaRes_pt_eta;
 
-  TH2 *track_eta_phi_pt; 
-  TH2 *jet_eta_phi_pt; 
+  TH2 *track_eta_phi_pt;
+  TH2 *jet_eta_phi_pt;
 
-  TH1 *allJetPt; 
+  TH1 *allJetPt;
   TH1 *nJets;
   std::vector<TH1*> jetNPt;
   std::vector<TH1*> jetNEta;
@@ -276,7 +276,7 @@ struct TestPlots
 
   std::vector<TH1*> jetNTrackPt;
   std::vector<TH1*> jetNTrackMulti;
-  
+
 
   TH1 *nAssociatedJets;
   std::vector<TH1*> associatedJetNPt;
@@ -286,8 +286,8 @@ struct TestPlots
   std::vector<TH1*> associatedJetNTrackPt;
   std::vector<TH1*> associatedJetNTrackMulti;
 
-  TH1 *binnedZpT; 
-  TH1 *binnedZnVertices; 
+  TH1 *binnedZpT;
+  TH1 *binnedZnVertices;
 
   TH1 *misidPV;
   TH1 *misidPVLogx;
@@ -295,7 +295,7 @@ struct TestPlots
 
 };
 
-    
+
 
 
 //------------------------------------------------------------------------------
@@ -305,34 +305,34 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
 
   //TLegend *legend;
   //TPaveText *comment;
-  
+
   plots->misidPVLogx = result->AddHist1D("misidPVLogx", "Misidentified primary vertices", "Distance between PB and true PV [mm]", "Number of events", 200, 0, 400, 1, 0); // probably will be some overflow
   plots->misidPV = result->AddHist1D("misidPV", "Misidentified primary vertices", "Distance between PB and true PV [mm]", "Number of events", 200, 0, 200, 0, 0); // probably will be some overflow
-  
+
 
   // jet histograms
   for(int i=0; i<7; ++i){
     std::string i_str = std::to_string(i+1);
 
     plots->jetNPt.push_back(
-        result->AddHist1D( "jet"+i_str+"Pt", "", i_str+" Jet p_{T} [GeV]", "",  1000, 0, 1000, 0, 0) 
+        result->AddHist1D( "jet"+i_str+"Pt", "", i_str+" Jet p_{T} [GeV]", "",  1000, 0, 1000, 0, 0)
         );
     plots->jetNEta.push_back(
-        result->AddHist1D( "jet"+i_str+"Eta", "", i_str+" Jet #eta", "",  100, -2.5, 2.5) 
+        result->AddHist1D( "jet"+i_str+"Eta", "", i_str+" Jet #eta", "",  100, -2.5, 2.5)
         );
     plots->jetNPhi.push_back(
-        result->AddHist1D( "jet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI) 
+        result->AddHist1D( "jet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI)
         );
 
     // Jets associated to PV
     plots->associatedJetNPt.push_back(
-        result->AddHist1D( "associatedJet"+i_str+"Pt", "", i_str+" Jet p_{T} [GeV]", "",  1000, 0, 1000, 0, 0) 
+        result->AddHist1D( "associatedJet"+i_str+"Pt", "", i_str+" Jet p_{T} [GeV]", "",  1000, 0, 1000, 0, 0)
         );
     plots->associatedJetNEta.push_back(
-        result->AddHist1D( "associatedJet"+i_str+"Eta", "", i_str+" Jet #eta", "",  100, -2.5, 2.5) 
+        result->AddHist1D( "associatedJet"+i_str+"Eta", "", i_str+" Jet #eta", "",  100, -2.5, 2.5)
         );
     plots->associatedJetNPhi.push_back(
-        result->AddHist1D( "associatedJet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI) 
+        result->AddHist1D( "associatedJet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI)
         );
     // track-inside-jet properties
     plots->jetNTrackPt.push_back(
@@ -358,7 +358,7 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
   // z pt
   plots->binnedZpT = result->AddHist1D( "binnedZpT", "", "z position [mm]", "Sum(p_{T}) [GeV]", 600, -300, 300);
 
-  // Plots only used if track parameters are calculated 
+  // Plots only used if track parameters are calculated
   if(calculateTrackParameters){
 
     // Basic kinematics
@@ -372,18 +372,18 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
     plots->truthPt = result->AddHist1D(
         "truthPt", "pt", "Truth Track p_{T} [GeV]", "Number of Tracks",
         1000, 0, 1000, 0, 1);
-    float ptMinRaw(-200), ptMaxRaw(200); // wont be able to calculate pT resolutions for tracks with > 200 GeV 
+    float ptMinRaw(-200), ptMaxRaw(200); // wont be able to calculate pT resolutions for tracks with > 200 GeV
     plots->ptResRaw = result->AddHist1D(
         "ptResRaw", "pt resolution", "#deltap_{T} [GeV]", "Number of Tracks",
         1000, ptMinRaw, ptMaxRaw, 0, 0);
     plots->ptResRaw_pt = result->AddHist2D(
-        "ptResRaw_pt", "pt resolution", "#deltap_{T} [GeV]", "Truth p_{T} [GeV]", 
+        "ptResRaw_pt", "pt resolution", "#deltap_{T} [GeV]", "Truth p_{T} [GeV]",
         1000, ptMinRaw, ptMaxRaw, 200, 0, 2000);
     plots->ptResRaw_eta = result->AddHist2D(
-        "ptResRaw_eta", "pt resolution", "#deltap_{T} [GeV]", "Truth #eta", 
+        "ptResRaw_eta", "pt resolution", "#deltap_{T} [GeV]", "Truth #eta",
         1000, ptMinRaw, ptMaxRaw, 200, -2, 2);
     plots->ptResRaw_pt_eta = result->AddHist3D(
-        "ptResRaw_pt_eta", "pt resolution", "#deltap_{T} [GeV]", "Truth p_{T} [GeV]", "Truth #eta", 
+        "ptResRaw_pt_eta", "pt resolution", "#deltap_{T} [GeV]", "Truth p_{T} [GeV]", "Truth #eta",
         4000, ptMinRaw, ptMaxRaw, 200, 0, 200, 40, -2, 2); // lots of bins needed since pT resolution degreades over many decades
 
     float ptMin(-10), ptMax(10);
@@ -391,13 +391,13 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
         "ptRes", "pt resolution", "#deltap_{T}/p_{T}", "Number of Tracks",
         1000, ptMin, ptMax, 0, 0);
     plots->ptRes_pt = result->AddHist2D(
-        "ptRes_pt", "pt resolution", "#deltap_{T}/p_{T}", "Truth p_{T} [GeV]", 
+        "ptRes_pt", "pt resolution", "#deltap_{T}/p_{T}", "Truth p_{T} [GeV]",
         1000, ptMin, ptMax, 200, 0, 1000);
     plots->ptRes_eta = result->AddHist2D(
-        "ptRes_eta", "eta resolution", "#deltap_{T}/p_{T}", "Truth #eta", 
+        "ptRes_eta", "eta resolution", "#deltap_{T}/p_{T}", "Truth #eta",
         1000, ptMin, ptMax, 200, -2, 2);
     plots->ptRes_pt_eta = result->AddHist3D(
-        "ptRes_pt_eta", "pt resolution", "#deltap_{T}/p_{T}", "Truth p_{T} [GeV]", "Truth #eta", 
+        "ptRes_pt_eta", "pt resolution", "#deltap_{T}/p_{T}", "Truth p_{T} [GeV]", "Truth #eta",
         1000, ptMin, ptMax, 200, 0, 200, 100, -2, 2);
 
 
@@ -407,32 +407,32 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
         100, -4, 4);
     float etaMin(-0.001), etaMax(0.001);
     plots->etaRes = result->AddHist1D(
-        "etaRes", "eta resolution", "#delta#eta", "Number of Tracks", 
+        "etaRes", "eta resolution", "#delta#eta", "Number of Tracks",
         1000, etaMin, etaMax);
     plots->etaRes_eta = result->AddHist2D(
-        "etaRes_eta", "eta resolution", "#delta#eta", "Truth #eta", 
+        "etaRes_eta", "eta resolution", "#delta#eta", "Truth #eta",
         1000, etaMin, etaMax, 100, -2, 2);
     plots->etaRes_pt_eta = result->AddHist3D(
-        "etaRes_pt_eta", "pt resolution", "#deltap_{T}/p_{T}", "Truth p_{T} [GeV]", "Truth #eta", 
+        "etaRes_pt_eta", "pt resolution", "#deltap_{T}/p_{T}", "Truth p_{T} [GeV]", "Truth #eta",
         1000, etaMin, etaMax, 200, 0, 200, 100, -2, 2);
 
     // z0
-    float z0Min(-20), z0Max(20); // large range for low pT tracks needed 
+    float z0Min(-20), z0Max(20); // large range for low pT tracks needed
     plots->z0Res = result->AddHist1D(
-        "z0Res", "z0 resolution", "#deltaz_{0} [mm]", "Number of Tracks", 
+        "z0Res", "z0 resolution", "#deltaz_{0} [mm]", "Number of Tracks",
         1000, z0Min, z0Max);
     plots->z0Res_pt = result->AddHist2D(
-        "z0Res_pt", "z0 resolution", "#deltaz_{0} [mm]", "Truth p_{T} [GeV]", 
+        "z0Res_pt", "z0 resolution", "#deltaz_{0} [mm]", "Truth p_{T} [GeV]",
         1000, z0Min, z0Max, 200, 0, 2000);
     plots->z0Res_eta = result->AddHist2D(
-        "z0Res_eta", "z0 resolution", "#deltaz_{0} [mm]", "Truth #eta", 
+        "z0Res_eta", "z0 resolution", "#deltaz_{0} [mm]", "Truth #eta",
         1000, z0Min, z0Max, 200, -2, 2);
     plots->z0Res_pt_eta = result->AddHist3D(
-        "z0Res_pt_eta", "z0 resolution", "#deltaz_{0} [mm]", "Truth p_{T} [GeV]", "Truth #eta", 
+        "z0Res_pt_eta", "z0 resolution", "#deltaz_{0} [mm]", "Truth p_{T} [GeV]", "Truth #eta",
         2000, z0Min, z0Max, 200, 0, 200, 100, -2, 2); // particularly tricky, lots of bins
 
 
-    // d0 
+    // d0
     float d0Min(-50), d0Max(50);
     plots->d0Res = result->AddHist1D(
         "d0Res", "d0 resolution", "#deltad_{0} [mm]", "Number of Tracks",
@@ -444,7 +444,7 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
         "d0Res_eta", "d0 resolution", "#deltad_{0} [mm]", "Truth #eta",
         1000, d0Min, d0Max, 200, -2, 2);
     plots->d0Res_pt_eta = result->AddHist3D(
-        "d0Res_pt_eta", "d0 resolution", "#deltad_{0} [mm]", "Truth p_{T} [GeV]", "Truth #eta", 
+        "d0Res_pt_eta", "d0 resolution", "#deltad_{0} [mm]", "Truth p_{T} [GeV]", "Truth #eta",
         1000, d0Min, d0Max, 200, 0, 200, 100, -2, 2);
 
     // cot(theta)
@@ -459,7 +459,7 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
         "CtgThetaRes_eta", "CtgThetaRes_eta", "#deltacot(#theta)", "Truth #eta",
         1000, CtgThMin, CtgThMax, 200, -2, 2);
     plots->CtgThetaRes_pt_eta = result->AddHist3D(
-        "CtgThetaRes_pt_eta", "CtgTheta resolution", "#deltacot(#theta)", "Truth p_{T} [GeV]", "Truth #eta", 
+        "CtgThetaRes_pt_eta", "CtgTheta resolution", "#deltacot(#theta)", "Truth p_{T} [GeV]", "Truth #eta",
         1000, CtgThMin, CtgThMax, 200, 0, 200, 100, -2, 2);
 
     // phi
@@ -474,7 +474,7 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
         "phiRes_eta", "phi resolution", "#delta#phi", "Truth #eta",
         1000, phiMin, phiMax, 200, -2, 2);
     plots->phiRes_pt_eta = result->AddHist3D(
-        "phiRes_pt_eta", "phi resolution", "#delta#phi", "Truth p_{T} [GeV]", "Truth #eta", 
+        "phiRes_pt_eta", "phi resolution", "#delta#phi", "Truth p_{T} [GeV]", "Truth #eta",
         1000, phiMin, phiMax, 200, 0, 200, 100, -2, 2);
 
     // track
@@ -498,13 +498,13 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
   for(Int_t j=0; j<branchTruthTrack->GetEntriesFast(); ++j){
     if(DEBUG) std::cout << "track j " << j << std::endl;
     truthTrack      = (Track*) branchTruthTrack->At(j);
-    truthParticle   = (GenParticle*) truthTrack->Particle.GetObject(); 
+    truthParticle   = (GenParticle*) truthTrack->Particle.GetObject();
     if(DEBUG) std::cout << "Extract particle info" << std::endl;
-    if( fabs(truthTrack->Eta) > 2.0 ) continue; // remove tracks with |eta| > 2.0 
+    if( fabs(truthTrack->Eta) > 2.0 ) continue; // remove tracks with |eta| > 2.0
     if( truthTrack->PT < 1.0) continue;
 
     // Check is the truth track is from pileup
-    if(truthParticle == NULL) continue; 
+    if(truthParticle == NULL) continue;
 
     // Extract the UID of the particle
     UInt_t truthParticleUID = truthParticle->GetUniqueID();
@@ -512,9 +512,9 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
     // Loop over all tracks in event
     for(Int_t i=0; i<branchTrack->GetEntriesFast(); ++i)
     {
-      if(DEBUG) std::cout << "track i: " << i << " out of " << branchTrack->GetEntriesFast() << std::endl; 
+      if(DEBUG) std::cout << "track i: " << i << " out of " << branchTrack->GetEntriesFast() << std::endl;
       track = (Track*) branchTrack->At(i);
-      particle = (GenParticle*) track->Particle.GetObject(); 
+      particle = (GenParticle*) track->Particle.GetObject();
       if(DEBUG) std::cout << "extracted track and particle" << std::endl;
 
       // Check is the reco track is from pileup
@@ -525,10 +525,10 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
       if(DEBUG) std::cout << "truthParticleID: "  << truthParticle->GetUniqueID() << std::endl;
       if(DEBUG) std::cout << "particleID: "  << particle->GetUniqueID() << std::endl;
 
-      // Match the track with the corresponding truth track 
+      // Match the track with the corresponding truth track
       if(truthParticleUID == particleUID){
         if(DEBUG) std::cout << "Matched track to particle" << std::endl;
-        double z0Resolution = track->DZ - truthTrack->DZ; 
+        double z0Resolution = track->DZ - truthTrack->DZ;
         double ptResolution = track->PT - truthTrack->PT;
         double d0Resolution = track->D0 - truthTrack->D0;
         double etaResolution = track->Eta - truthTrack->Eta;
@@ -537,7 +537,7 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
 
         float truthPt = truthTrack->PT;
         float truthEta = truthTrack->Eta;
-        
+
         plots->pt->Fill(track->PT);
         plots->logpt->Fill(track->PT);
         plots->truthPt->Fill(truthTrack->PT);
@@ -587,7 +587,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
 {
 
 
-  // Define branches 
+  // Define branches
   TClonesArray *branchParticle   = treeReader->UseBranch("Particle");
   TClonesArray *branchTruthTrack = treeReader->UseBranch("TruthTrack");
   TClonesArray *branchTrack      = treeReader->UseBranch("Track");
@@ -613,10 +613,10 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     if( entry % 100==0 ) std::cout << "Event " << entry << " out of " << allEntries << std::endl;
 
     /////////////////////////////////////////
-    // Calculate track parameter resolutions  
+    // Calculate track parameter resolutions
     /////////////////////////////////////////
-    
-    if(calculateTrackParameters){ // turn off if pileup is ON (too many tracks!) 
+
+    if(calculateTrackParameters){ // turn off if pileup is ON (too many tracks!)
       calculateResolutions(branchTruthTrack, branchTrack, plots, DEBUG);
     }
 
@@ -641,7 +641,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     ///////////////////////////////////
     // Find the location of the real PV
     ///////////////////////////////////
-    float vertexZ(0.0); 
+    float vertexZ(0.0);
     for(int i=0; i<branchVertex->GetEntriesFast(); ++i){
       Vertex * vertex = (Vertex*) branchVertex->At(i);
       if(vertex->IsPU) continue;
@@ -651,15 +651,15 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
       }
     }
 
-    // distance between PB (centre) and PV 
+    // distance between PB (centre) and PV
     //std::cout << "True vertex position: " << vertexZ << " PB  << std::endl;
     //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]\t" << fabs(vertexZ - (zMax-zMin)/2) << std::endl;
 
-    
+
     // Check to see that real PV is in the PB
     if(vertexZ > zMin && vertexZ < zMax){
       nEventsCorrectlyIdentifiedVertex++;
-      //std::cout << "Vertex is inside PB" << std::endl; 
+      //std::cout << "Vertex is inside PB" << std::endl;
       //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]" << std::endl;
     }
     else{
@@ -669,7 +669,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
       plots->misidPVLogx->Fill( fabs(vertexZ - (zMax+zMin)/2) );
       //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]" << std::endl;
     }
-    
+
     ///////////////////////////////////
     // Select tracks which belong to the PB
     ///////////////////////////////////
@@ -686,20 +686,20 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     ///////////////////////////
     // cluster Tracks into Jet
     ///////////////////////////
-    
+
     // Jets made from tracks associated to the PB
     std::vector<MyClusteredJet> associatedJets = jetCluster(tracksAssociatedToPB, definition, minJetPt, minTrackPt);
 
     // Cluster of truth tracks (test: should be the same as input collection)
     std::vector<MyClusteredJet> nominalTruthJets = jetCluster(branchTruthTrack, definition, minJetPt, minTrackPt);
-    
+
     // Recluster of reco tracks (test: should be the same as the input collection)
     std::vector<MyClusteredJet> nominalJets = jetCluster(branchTrack, definition, minJetPt, minTrackPt);
 
 
     // Fill plots with track jet properties
     int nJets = branchTrackJet->GetEntriesFast();
-    plots->nJets->Fill( nJets ); 
+    plots->nJets->Fill( nJets );
     for(int i=0; i<nJets && i<7; ++i){
       Jet * jet = (Jet*) branchTrackJet->At(i);
       plots->jetNPt.at(i)->Fill( jet->PT );
@@ -725,6 +725,19 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
       plots->associatedJetNPt.at(i)->Fill( associatedJet.pt() );
       plots->associatedJetNEta.at(i)->Fill( associatedJet.eta() );
       plots->associatedJetNPhi.at(i)->Fill( associatedJet.phi() );
+
+      // use unique ID to match the track
+      std::vector<float> associatedTrackIDs = associatedJets.at(i).second;
+      int nTracks(0);
+      for(auto itTrack=branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+        Track* track = dynamic_cast<Track*>(*itTrack);
+        for(auto trackID : associatedTrackIDs){
+          if(track->GetUniqueID() == trackID){
+            nTracks++;
+            plots->associatedJetNTrackPt.at(i)->Fill(track->PT);
+          }
+        }
+      }
     }
     plots->nAssociatedJets->Fill( associatedJets.size() );
 
@@ -732,13 +745,13 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
 
     /*********************
     ///////////////////////////////////
-    // Loop over all jets and find which tracks are associated to the PB 
+    // Loop over all jets and find which tracks are associated to the PB
     // WJF: idea was to find the jets with tracks that came from the PB
     // This was almost all jets, as there is no "directional" information
     ///////////////////////////////////
 
     std::vector<Jet*> jetsFromPV;
-    std::vector<std::pair<int, int>> jetsFromPVProperties ; 
+    std::vector<std::pair<int, int>> jetsFromPVProperties ;
     // Loop over jets (or tracks), select tracks with dz inside the window with the largets pT
     for(int i = 0; i < branchTrackJet->GetEntriesFast(); ++i){
       jet = (Jet*) branchTrackJet->At(i);
@@ -774,7 +787,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     for(int i=0; i<jetsFromPV.size() && i<7; ++i){
       //std::cout << "jet with " << jetsFromPVProperties.at(i).first << " constituents, and " << jetsFromPVProperties.at(i).second << " associated to PV. Fraction: " << static_cast<float>(jetsFromPVProperties.at(i).second)/static_cast<float>(jetsFromPVProperties.at(i).first) << std::endl;
       plots->associatedJetNPt.at(i)->Fill(jetsFromPV.at(i)->PT);
-      
+
     }
     *******************************/
 
@@ -782,7 +795,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
   } // end loop over entries
 
   std::cout << "Of " << allEntries << " events, " << nEventsCorrectlyIdentifiedVertex << " had the vertex correctly identified, i.e. " << static_cast<float>(nEventsCorrectlyIdentifiedVertex)/static_cast<float>(allEntries) << " of events."  << std::endl;
-} // end AnalyseEvents 
+} // end AnalyseEvents
 
 
 
@@ -805,18 +818,18 @@ int main(int argc, char *argv[])
 
   gROOT->SetBatch(1);
   bool DEBUG = false;
-  bool calculateTrackParameters = true; 
-  //bool calculateTrackParameters = false; 
-  
-  // configurable(>) parameters 
-  float minJetPt = 5.0; 
+  bool calculateTrackParameters = false;
+  //bool calculateTrackParameters = false;
+
+  // configurable(>) parameters
+  float minJetPt = 5.0;
   float minTrackPt = 0.0;
 
-  TestClass aTest;
-  aTest.hello();
+  //TestClass aTest;
+  //aTest.hello();
 
   std::string appName = "trackParameters";
-  std::string inputFile = argv[1]; // doesn't complain about cast? Maybe compiler can deal with it :p 
+  std::string inputFile = argv[1]; // doesn't complain about cast? Maybe compiler can deal with it :p
   std::string outputFile = argv[2];
 
   if(argc < 3)
@@ -829,7 +842,7 @@ int main(int argc, char *argv[])
     return 1;
   }
 
-  // control analysis 
+  // control analysis
   TChain *chain = new TChain("Delphes");
   std::cout << "Adding " << inputFile << " to chain" << std::endl;
   chain->Add(inputFile.c_str());
@@ -854,4 +867,3 @@ int main(int argc, char *argv[])
 
   return 0;
 }
-
