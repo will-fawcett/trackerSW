@@ -15,6 +15,7 @@ from Colours import Colours
 from functions import appendSlash, getReverseCumulativeHisto  
 
 resultsPath = '/atlas/data4/userdata/wfawcett/delphes/results/'
+resultsPath = '/Users/Will/Documents/fcc/delphes/results/'
 
 def main(verbose):
 
