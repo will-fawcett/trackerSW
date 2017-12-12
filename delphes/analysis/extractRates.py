@@ -16,6 +16,7 @@ from functions import appendSlash, getReverseCumulativeHisto
 
 resultsPath = '/atlas/data4/userdata/wfawcett/delphes/results/'
 resultsPath = '/Users/Will/Documents/fcc/delphes/results/'
+nEvents = 1000.0
 
 def main(verbose):
 
@@ -37,23 +38,46 @@ def main(verbose):
         mb_nominal = ifile_minbias.Get(nominalName)
         mb_PUsupp  = ifile_minbias.Get(suppressedName)
 
-        # get cumulative histograms for minbias 
-        cmb_nominal = getReverseCumulativeHisto(mb_nominal)
-        cmb_PUsupp  = getReverseCumulativeHisto(mb_PUsupp)
 
         # get jet pT histos for ttbar
         tt_nominal = ifile_ttbar.Get(nominalName)
         tt_PUsupp  = ifile_ttbar.Get(suppressedName)
 
+        tt_nominal.GetXaxis().SetRangeUser(0,100)
+        tt_nominal.Draw()
+        tt_PUsupp.SetLineColor(kRed)
+        tt_PUsupp.Draw('same')
+        can.SaveAs('test2.pdf')
+        #break
+
+        # get cumulative histograms for minbias 
+        cmb_nominal = getReverseCumulativeHisto(mb_nominal)
+        cmb_PUsupp  = getReverseCumulativeHisto(mb_PUsupp)
+
         # get cumulative histograms for ttbar
         ctt_nominal = getReverseCumulativeHisto(tt_nominal)
         ctt_PUsupp  = getReverseCumulativeHisto(tt_PUsupp)
 
-        # now draw
+        # Style
         xaxis = cmb_nominal.GetXaxis()
+        yaxis = cmb_nominal.GetYaxis()
+        yaxis.SetTitle('Relative Rate')
+        setStyle(cmb_nominal, colours.red)
+        setStyle(cmb_PUsupp, colours.blue)
+        setStyle(ctt_PUsupp, colours.orange)
+
         xaxis.SetRangeUser(0, 100)
         cmb_nominal.Draw()
         cmb_PUsupp.Draw('same')
+        ctt_PUsupp.Draw('same')
+        
+        # Add a legend
+        predefined = [0.6, 0.7, 0.9, 0.9]
+        leg = prepareLegend('topRight', predefined)
+        leg.AddEntry(cmb_nominal, 'All tracks (minbias)', 'lp')
+        leg.AddEntry(cmb_PUsupp, 'Tracks from PB (minbias)', 'lp')
+        leg.AddEntry(ctt_PUsupp, 'Tracks from PB (ttbar)' , 'lp')
+        leg.Draw()
 
         can.SaveAs('test.pdf')
         break
@@ -61,6 +85,7 @@ def main(verbose):
 def setStyle(hist, c):
     hist.SetLineColor(c)
     hist.SetMarkerColor(c)
+    hist.Scale(1.0/nEvents)
 
 
 if __name__ == "__main__":

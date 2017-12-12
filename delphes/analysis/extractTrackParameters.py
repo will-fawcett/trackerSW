@@ -165,7 +165,7 @@ def extractResolution(plot3D, ptRange, etaRange, parameterName, outputDir):
 
 
 #___________________________________________________________________________
-def prepareLegend(position):
+def prepareLegend(position, predefined=None):
 
     bottomLeft  = [0.15, 0.1, 0.35, 0.3]
     bottomRight = [0.7, 0.1, 0.9, 0.3]
@@ -180,6 +180,9 @@ def prepareLegend(position):
         myPosition = bottomLeft
     if (position == "bottomRight"):
         myPosition = bottomRight
+
+    if predefined:
+        myPosition = predefined
 
     return TLegend(myPosition[0], myPosition[1], myPosition[2], myPosition[3])
 
