@@ -31,87 +31,90 @@ USER     = os.environ['USER']
 #____________________________________________________________________________
 def main():
 
-    nEvents    = 1000
-    randomSeed = 62
-    pileup     = 200 # 0 | 200 | 1000
-    pileup     = 0 # 0 | 200 | 1000
+    nEvents    = 10000
+    randomSeed = 80
+    #pileup     = 0 # 0 | 200 | 1000
+    #pileup     = 1000 # 0 | 200 | 1000
 
-    process = 'pileup' # maybe don't need this? 
-    process = 'MinBias' # MinBias | ttbar 
-    process = 'ttbar' # MinBias | ttbar 
+    #process = 'pileup' # maybe don't need this? 
+    #process = 'MinBias' # MinBias | ttbar 
+    #process = 'ttbar' # MinBias | ttbar 
 
-    if not process.lower() in ['ttbar', 'minbias']:
-        print 'ERROR: process {0} not defined'.format(process)
-        sys.exit()
+    for process in ['MinBias', 'ttbar']:
+        for pileup in [200, 1000]:
 
-    # estimate job time based on nevents 
-    jobDemand = nEvents*(pileup+1)
-    print 'Job demands: Nevents {0}\t pileup {1}\t demand\t{2}'.format(nEvents, pileup, jobDemand)
+            if not process.lower() in ['ttbar', 'minbias']:
+                print 'ERROR: process {0} not defined'.format(process)
+                sys.exit()
 
-    # Identifier for this submission
-    identifier = '{0}_mu{1}_s{2}_n{3}'.format(process, pileup, randomSeed, nEvents)
+            # estimate job time based on nevents 
+            jobDemand = nEvents*(pileup+1)
+            print 'Job demands: Nevents {0}\t pileup {1}\t demand\t{2}'.format(nEvents, pileup, jobDemand)
 
-    # Create directory for all batch scripts
-    jobDirName = JOB_DIR+'{0}_{1}/'.format(CAMPAIGN, identifier)
-    checkDir(jobDirName)
+            # Identifier for this submission
+            identifier = '{0}_mu{1}_s{2}_n{3}'.format(process, pileup, randomSeed, nEvents)
 
-    # Create Pythia8 card
-    pythiaCardName = writePythia8Card(jobDirName, nEvents, randomSeed, process)
+            # Create directory for all batch scripts
+            jobDirName = JOB_DIR+'{0}_{1}/'.format(CAMPAIGN, identifier)
+            checkDir(jobDirName)
 
-    # Write batch submission script 
-    outputSampleDir = OUTPUT_DIR+'{0}/'.format(process)
-    submission = open(jobDirName+'submit.sh', 'w')
-    writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup)
+            # Create Pythia8 card
+            pythiaCardName = writePythia8Card(jobDirName, nEvents, randomSeed, process)
 
-    # change to jobDir
-    print 'cd', jobDirName
-    os.chdir(jobDirName)
-    
-    # select job queue 
-    if isLXplus:
-        print 'LXplus environment detected'
-        queue = '1nh'
-        if jobDemand > 3000:
-            queue = '8nh'
-        if jobDemand > 25000: 
-            queue = '1nd'
-        if jobDemand > 10**6:
-            queue == '2nd'
-            print 'Greater than 1M events ... are you sure you want to do this?!'
-            yesno = raw_input("y/n? ")
-            if yesno != "y": 
-                sys.exit("Exiting, try again with a new name")
-    elif isGeneva:
-        print 'Geneva environment detected'
-        if jobDemand > 0 and  jobDemand < 30000:
-            queue = 'veryshort' 
-        elif jobDemand > 30000 and jobDemand < 100000:
-            queue = 'short' 
-        elif jobDemand > 100000 and jobDemand < 300000:
-            queue = 'medium'
-        elif jobDemand > 300000 and jobDemand < 10**7:
-            queue = 'long'
-        else:
-            queue = 'production' 
-        
-    else:
-        print 'Not using either Geneva or Lxplus cluster. Exit'
-        sys.exit()
+            # Write batch submission script 
+            outputSampleDir = OUTPUT_DIR+'{0}/'.format(process)
+            submission = open(jobDirName+'submit.sh', 'w')
+            writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup)
 
-    # Create the submisson command
-    batchName = 'py8_{0}'.format(identifier) 
-    if isLXplus:
-        command = 'bsub -q {0} -J {1} < submit.sh'.format(queue, batchName)
-    if isGeneva:
-        command = 'qsub -q {0} -N {1} -e {2} -o {3} submit.sh'.format(queue, batchName, jobDirName+batchName+'.err', jobDirName+batchName+'.out')
-    
-    # Add submit command to script
-    submission.write('#Sumbitted with command: {0}\n'.format(command))
-    submission.close()
+            # change to jobDir
+            print 'cd', jobDirName
+            os.chdir(jobDirName)
+            
+            # select job queue 
+            if isLXplus:
+                print 'LXplus environment detected'
+                queue = '1nh'
+                if jobDemand > 3000:
+                    queue = '8nh'
+                if jobDemand > 25000: 
+                    queue = '1nd'
+                if jobDemand > 10**6:
+                    queue == '2nd'
+                    print 'Greater than 1M events ... are you sure you want to do this?!'
+                    yesno = raw_input("y/n? ")
+                    if yesno != "y": 
+                        sys.exit("Exiting, try again with a new name")
+            elif isGeneva:
+                print 'Geneva environment detected'
+                if jobDemand > 0 and  jobDemand < 30000:
+                    queue = 'veryshort' 
+                elif jobDemand > 30000 and jobDemand < 100000:
+                    queue = 'short' 
+                elif jobDemand > 100000 and jobDemand < 300000:
+                    queue = 'medium'
+                elif jobDemand > 300000 and jobDemand < 10**7:
+                    queue = 'long'
+                else:
+                    queue = 'production' 
+                
+            else:
+                print 'Not using either Geneva or Lxplus cluster. Exit'
+                sys.exit()
 
-    # Submit the batch job
-    print command
-    os.system(command)
+            # Create the submisson command
+            batchName = 'py8_{0}'.format(identifier) 
+            if isLXplus:
+                command = 'bsub -q {0} -J {1} < submit.sh'.format(queue, batchName)
+            if isGeneva:
+                command = 'qsub -q {0} -N {1} -e {2} -o {3} submit.sh'.format(queue, batchName, jobDirName+batchName+'.err', jobDirName+batchName+'.out')
+            
+            # Add submit command to script
+            submission.write('#Sumbitted with command: {0}\n'.format(command))
+            submission.close()
+
+            # Submit the batch job
+            print command
+            os.system(command)
 
     '''
     8nm (8 minutes)
@@ -140,7 +143,10 @@ def writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardNam
     if pileup == 0:
         submission.write('./DelphesPythia8 cards/triplet/FCChh.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
     elif pileup == 200:
-        submission.write('./DelphesPythia8 cards/triplet/FCChh_PileUp.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
+        submission.write('./DelphesPythia8 cards/triplet/FCChh_PileUp200.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
+    elif pileup == 1000:
+        submission.write('./DelphesPythia8 cards/triplet/FCChh_PileUp1000.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
+
     
 
 

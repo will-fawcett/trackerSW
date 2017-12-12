@@ -7,6 +7,9 @@ It is also shown how to loop over the jet constituents.
 Re-tooled to make plots of track parameters 
 */
 
+#include "modules/TestClass.h"
+//#include "modules/ClusteredJet.h"
+
 // Delphes classes
 #include "classes/DelphesClasses.h"
 #include "external/ExRootAnalysis/ExRootTreeReader.h"
@@ -39,11 +42,68 @@ Re-tooled to make plots of track parameters
 
 using namespace fastjet;
 
+//------------------------------------------------------------------------------
 
 std::string PrintTLorentz(TLorentzVector &v){
   std::ostringstream s;
   s <<  " (" << v.Pt() << ", " << v.Eta() << ", " << v.Phi() << ", " << v.M() << ")"; 
   return s.str();
+}
+
+//------------------------------------------------------------------------------
+
+
+using MyClusteredJet = std::pair<PseudoJet, std::vector<float> >;
+
+// Use FastJetFinder inside delphes to cluster jets 
+std::vector<MyClusteredJet> jetCluster(std::vector<Track*> inputTracks, const JetDefinition* definition, const float minJetPt, const float minTrackPt){
+
+    // Convert tracks to PseudoJets, dress with unique ID 
+    std::vector<PseudoJet> inputList;
+    std::map<int, Track*> inputTrackMap;
+    for(auto track : inputTracks){
+      TLorentzVector momentum = track->P4();
+      if(momentum.Pt() < minTrackPt) continue; // only add tracks above a certain jet pT thresold 
+      PseudoJet jet = PseudoJet(momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E());
+      jet.set_user_index(track->GetUniqueID()); // add info to the jet 
+      inputList.push_back(jet);
+      inputTrackMap[track->GetUniqueID()] = track;
+    }
+
+    // run clustering 
+    ClusterSequence sequence(inputList, *definition);
+    
+    // sort pT
+    std::vector<PseudoJet> outputList;
+    outputList = sorted_by_pt(sequence.inclusive_jets(minJetPt));
+
+    // loop over clustered and sorted PseudoJets
+    std::vector<MyClusteredJet> outputJets;
+    for(auto fastJet : outputList){
+
+      // extract tracks that were actually associated to jets 
+      std::vector<PseudoJet> clusteredTracks = sequence.constituents(fastJet);
+      std::vector<float> uIDs;
+      for(auto track : clusteredTracks){
+        //std::cout << "ID: " << track.user_index() << std::endl; 
+        uIDs.push_back(track.user_index());
+      }
+      
+      MyClusteredJet outputJet;
+      outputJet.first  = fastJet; 
+      outputJet.second = uIDs;
+    }
+
+    return outputJets;
+}
+
+std::vector<MyClusteredJet> jetCluster(TClonesArray* branchTrack, const JetDefinition* definition, const float minJetPt, const float minTrackPt){
+
+  std::vector<Track*> outputTracks;
+  for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+    outputTracks.push_back( dynamic_cast<Track*>(*itTrack) );
+  }
+  return jetCluster(outputTracks, definition, minJetPt, minTrackPt);
 }
 
 
@@ -64,6 +124,7 @@ inline float calculatDeltaPhi(float phi1, float phi2){
   return acos( cos( phi1 - phi2 ));
 }
 
+//------------------------------------------------------------------------------
 
 std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float binWidth, float slideStep, int beamMinZ, int beamMaxZ){
 
@@ -96,31 +157,43 @@ std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float bin
     int nBins = (beamMaxZ-beamMinZ)/binWidth;
 
     // define histograms for sliding window algorithm 
-    std::vector<TH1F*> windowHists;
+    //std::vector<TH1F*> windowHists;
+    //std::vector<TH1F*> nTrackHists;
+    std::vector< std::pair< TH1F*, TH1F*> > hists; 
     for(int i=0; i< binWidth/slideStep; ++i){
-      windowHists.push_back( new TH1F( (std::to_string(i)+"hist").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i) );
+
+      //windowHists.push_back( new TH1F( (std::to_string(i)+"window").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i) );
+      //nTrackHists.push_back( new TH1F( (std::to_string(i)+"nTrack").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i) );
+      TH1F * windowHist = new TH1F( (std::to_string(i)+"window").c_str(),  "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i );
+      TH1F * nTrackHist = new TH1F( (std::to_string(i)+"nTrack").c_str(), "", nBins, beamMinZ+slideStep*i, beamMaxZ+slideStep*i ); 
+      hists.push_back( std::make_pair(windowHist, nTrackHist) );
     }
 
     // loop over all tracks, fill histograms
     for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
-      float trackPt   = static_cast<Track*>(*itTrack)->PT;
-      float zPosition = static_cast<Track*>(*itTrack)->DZ;
-      for(auto hist : windowHists){
-        hist->Fill(zPosition, trackPt); 
+      float trackPt   = dynamic_cast<Track*>(*itTrack)->PT;
+      float zPosition = dynamic_cast<Track*>(*itTrack)->DZ;
+      //for(auto hist : windowHists)  hist->Fill(zPosition, trackPt); 
+      for(auto histPair : hists){
+        histPair.first->Fill(zPosition, trackPt);
+        histPair.second->Fill(zPosition, 1); // number of tracks, maybe could have used a TH2D?  
       }
     }
 
     // Extract the largest sum(pT) 
     float previousMaxPt(0), zBinLow(0), zBinHigh(0), zBinWidth(0);
-    for(auto hist : windowHists){
-      Int_t binWithPtMax = hist->GetMaximumBin();
-      TAxis * xaxis = static_cast<TAxis*>(hist->GetXaxis());
-      float maxPt = hist->GetBinContent(binWithPtMax);
+    int nTracks(0);
+    //for(auto hist : windowHists){
+    for(auto histPair : hists){
+      Int_t binWithPtMax = histPair.first->GetMaximumBin();
+      TAxis * xaxis = static_cast<TAxis*>(histPair.first->GetXaxis());
+      float maxPt = histPair.first->GetBinContent(binWithPtMax);
       if(maxPt > previousMaxPt){
         previousMaxPt = maxPt;
         zBinLow   = xaxis->GetBinLowEdge(binWithPtMax);
         zBinHigh  = xaxis->GetBinUpEdge(binWithPtMax);
         zBinWidth = xaxis->GetBinWidth(binWithPtMax);
+        nTracks = histPair.second->GetBinContent(binWithPtMax);
       }
     }
 
@@ -129,12 +202,20 @@ std::map<std::string, float> findPrimaryBin(TClonesArray* branchTrack, float bin
     results["zMin"]   = zBinLow;
     results["zMax"]   = zBinHigh;
     results["zWidth"] = zBinWidth;
+    results["nTracks"] = nTracks; 
 
     // delete histograms
+    /********
     for(auto hist : windowHists){
       delete hist;
     }
     windowHists.clear();
+    ********/
+    for(auto histPair : hists){
+      delete histPair.first;
+      delete histPair.second;
+    }
+    hists.clear();
 
     return results;
 
@@ -167,6 +248,7 @@ struct TestPlots
   TH3 *phiRes_pt_eta;
 
   TH1 *pt;
+  TH1 *logpt;
   TH1 *truthPt;
   TH1 *ptRes;
   TH2 *ptRes_pt;
@@ -192,10 +274,17 @@ struct TestPlots
   std::vector<TH1*> jetNEta;
   std::vector<TH1*> jetNPhi;
 
+  std::vector<TH1*> jetNTrackPt;
+  std::vector<TH1*> jetNTrackMulti;
+  
+
   TH1 *nAssociatedJets;
   std::vector<TH1*> associatedJetNPt;
   std::vector<TH1*> associatedJetNEta;
   std::vector<TH1*> associatedJetNPhi;
+
+  std::vector<TH1*> associatedJetNTrackPt;
+  std::vector<TH1*> associatedJetNTrackMulti;
 
   TH1 *binnedZpT; 
   TH1 *binnedZnVertices; 
@@ -223,30 +312,48 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
 
   // jet histograms
   for(int i=0; i<7; ++i){
+    std::string i_str = std::to_string(i+1);
+
     plots->jetNPt.push_back(
-        result->AddHist1D( ("jet"+std::to_string(i+1)+"Pt").c_str(), "", (std::to_string(i+1)+" Jet p_{T} [GeV]").c_str(), "",  1000, 0, 1000, 0, 0) 
+        result->AddHist1D( "jet"+i_str+"Pt", "", i_str+" Jet p_{T} [GeV]", "",  1000, 0, 1000, 0, 0) 
         );
     plots->jetNEta.push_back(
-        result->AddHist1D( ("jet"+std::to_string(i+1)+"Eta").c_str(), "", (std::to_string(i+1)+" Jet #eta").c_str(), "",  100, -2.5, 2.5) 
+        result->AddHist1D( "jet"+i_str+"Eta", "", i_str+" Jet #eta", "",  100, -2.5, 2.5) 
         );
     plots->jetNPhi.push_back(
-        result->AddHist1D( ("jet"+std::to_string(i+1)+"Phi").c_str(), "", (std::to_string(i+1)+" Jet #phi").c_str(), "",  100, -M_PI, M_PI) 
+        result->AddHist1D( "jet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI) 
         );
+
     // Jets associated to PV
     plots->associatedJetNPt.push_back(
-        result->AddHist1D( ("associatedJet"+std::to_string(i+1)+"Pt").c_str(), "", (std::to_string(i+1)+" Jet p_{T} [GeV]").c_str(), "",  1000, 0, 1000, 0, 0) 
+        result->AddHist1D( "associatedJet"+i_str+"Pt", "", i_str+" Jet p_{T} [GeV]", "",  1000, 0, 1000, 0, 0) 
         );
     plots->associatedJetNEta.push_back(
-        result->AddHist1D( ("associatedJet"+std::to_string(i+1)+"Eta").c_str(), "", (std::to_string(i+1)+" Jet #eta").c_str(), "",  100, -2.5, 2.5) 
+        result->AddHist1D( "associatedJet"+i_str+"Eta", "", i_str+" Jet #eta", "",  100, -2.5, 2.5) 
         );
     plots->associatedJetNPhi.push_back(
-        result->AddHist1D( ("associatedJet"+std::to_string(i+1)+"Phi").c_str(), "", (std::to_string(i+1)+" Jet #phi").c_str(), "",  100, -M_PI, M_PI) 
+        result->AddHist1D( "associatedJet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI) 
+        );
+    // track-inside-jet properties
+    plots->jetNTrackPt.push_back(
+      result->AddHist1D( "jet"+i_str+"TrackPt", "", "p_{T} of tracks inside jet "+i_str+" [GeV]", "", 100, 0, 100)
+        );
+    plots->jetNTrackMulti.push_back(
+      result->AddHist1D( "jet"+i_str+"TrackMulti", "", "Multiplicity of tracks inside jet "+i_str, "", 100, 0, 100)
+        );
+    // track-inside-jet properties for associated jets
+    plots->associatedJetNTrackPt.push_back(
+      result->AddHist1D( "associatedJet"+i_str+"TrackPt", "", "p_{T} of tracks inside jet "+i_str+" [GeV]", "", 100, 0, 100)
+        );
+    plots->associatedJetNTrackMulti.push_back(
+      result->AddHist1D( "associatedJet"+i_str+"TrackMulti", "", "Multiplicity of tracks inside jet "+i_str, "", 100, 0, 100)
         );
 
   }
-  plots->nJets = result->AddHist1D( "nJets", "nJets", "Number of Jets", "", 100, 0, 100, 0, 0 );
+
+  plots->nJets           = result->AddHist1D( "nJets", "nJets", "Number of Jets", "", 100, 0, 100, 0, 0 );
   plots->nAssociatedJets = result->AddHist1D( "nAssociatedJets", "nAssociatedJets", "Number of Jets", "", 100, 0, 100, 0, 0 );
-  plots->allJetPt = result->AddHist1D("allJetPt", "", "Jet p_{T} (all jets) [GeV]", "", 100, 0, 1000);
+  plots->allJetPt        = result->AddHist1D("allJetPt", "", "Jet p_{T} (all jets) [GeV]", "", 100, 0, 1000);
 
   // z pt
   plots->binnedZpT = result->AddHist1D( "binnedZpT", "", "z position [mm]", "Sum(p_{T}) [GeV]", 600, -300, 300);
@@ -258,10 +365,13 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
     // pt
     plots->pt = result->AddHist1D(
         "pt", "pt", "Track p_{T} [GeV]", "Number of Tracks",
-        1000, 0, 2000, 0, 1);
+        1000, 0, 500, 0, 1);
+    plots->logpt = result->AddHist1D(
+        "logpt", "logpt", "Track p_{T} [GeV]", "Number of Tracks",
+        1000, 0, 500, 1, 1);
     plots->truthPt = result->AddHist1D(
         "truthPt", "pt", "Truth Track p_{T} [GeV]", "Number of Tracks",
-        1000, 0, 2000, 0, 1);
+        1000, 0, 1000, 0, 1);
     float ptMinRaw(-200), ptMaxRaw(200); // wont be able to calculate pT resolutions for tracks with > 200 GeV 
     plots->ptResRaw = result->AddHist1D(
         "ptResRaw", "pt resolution", "#deltap_{T} [GeV]", "Number of Tracks",
@@ -429,6 +539,7 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
         float truthEta = truthTrack->Eta;
         
         plots->pt->Fill(track->PT);
+        plots->logpt->Fill(track->PT);
         plots->truthPt->Fill(truthTrack->PT);
         plots->ptResRaw->Fill(ptResolution);
         plots->ptResRaw_pt->Fill(ptResolution, truthPt);
@@ -472,7 +583,7 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
 
 //------------------------------------------------------------------------------
 
-void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, bool calculateTrackParameters)
+void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, bool calculateTrackParameters, float minJetPt, float minTrackPt)
 {
 
 
@@ -510,15 +621,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     }
 
 
-    // Fill plots with track jet properties
-    int nJets = branchTrackJet->GetEntriesFast();
-    plots->nJets->Fill( nJets ); 
-    for(int i=0; i<nJets && i<7; ++i){
-      Jet * jet = (Jet*) branchTrackJet->At(i);
-      plots->jetNPt.at(i)->Fill( jet->PT );
-      plots->jetNEta.at(i)->Fill( jet->Eta );
-      plots->jetNPhi.at(i)->Fill( jet->Phi );
-    }
+
 
     ///////////////////////////////////
     // loop over all reco tracks, and find the "primary bin"
@@ -573,32 +676,57 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     std::vector<Track*> tracksAssociatedToPB;
     std::vector<TLorentzVector> vectorsAssociatedToPB;
     for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
-      float zPosition = static_cast<Track*>(*itTrack)->DZ;
+      float zPosition = dynamic_cast<Track*>(*itTrack)->DZ;
       if(zPosition > zMin && zPosition < zMax){
-        tracksAssociatedToPB.push_back( static_cast<Track*>(*itTrack) );
-        vectorsAssociatedToPB.push_back( static_cast<Track*>(*itTrack)->P4());
+        tracksAssociatedToPB.push_back( dynamic_cast<Track*>(*itTrack) );
+        vectorsAssociatedToPB.push_back( dynamic_cast<Track*>(*itTrack)->P4());
       }
     }
 
-    // Use FastJetFinder inside delphes to cluster jets 
-    std::vector<PseudoJet> inputList, outputList;
-    for(auto track : tracksAssociatedToPB){
-      TLorentzVector momentum = track->P4();
-      PseudoJet jet = PseudoJet(momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E());
-      inputList.push_back(jet);
+    ///////////////////////////
+    // cluster Tracks into Jet
+    ///////////////////////////
+    
+    // Jets made from tracks associated to the PB
+    std::vector<MyClusteredJet> associatedJets = jetCluster(tracksAssociatedToPB, definition, minJetPt, minTrackPt);
+
+    // Cluster of truth tracks (test: should be the same as input collection)
+    std::vector<MyClusteredJet> nominalTruthJets = jetCluster(branchTruthTrack, definition, minJetPt, minTrackPt);
+    
+    // Recluster of reco tracks (test: should be the same as the input collection)
+    std::vector<MyClusteredJet> nominalJets = jetCluster(branchTrack, definition, minJetPt, minTrackPt);
+
+
+    // Fill plots with track jet properties
+    int nJets = branchTrackJet->GetEntriesFast();
+    plots->nJets->Fill( nJets ); 
+    for(int i=0; i<nJets && i<7; ++i){
+      Jet * jet = (Jet*) branchTrackJet->At(i);
+      plots->jetNPt.at(i)->Fill( jet->PT );
+      plots->jetNEta.at(i)->Fill( jet->Eta );
+      plots->jetNPhi.at(i)->Fill( jet->Phi );
+
+      // Plot properties of tracks inside jet
+      int nTracks(0);
+      for(int j=0; j<jet->Constituents.GetEntriesFast(); ++j){
+        TObject *object = jet->Constituents.At(j);
+        if(object->IsA() == Track::Class()){
+          Track * track = (Track*) object;
+          plots->jetNTrackPt.at(i)->Fill(track->PT);
+          nTracks++;
+        }
+      }
+      plots->jetNTrackMulti.at(i)->Fill(nTracks);
     }
-    // run clustering 
-    ClusterSequence sequence(inputList, *definition);
-    outputList.clear();
-    outputList = sorted_by_pt(sequence.inclusive_jets(0.0));
 
     // plots for associated jets
-    for(int i=0; i<outputList.size() && i<7; ++i){
-      plots->associatedJetNPt.at(i)->Fill( outputList.at(i).pt() );
-      plots->associatedJetNEta.at(i)->Fill( outputList.at(i).eta() );
-      plots->associatedJetNPhi.at(i)->Fill( outputList.at(i).phi() );
+    for(int i=0; i<associatedJets.size() && i<7; ++i){
+      PseudoJet associatedJet = associatedJets.at(i).first;
+      plots->associatedJetNPt.at(i)->Fill( associatedJet.pt() );
+      plots->associatedJetNEta.at(i)->Fill( associatedJet.eta() );
+      plots->associatedJetNPhi.at(i)->Fill( associatedJet.phi() );
     }
-    plots->nAssociatedJets->Fill( outputList.size() );
+    plots->nAssociatedJets->Fill( associatedJets.size() );
 
 
 
@@ -606,7 +734,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     ///////////////////////////////////
     // Loop over all jets and find which tracks are associated to the PB 
     // WJF: idea was to find the jets with tracks that came from the PB
-    // This was almost all jets, as there is no "directional" information"
+    // This was almost all jets, as there is no "directional" information
     ///////////////////////////////////
 
     std::vector<Jet*> jetsFromPV;
@@ -679,6 +807,13 @@ int main(int argc, char *argv[])
   bool DEBUG = false;
   bool calculateTrackParameters = true; 
   //bool calculateTrackParameters = false; 
+  
+  // configurable(>) parameters 
+  float minJetPt = 5.0; 
+  float minTrackPt = 0.0;
+
+  TestClass aTest;
+  aTest.hello();
 
   std::string appName = "trackParameters";
   std::string inputFile = argv[1]; // doesn't complain about cast? Maybe compiler can deal with it :p 
@@ -704,7 +839,7 @@ int main(int argc, char *argv[])
 
   TestPlots *plots = new TestPlots;
   BookHistograms(result, plots, calculateTrackParameters);
-  AnalyseEvents(treeReader, plots, DEBUG, calculateTrackParameters);
+  AnalyseEvents(treeReader, plots, DEBUG, calculateTrackParameters, minJetPt, minTrackPt);
   PrintHistograms(result, plots);
 
   std::cout << "Writing to file: " << outputFile << std::endl;
@@ -720,53 +855,3 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-    /////////////////////////////////////////
-    // Manually create track jets  
-    /////////////////////////////////////////
-
-    /*******************************8
-    std::cout << "Number of tracks: " << branchTrack->GetEntriesFast() << std::endl; 
-    std::vector<TLorentzVector> goodTracks;
-    for(Int_t i=0; i<branchTrack->GetEntriesFast(); ++i)
-    {
-      track = (Track*) branchTrack->At(i);
-      particle = (GenParticle*) track->Particle.GetObject(); 
-
-      if( track->PT > 1 && fabs(track->Eta) < 2.0)
-      {
-      
-        // It is impossible for the tracker to measure the pT if it's greater than 100 GeV
-        auto trackPt = track->PT;
-        if (trackPt > 100){
-          trackPt = 100;
-        }
-
-        if(DEBUG) plots->track_eta_phi_pt->Fill(track->Eta, track->Phi, trackPt); 
-        TLorentzVector vec;
-        vec.SetPtEtaPhiM( trackPt, track->Eta, track->Phi, 0.14); // pion mass in GeV 
-        goodTracks.push_back(vec);
-        if(DEBUG) std::cout << "Filled track vector" << std::endl;
-      }
-    }
-    if(DEBUG) std::cout << "n tracks " << goodTracks.size() << std::endl;
-
-    // recluster tracks into jets 
-    std::vector<TLorentzVector> trackJets;
-    antiKt(goodTracks, trackJets); 
-    if(DEBUG) std::cout << "Found " << trackJets.size() << " jets" << std::endl;
-    if(DEBUG){
-      for(auto jet : trackJets){
-        plots->jet_eta_phi_pt->Fill(jet.Eta(), jet.Phi(), jet.Pt());
-      }
-    }
-
-    for(auto jet : trackJets) plots->allJetPt->Fill(jet.Pt());
-    plots->nJets->Fill(trackJets.size());
-
-    // nth jet plots 
-    for(unsigned int i=0; i<trackJets.size() && i<7; ++i){
-      plots->jetNPt.at(i)->Fill( trackJets.at(i).Pt() );
-      plots->jetNEta.at(i)->Fill( trackJets.at(i).Eta() );
-      plots->jetNPhi.at(i)->Fill( trackJets.at(i).Phi() );
-    }
-    ******************/
