@@ -1,12 +1,3 @@
-/*
-Adapted from:
-root -l examples/Example3.C'("delphes_output.root")'
-This macro shows how to access the particle-level reference for reconstructed objects.
-It is also shown how to loop over the jet constituents.
-
-Re-tooled to make plots of track parameters
-*/
-
 //#include "modules/TestClass.h"
 //#include "modules/ClusteredJet.h"
 
@@ -50,60 +41,121 @@ std::string PrintTLorentz(TLorentzVector &v){
   return s.str();
 }
 
+std::string PrintPseudoJet(PseudoJet &j){
+  std::ostringstream s;
+  s <<  " (" << j.pt() << ", " << j.eta() << ", " << j.phi_std() <<  ")";
+  return s.str();
+}
+
 //------------------------------------------------------------------------------
+//
 
 
 using MyClusteredJet = std::pair<PseudoJet, std::vector<float> >;
+using JetWithTracks = std::pair<PseudoJet, std::vector<Track*> >;
+
+// Rule for sorting vector of tracks 
+bool reverse(const Track* i, const Track* j){
+  return i->PT > j->PT; 
+}
+
+// Add tracks to MyClusteredJet
+JetWithTracks addTracksToJet(const MyClusteredJet& clusteredJet, TClonesArray* branchTrack){
+
+  // use unique ID to match the track
+  std::vector<float> trackIDs = clusteredJet.second;
+  std::vector<Track*> matchedTracks;
+  //std::cout << "addTracksToJet: number of input tracks: " << trackIDs.size() << std::endl;
+  for(auto trackID : trackIDs){
+    for(auto itTrack=branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+      Track* track = dynamic_cast<Track*>(*itTrack);
+      if(track->GetUniqueID() == trackID){
+        matchedTracks.push_back(track);
+        break; // once the track is matched, break
+        // TODO: There is more than 1 track with the SAME uniqueID !!!!!!!!!!!!!!!!!!!!!!!!!
+        // Might not be assigning the "right" track!!!!!!!!!!!!!!!
+      }
+    }
+  }
+  //std::cout << "addTracksToJet: number of matched tracks: " << matchedTracks.size() << std::endl;
+
+  // Sort matched tracks
+  std::sort( matchedTracks.begin(), matchedTracks.end(), reverse ); // greater ensures sorting is descending, for pT
+
+  JetWithTracks output;
+  output.first = clusteredJet.first;
+  output.second = matchedTracks;
+  return output;
+}
+
+
+std::vector<JetWithTracks> addTracksToJet(const std::vector<MyClusteredJet>& clusteredJets, TClonesArray* branchTrack){
+    
+  std::vector<JetWithTracks> outputJetsWithTracks;
+  for(auto aClusteredJet : clusteredJets){
+    JetWithTracks temp = addTracksToJet(aClusteredJet, branchTrack);
+    outputJetsWithTracks.push_back(temp);
+  }
+  return outputJetsWithTracks;
+}
 
 // Use FastJetFinder inside delphes to cluster jets
-std::vector<MyClusteredJet> jetCluster(std::vector<Track*> inputTracks, const JetDefinition* definition, const float minJetPt, const float minTrackPt){
+std::vector<MyClusteredJet> jetCluster(std::vector<Track*> inputTracks, JetDefinition* definition, const float minJetPt, const float minTrackPt, bool debug){
 
     // Convert tracks to PseudoJets, dress with unique ID
     std::vector<PseudoJet> inputList;
-    std::map<int, Track*> inputTrackMap;
     for(auto track : inputTracks){
       TLorentzVector momentum = track->P4();
       if(momentum.Pt() < minTrackPt) continue; // only add tracks above a certain jet pT thresold
       PseudoJet jet = PseudoJet(momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E());
       jet.set_user_index(track->GetUniqueID()); // add info to the jet
       inputList.push_back(jet);
-      inputTrackMap[track->GetUniqueID()] = track;
     }
+
+    if(debug) std::cout << "Number of input tracks to clustering (after min track pT selection): " << inputList.size() << std::endl;
 
     // run clustering
     ClusterSequence sequence(inputList, *definition);
 
     // sort pT
-    std::vector<PseudoJet> outputList;
-    outputList = sorted_by_pt(sequence.inclusive_jets(minJetPt));
+    std::vector<PseudoJet> outputList = sorted_by_pt(sequence.inclusive_jets(minJetPt));
+    if(debug) std::cout << "There are " << outputList.size() << " output jets" << std::endl;
 
-    // loop over clustered and sorted PseudoJets
+    //////////////////////
+    // Extract tracks uIDs that were associated to a jet
+    //////////////////////
     std::vector<MyClusteredJet> outputJets;
     for(auto fastJet : outputList){
+      if(debug) std::cout << PrintPseudoJet(fastJet) << std::endl;
 
       // extract tracks that were actually associated to jets
       std::vector<PseudoJet> clusteredTracks = sequence.constituents(fastJet);
+      if(debug) std::cout << "\tThis jet had: " << clusteredTracks.size() << " tracks." << std::endl;
       std::vector<float> uIDs;
       for(auto track : clusteredTracks){
         //std::cout << "ID: " << track.user_index() << std::endl;
         uIDs.push_back(track.user_index());
       }
 
+      //MyClusteredJet outputJet(fastJet, uIDs);
       MyClusteredJet outputJet;
       outputJet.first  = fastJet;
       outputJet.second = uIDs;
+      outputJets.push_back(outputJet);
     }
-
+    
     return outputJets;
 }
 
-std::vector<MyClusteredJet> jetCluster(TClonesArray* branchTrack, const JetDefinition* definition, const float minJetPt, const float minTrackPt){
-
+std::vector<MyClusteredJet> jetCluster(TClonesArray* branchTrack, JetDefinition* definition, const float minJetPt, const float minTrackPt, bool debug){
   std::vector<Track*> outputTracks;
+  int nIteratedTracks(0);
   for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
     outputTracks.push_back( dynamic_cast<Track*>(*itTrack) );
+    nIteratedTracks++;
   }
-  return jetCluster(outputTracks, definition, minJetPt, minTrackPt);
+  //std::cout << "nIteratedTracks: " << nIteratedTracks << std::endl;
+  return jetCluster(outputTracks, definition, minJetPt, minTrackPt, debug);
 }
 
 
@@ -268,21 +320,28 @@ struct TestPlots
   TH2 *track_eta_phi_pt;
   TH2 *jet_eta_phi_pt;
 
+  // Track jets from Delphes
   TH1 *allJetPt;
   TH1 *nJets;
   std::vector<TH1*> jetNPt;
   std::vector<TH1*> jetNEta;
   std::vector<TH1*> jetNPhi;
-
   std::vector<TH1*> jetNTrackPt;
   std::vector<TH1*> jetNTrackMulti;
 
+  // Jets clustered from all Delphes tracks
+  TH1 *nnominalJets;
+  std::vector<TH1*> nominalJetNPt;
+  std::vector<TH1*> nominalJetNEta;
+  std::vector<TH1*> nominalJetNPhi;
+  std::vector<TH1*> nominalJetNTrackPt;
+  std::vector<TH1*> nominalJetNTrackMulti;
 
+  // Jets clustered from tracks only associated to the PB
   TH1 *nAssociatedJets;
   std::vector<TH1*> associatedJetNPt;
   std::vector<TH1*> associatedJetNEta;
   std::vector<TH1*> associatedJetNPhi;
-
   std::vector<TH1*> associatedJetNTrackPt;
   std::vector<TH1*> associatedJetNTrackMulti;
 
@@ -310,7 +369,7 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
   plots->misidPV = result->AddHist1D("misidPV", "Misidentified primary vertices", "Distance between PB and true PV [mm]", "Number of events", 200, 0, 200, 0, 0); // probably will be some overflow
 
 
-  // jet histograms
+  // jet histograms (from Delphes track jets)
   for(int i=0; i<7; ++i){
     std::string i_str = std::to_string(i+1);
 
@@ -323,6 +382,31 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
     plots->jetNPhi.push_back(
         result->AddHist1D( "jet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI)
         );
+    // track-inside-jet properties
+    plots->jetNTrackPt.push_back(
+      result->AddHist1D( "jet"+i_str+"TrackPt", "", "p_{T} of tracks inside jet "+i_str+" [GeV]", "", 100, 0, 20)
+        );
+    plots->jetNTrackMulti.push_back(
+      result->AddHist1D( "jet"+i_str+"TrackMulti", "", "Multiplicity of tracks inside jet "+i_str, "", 100, 0, 100)
+        );
+
+    // Jets clustered from all tracks (outside of Delphes)
+    plots->nominalJetNPt.push_back(
+        result->AddHist1D( "nominalJet"+i_str+"Pt", "", i_str+" Jet p_{T} [GeV]", "",  1000, 0, 1000, 0, 0)
+        );
+    plots->nominalJetNEta.push_back(
+        result->AddHist1D( "nominalJet"+i_str+"Eta", "", i_str+" Jet #eta", "",  100, -2.5, 2.5)
+        );
+    plots->nominalJetNPhi.push_back(
+        result->AddHist1D( "nominalJet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI)
+        );
+    // track-inside-jet properties for nominal jets
+    plots->nominalJetNTrackPt.push_back(
+      result->AddHist1D( "nominalJet"+i_str+"TrackPt", "", "p_{T} of tracks inside jet "+i_str+" [GeV]", "", 100, 0, 20)
+        );
+    plots->nominalJetNTrackMulti.push_back(
+      result->AddHist1D( "nominalJet"+i_str+"TrackMulti", "", "Multiplicity of tracks inside jet "+i_str, "", 100, 0, 100)
+        );
 
     // Jets associated to PV
     plots->associatedJetNPt.push_back(
@@ -334,16 +418,9 @@ void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackP
     plots->associatedJetNPhi.push_back(
         result->AddHist1D( "associatedJet"+i_str+"Phi", "", i_str+" Jet #phi", "",  100, -M_PI, M_PI)
         );
-    // track-inside-jet properties
-    plots->jetNTrackPt.push_back(
-      result->AddHist1D( "jet"+i_str+"TrackPt", "", "p_{T} of tracks inside jet "+i_str+" [GeV]", "", 100, 0, 100)
-        );
-    plots->jetNTrackMulti.push_back(
-      result->AddHist1D( "jet"+i_str+"TrackMulti", "", "Multiplicity of tracks inside jet "+i_str, "", 100, 0, 100)
-        );
     // track-inside-jet properties for associated jets
     plots->associatedJetNTrackPt.push_back(
-      result->AddHist1D( "associatedJet"+i_str+"TrackPt", "", "p_{T} of tracks inside jet "+i_str+" [GeV]", "", 100, 0, 100)
+      result->AddHist1D( "associatedJet"+i_str+"TrackPt", "", "p_{T} of tracks inside jet "+i_str+" [GeV]", "", 100, 0, 20)
         );
     plots->associatedJetNTrackMulti.push_back(
       result->AddHist1D( "associatedJet"+i_str+"TrackMulti", "", "Multiplicity of tracks inside jet "+i_str, "", 100, 0, 100)
@@ -583,7 +660,7 @@ void calculateResolutions(TClonesArray *branchTruthTrack, TClonesArray *branchTr
 
 //------------------------------------------------------------------------------
 
-void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, bool calculateTrackParameters, float minJetPt, float minTrackPt)
+void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, bool calculateTrackParameters, float minJetPt, float minTrackPt)
 {
 
 
@@ -606,6 +683,12 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
   std::cout << "** Chain contains " << allEntries << " events" << std::endl;
   for(Long64_t entry = 0; entry < allEntries; ++entry)
   {
+
+    // limit number of events looped over
+    if(nEvents != -1){
+      if(entry > nEvents-1) break; // -1 because humans will count from 1 event
+    }
+
     // Load selected branches with data from specified event
     treeReader->ReadEntry(entry);
 
@@ -620,9 +703,6 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
       calculateResolutions(branchTruthTrack, branchTrack, plots, DEBUG);
     }
 
-
-
-
     ///////////////////////////////////
     // loop over all reco tracks, and find the "primary bin"
     //////////////////////////////////
@@ -635,7 +715,7 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     std::map<std::string, float> PBInfo = findPrimaryBin(branchTrack, binWidth, slideStep, beamMinZ, beamMaxZ);
     float zMin   = PBInfo["zMin"];
     float zMax   = PBInfo["zMax"];
-    float zWidth = PBInfo["zWidth"];
+    //float zWidth = PBInfo["zWidth"];
 
 
     ///////////////////////////////////
@@ -664,40 +744,48 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
     }
     else{
       //std::cout << "Vertex isn't inside PB" << std::endl;
-      std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]\t" << fabs(vertexZ - (zMax+zMin)/2) << std::endl;
+      //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]\t" << fabs(vertexZ - (zMax+zMin)/2) << std::endl;
       plots->misidPV->Fill( fabs(vertexZ - (zMax+zMin)/2) );
       plots->misidPVLogx->Fill( fabs(vertexZ - (zMax+zMin)/2) );
       //std::cout << "vertex z: " << vertexZ << " PB range: [" << zMin << ", " << zMax << "]" << std::endl;
     }
 
+    //std::cout << "This event has " << branchTrack->GetEntriesFast() << std::endl;
+    int nTracksIterator(0);
     ///////////////////////////////////
     // Select tracks which belong to the PB
     ///////////////////////////////////
     std::vector<Track*> tracksAssociatedToPB;
     std::vector<TLorentzVector> vectorsAssociatedToPB;
     for(auto itTrack = branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+      nTracksIterator++;
       float zPosition = dynamic_cast<Track*>(*itTrack)->DZ;
       if(zPosition > zMin && zPosition < zMax){
         tracksAssociatedToPB.push_back( dynamic_cast<Track*>(*itTrack) );
         vectorsAssociatedToPB.push_back( dynamic_cast<Track*>(*itTrack)->P4());
       }
     }
+    //std::cout << "and " << nTracksIterator << " iterated tracks" << std::endl;
 
     ///////////////////////////
     // cluster Tracks into Jet
     ///////////////////////////
 
     // Jets made from tracks associated to the PB
-    std::vector<MyClusteredJet> associatedJets = jetCluster(tracksAssociatedToPB, definition, minJetPt, minTrackPt);
+    std::vector<MyClusteredJet> associatedJets = jetCluster(tracksAssociatedToPB, definition, minJetPt, minTrackPt, false);
 
     // Cluster of truth tracks (test: should be the same as input collection)
-    std::vector<MyClusteredJet> nominalTruthJets = jetCluster(branchTruthTrack, definition, minJetPt, minTrackPt);
+    std::vector<MyClusteredJet> nominalTruthJets = jetCluster(branchTruthTrack, definition, minJetPt, minTrackPt, false);
 
     // Recluster of reco tracks (test: should be the same as the input collection)
-    std::vector<MyClusteredJet> nominalJets = jetCluster(branchTrack, definition, minJetPt, minTrackPt);
+    std::vector<MyClusteredJet> nominalJets = jetCluster(branchTrack, definition, minJetPt, minTrackPt, false);
+
+    // Add tracks to the clusted jets
+    std::vector<JetWithTracks> assocJetsWithTracks   = addTracksToJet(associatedJets, branchTrack);
+    std::vector<JetWithTracks> nominalJetsWithTracks = addTracksToJet(nominalJets, branchTrack);
 
 
-    // Fill plots with track jet properties
+    // Fill plots with track jet properties (jets directly from Delphes)
     int nJets = branchTrackJet->GetEntriesFast();
     plots->nJets->Fill( nJets );
     for(int i=0; i<nJets && i<7; ++i){
@@ -719,28 +807,36 @@ void AnalyseEvents(ExRootTreeReader *treeReader, TestPlots *plots, bool DEBUG, b
       plots->jetNTrackMulti.at(i)->Fill(nTracks);
     }
 
-    // plots for associated jets
-    for(int i=0; i<associatedJets.size() && i<7; ++i){
-      PseudoJet associatedJet = associatedJets.at(i).first;
+    // Fill plots with track jets (clustered from all Delphes tracks, but outside delphes)
+    //std::cout << "Filling plots with nominal jets, there are: " << nominalJetsWithTracks.size() << std::endl; 
+    for(unsigned int i=0; i<nominalJetsWithTracks.size() && i<7; ++i){
+      PseudoJet nominalJet = nominalJetsWithTracks.at(i).first;
+      plots->nominalJetNPt.at(i)->Fill( nominalJet.pt() );
+      plots->nominalJetNEta.at(i)->Fill( nominalJet.eta() );
+      plots->nominalJetNPhi.at(i)->Fill( nominalJet.phi_std() ); // returns phi in the range -pi : pi
+      // plots of the tracks inside the jet
+      std::vector<Track*> tracks = nominalJetsWithTracks.at(i).second;
+      plots->nominalJetNTrackMulti.at(i)->Fill(tracks.size());
+      //std::cout << "nominal jet " << i << " has " << tracks.size() << " tracks." << std::endl;
+      for(auto track : tracks){
+        plots->nominalJetNTrackPt.at(i)->Fill(track->PT);
+      }
+
+    }
+
+    // Fill plots with associated jet properties (and properties of the tracks associated to the jets) 
+    for(unsigned int i=0; i<assocJetsWithTracks.size() && i<7; ++i){
+      PseudoJet associatedJet = assocJetsWithTracks.at(i).first;
       plots->associatedJetNPt.at(i)->Fill( associatedJet.pt() );
       plots->associatedJetNEta.at(i)->Fill( associatedJet.eta() );
-      plots->associatedJetNPhi.at(i)->Fill( associatedJet.phi() );
-
-      // use unique ID to match the track
-      std::vector<float> associatedTrackIDs = associatedJets.at(i).second;
-      int nTracks(0);
-      for(auto itTrack=branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
-        Track* track = dynamic_cast<Track*>(*itTrack);
-        for(auto trackID : associatedTrackIDs){
-          if(track->GetUniqueID() == trackID){
-            nTracks++;
-            plots->associatedJetNTrackPt.at(i)->Fill(track->PT);
-          }
-        }
+      plots->associatedJetNPhi.at(i)->Fill( associatedJet.phi_std() ); // returns phi in the range -pi : pi
+      // plots of the tracks inside the jet
+      std::vector<Track*> tracks = assocJetsWithTracks.at(i).second;
+      plots->associatedJetNTrackMulti.at(i)->Fill(tracks.size());
+      for(auto track : tracks){
+        plots->associatedJetNTrackPt.at(i)->Fill(track->PT);
       }
     }
-    plots->nAssociatedJets->Fill( associatedJets.size() );
-
 
 
     /*********************
@@ -822,8 +918,8 @@ int main(int argc, char *argv[])
   //bool calculateTrackParameters = false;
 
   // configurable(>) parameters
-  float minJetPt = 5.0;
-  float minTrackPt = 0.0;
+  float minJetPt = 5.0; // GeV
+  float minTrackPt = 1.0; // GeV
 
   //TestClass aTest;
   //aTest.hello();
@@ -831,14 +927,20 @@ int main(int argc, char *argv[])
   std::string appName = "trackParameters";
   std::string inputFile = argv[1]; // doesn't complain about cast? Maybe compiler can deal with it :p
   std::string outputFile = argv[2];
-
-  if(argc < 3)
+  int doPrintHistograms = atoi(argv[3]);
+  int nEvents(-1);
+  if(argc > 4){
+    nEvents = atoi(argv[4]);
+    std::cout << "INFO: Will run over " << nEvents << std::endl;
+  }
+  // 
+  if(argc < 4)
   {
-    std::cout << " Usage: " << appName << " input_file" << " output_file" << std::endl;
-    std::cout << " config_file - configuration file in Tcl format,"       << std::endl;
-    std::cout << " output_file - output file in ROOT format,"             << std::endl;
-    std::cout << " input_file(s) - input file(s) in STDHEP format,"       << std::endl;
-    std::cout << " with no input_file, or when input_file is -, read standard input." << std::endl;
+    std::cout << " Usage: " << appName << " input_file output_file [optional: nEvents]" << std::endl;
+    std::cout << " input_file: ROOT file containing delphes output,"       << std::endl;
+    std::cout << " output_file: ROOT file name that will contain output histograms" << std::endl;
+    std::cout << " bool: write files to .pdf" << std::endl;
+    std::cout << " nEvents: number of events to be processed (for testing, default is all events)." << std::endl;
     return 1;
   }
 
@@ -852,8 +954,9 @@ int main(int argc, char *argv[])
 
   TestPlots *plots = new TestPlots;
   BookHistograms(result, plots, calculateTrackParameters);
-  AnalyseEvents(treeReader, plots, DEBUG, calculateTrackParameters, minJetPt, minTrackPt);
-  PrintHistograms(result, plots);
+  AnalyseEvents(nEvents, treeReader, plots, DEBUG, calculateTrackParameters, minJetPt, minTrackPt);
+
+  if(doPrintHistograms) PrintHistograms(result, plots);
 
   std::cout << "Writing to file: " << outputFile << std::endl;
   result->Write(outputFile.c_str());
@@ -867,3 +970,32 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+
+    /***********************
+    // plots for associated jets (manualy assigned tracks to jets)
+    std::cout << "\nEvent "<< entry << std::endl;
+    std::cout << "Manual track assignemnt:" << std::endl;
+    std::cout << "There are " << associatedJets.size() << " associated jets." << std::endl;
+    for(unsigned int i=0; i<associatedJets.size() && i<7; ++i){
+      PseudoJet associatedJet = associatedJets.at(i).first;
+      plots->associatedJetNPt.at(i)->Fill( associatedJet.pt() );
+      plots->associatedJetNEta.at(i)->Fill( associatedJet.eta() );
+      plots->associatedJetNPhi.at(i)->Fill( associatedJet.phi_std() ); // returns phi in the range -pi : pi
+      // use unique ID to match the track
+      std::vector<float> associatedTrackIDs = associatedJets.at(i).second;
+      int nTracks(0);
+      for(auto itTrack=branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+        Track* track = dynamic_cast<Track*>(*itTrack);
+        for(auto trackID : associatedTrackIDs){
+          if(track->GetUniqueID() == trackID){
+            nTracks++;
+            plots->associatedJetNTrackPt.at(i)->Fill(track->PT);
+            std::cout << "\t\t" << track->PT << std::endl;
+          }
+        }
+      }
+      std::cout << "jet " << i << " had " << nTracks << " tracks." << std::endl;
+      plots->associatedJetNTrackMulti.at(i)->Fill(nTracks);
+    }
+    plots->nAssociatedJets->Fill( associatedJets.size() );
+    *******************/

@@ -39,9 +39,11 @@ def main():
     #process = 'pileup' # maybe don't need this? 
     #process = 'MinBias' # MinBias | ttbar 
     #process = 'ttbar' # MinBias | ttbar 
+    processes = ['ttbar', 'MinBias']
+    pileups = [200]
 
-    for process in ['MinBias', 'ttbar']:
-        for pileup in [200, 1000]:
+    for process in processes:
+        for pileup in pileups:
 
             if not process.lower() in ['ttbar', 'minbias']:
                 print 'ERROR: process {0} not defined'.format(process)
