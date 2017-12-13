@@ -10,13 +10,14 @@ gStyle.SetGridColor(kGray)
 gStyle.SetPadTickX(1) # add tics on top x
 gStyle.SetPadTickY(1) # add tics on right y
 
-from extractTrackParameters import prepareLegend
 from Colours import Colours
-from functions import appendSlash, getReverseCumulativeHisto  
+from functions import appendSlash, getReverseCumulativeHisto, prepareLegend
 
 resultsPath = '/atlas/data4/userdata/wfawcett/delphes/results/'
 resultsPath = '/Users/Will/Documents/fcc/delphes/results/'
 nEvents = 1000.0
+
+OUTPUT_DIR = 'plots/'
 
 def main(verbose):
 
@@ -66,21 +67,21 @@ def main(verbose):
         setStyle(cmb_PUsupp, colours.blue)
         setStyle(ctt_PUsupp, colours.orange)
 
-        xaxis.SetRangeUser(0, 100)
+        #xaxis.SetRangeUser(0, 100)
+        xaxis.SetRangeUser(0, 80)
         cmb_nominal.Draw()
         cmb_PUsupp.Draw('same')
-        ctt_PUsupp.Draw('same')
+        #ctt_PUsupp.Draw('same')
         
         # Add a legend
         predefined = [0.6, 0.7, 0.9, 0.9]
         leg = prepareLegend('topRight', predefined)
         leg.AddEntry(cmb_nominal, 'All tracks (minbias)', 'lp')
         leg.AddEntry(cmb_PUsupp, 'Tracks from PB (minbias)', 'lp')
-        leg.AddEntry(ctt_PUsupp, 'Tracks from PB (ttbar)' , 'lp')
+        #leg.AddEntry(ctt_PUsupp, 'Tracks from PB (ttbar)' , 'lp')
         leg.Draw()
 
-        can.SaveAs('test.pdf')
-        break
+        can.SaveAs(OUTPUT_DIR+'triggerRate{0}jets.pdf'.format(nJet))
 
 def setStyle(hist, c):
     hist.SetLineColor(c)
