@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from ROOT import * 
 gROOT.SetBatch(1)
 gROOT.SetBatch(1)
@@ -8,28 +10,18 @@ gStyle.SetGridColor(kGray)
 gStyle.SetPadTickX(1) # add tics on top x
 gStyle.SetPadTickY(1) # add tics on right y
 
-colours = [
-    865, # blue
-    801, # orange
-    629, # red
-    418,  # green
-    15,  # grey
-    618, # purple
-    1, # black
-]
+from Colours import Colours
+from functions import appendSlash, getReverseCumulativeHisto, prepareLegend
 
-def main(inputFile, outputDir):
-    outputDir = appendSlash(outputDir)
+resultsPath = '/atlas/data4/userdata/wfawcett/delphes/results/'
+resultsPath = '/Users/Will/Documents/fcc/delphes/results/'
+nEvents = 1000.0
 
-    ifile = TFile.Open(inputFile)
+OUTPUT_DIR = 'plots/'
 
-    # extract jet pT histogram
-    h = ifile.Get('jet4Pt')
-    c = getReverseCumulativeHisto(h)
+def main(verbose):
 
-    h2 = ifile.Get('associatedJet4Pt')
-    c2 = getReverseCumulativeHisto(h2)
-
+<<<<<<< HEAD
     #     
     can = TCanvas('can', 'can', 500, 500)
     can.SetLogy()
@@ -74,20 +66,84 @@ def getReverseCumulativeHisto(histo):
         cumulHisto.SetBinContent(bin,integral)
         cumulHisto.SetBinError(bin,integralErr)
     return cumulHisto
+=======
+    can = TCanvas('can', 'can', 500, 500)
+    can.SetLogy()
+    can.SetGrid()
+
+    ifile_minbias = TFile.Open(resultsPath+'hist_MinBias_mu200_s80_n1000.root')
+    ifile_ttbar = TFile.Open(resultsPath+'hist_ttbar_mu200_s80_n1000.root') 
+
+    colours = Colours()
+>>>>>>> 54e0299c0ae0762e5f6a22f0d1b491f6a61078a4
     
+    for nJet in range(1,8):
+
+        nominalName = 'nominalJet{0}Pt'.format(nJet) # jets reconstructed using all tracks with pT > 1GeV
+        suppressedName = 'associatedJet{0}Pt'.format(nJet)
+
+        # get jet pT histos from minbias
+        mb_nominal = ifile_minbias.Get(nominalName)
+        mb_PUsupp  = ifile_minbias.Get(suppressedName)
+
+
+        # get jet pT histos for ttbar
+        tt_nominal = ifile_ttbar.Get(nominalName)
+        tt_PUsupp  = ifile_ttbar.Get(suppressedName)
+
+        tt_nominal.GetXaxis().SetRangeUser(0,100)
+        tt_nominal.Draw()
+        tt_PUsupp.SetLineColor(kRed)
+        tt_PUsupp.Draw('same')
+        can.SaveAs('test2.pdf')
+        #break
+
+        # get cumulative histograms for minbias 
+        cmb_nominal = getReverseCumulativeHisto(mb_nominal)
+        cmb_PUsupp  = getReverseCumulativeHisto(mb_PUsupp)
+
+        # get cumulative histograms for ttbar
+        ctt_nominal = getReverseCumulativeHisto(tt_nominal)
+        ctt_PUsupp  = getReverseCumulativeHisto(tt_PUsupp)
+
+        # Style
+        xaxis = cmb_nominal.GetXaxis()
+        yaxis = cmb_nominal.GetYaxis()
+        yaxis.SetTitle('Relative Rate')
+        setStyle(cmb_nominal, colours.red)
+        setStyle(cmb_PUsupp, colours.blue)
+        setStyle(ctt_PUsupp, colours.orange)
+
+        #xaxis.SetRangeUser(0, 100)
+        xaxis.SetRangeUser(0, 80)
+        cmb_nominal.Draw()
+        cmb_PUsupp.Draw('same')
+        #ctt_PUsupp.Draw('same')
+        
+        # Add a legend
+        predefined = [0.6, 0.7, 0.9, 0.9]
+        leg = prepareLegend('topRight', predefined)
+        leg.AddEntry(cmb_nominal, 'All tracks (minbias)', 'lp')
+        leg.AddEntry(cmb_PUsupp, 'Tracks from PB (minbias)', 'lp')
+        #leg.AddEntry(ctt_PUsupp, 'Tracks from PB (ttbar)' , 'lp')
+        leg.Draw()
+
+        can.SaveAs(OUTPUT_DIR+'triggerRate{0}jets.pdf'.format(nJet))
+
+def setStyle(hist, c):
+    hist.SetLineColor(c)
+    hist.SetMarkerColor(c)
+    hist.Scale(1.0/nEvents)
+
 
 if __name__ == "__main__":
 
-    from optparse import OptionParser
-    import sys
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--verbose", help="Turn on verbose messages", action="store_true", default=False)
+    args = parser.parse_args()
+    verbose = args.verbose
 
-    parser = OptionParser()
-    parser.add_option("-i", "--inputFile", action="store", type="string", help="Input ROOT file")
-    parser.add_option("-o", "--outputDir", action="store", type="string",  default='./', help="Output directory for plots")
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit(0)
+    main(verbose)
 
-    options, args = parser.parse_args()
-    option_dict = dict( (k, v) for k, v in vars(options).iteritems() if v is not None)
-    main(**option_dict)
+
