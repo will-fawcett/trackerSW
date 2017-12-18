@@ -30,8 +30,9 @@ def main(inputFile, outputDir):
     h2 = ifile.Get('associatedJet4Pt')
     c2 = getReverseCumulativeHisto(h2)
 
-    
+    #     
     can = TCanvas('can', 'can', 500, 500)
+    can.SetLogy()
     h.GetXaxis().SetRangeUser(0, 200)
     h.Draw()
     can.SaveAs(outputDir+'testJetPt.pdf')
@@ -43,6 +44,7 @@ def main(inputFile, outputDir):
 
     c2.SetMarkerColor(629)
     c2.SetLineColor(629)
+
 
     #c.DrawNormalized()
     c.Draw()
