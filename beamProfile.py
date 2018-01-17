@@ -13,6 +13,8 @@ gROOT.SetBatch(1)
 gRandom.SetSeed(0)
 
 MAX_Z = 400 # mm 
+PILEUP = 1000 
+PILEUP = 200 
 
 def main():
     # gaussian parameters 
@@ -20,6 +22,7 @@ def main():
     bunch_length = 75.0 # mm
     luminous_length = bunch_length / math.sqrt(2) 
 
+    print 'Calculation for pileup of ', PILEUP
     print 'Bunch length: {0} mm'.format(bunch_length)
     print 'Luminous length: {0} mm'.format(luminous_length)
 
@@ -38,8 +41,8 @@ def main():
     meanMeans = np.mean(means)
 
     print ''
-    print 'Average mean distance: {0}'.format(meanMeans)
-    print 'Average 95% distance:  {0}'.format(mean95)
+    print 'Average mean distance: {0} um'.format(meanMeans*1000)
+    print 'Average 95% distance:  {0} um'.format(mean95*1000)
 
 def calculateMeanAnd95(mygaus):
 
@@ -50,7 +53,7 @@ def calculateMeanAnd95(mygaus):
 
     # Generate points according to gaussian 
     zRecord = []
-    for i in range(1000):
+    for i in range(PILEUP+1):
         #h1.Fill(mygaus.GetRandom())
         zValue = mygaus.GetRandom() 
         zRecord.append( mygaus.GetRandom() ) 
