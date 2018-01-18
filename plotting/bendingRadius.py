@@ -3,6 +3,10 @@ Script to plot bending radius as a function of particle energy, according to the
 r = gamma.m.v / e B 
   = p / e B 
   = sqrt(E^2 - m^2 c^4) / c e B 
+  
+  Note, bending radius in [m] is given by (approximately) 
+  r = (5/6) p
+  for p in [GeV/c] 
 '''
 import numpy as np  
 import matplotlib.pyplot as plt  
@@ -31,14 +35,14 @@ def main():
     # Bending radius versus energy 
     #graph('( x**2 - 1)**0.5 / (1.2)', range(2, 1000), 'bendingRvE', 'E [GeV]', 'Bending Radius [m]')
 
-    # bending radius versus momentum (with nice lines)   
-    #graph2('( 5.0*x / 6.0 )', range(0, 4), 'bendingRvP', 'p [GeV]', 'Bending Radius [m]') 
+    # bending radius versus transverse momentum (with nice lines)   (multiply by 100 for m->cm )
+    graph2('( 500.0*x / 6.0 ) ', range(0, 3), 'bendingRvP', 'pT [GeV]', 'Bending Radius [cm]') 
 
     # deviation as a function of bending radius  
     #graph('(x - np.sqrt(x*x - 0.25))', range(1, 10), 'deviation', 'Bending radius [m]', 'deviaton[$\mu$m]')
 
     # deviation as a function of momentum, triplet spacing 0.05 m (so total distance 0.1m) 
-    graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.1)**2 ))*10**6', range(40, 201), 'deviation100mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 100mm')
+    #graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.1)**2 ))*10**6', range(40, 201), 'deviation100mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 100mm')
     #graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.05)**2 ))*10**6', range(1, 61), 'deviation50mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 50mm')
     
     # spacing required for deviation of 40 um as a function of pT
@@ -157,8 +161,8 @@ def graph2(formula, x_range, save, x_title='', y_title=''):
     minx = plt.gca().get_xlim()[0]
     print plt.gca().get_ylim()
     for i_yval in [0.52, 0.72, 0.93, 1.13, 1.34, 1.54]:
-        yval = 0.5*i_yval
-        xval = 6.0 * yval / 5.0 
+        yval = 0.5*i_yval * 100 # m -> cm
+        xval = 6.0 * yval / 500.0 
         fracy = (yval+abs(miny)) / (maxy + abs(miny))
         fracx = (xval+abs(minx)) / (maxx + abs(minx))
         #print maxy, yval, fracy
