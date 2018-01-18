@@ -100,8 +100,8 @@ def addTripletECRings_allwedges(ofile):
 
            @include TripletPixel_module0.cfg
            @include TripletPixel_material.cfg
-           resolutionLocalX  0.02 // Pitch 80um
-           resolutionLocalY  0.02 // Pitch 80um
+           resLocalRPhi  0.02 // Pitch 80um
+           resLocalZ  0.02 // Pitch 80um
           }
 
           Ring 16 {
@@ -115,8 +115,8 @@ def addTripletECRings_allwedges(ofile):
 
            @include TripletPixel_module0.cfg
            @include TripletPixel_material.cfg
-           resolutionLocalX  0.02 // Pitch 80um
-           resolutionLocalY  0.02 // Pitch 80um
+           resLocalRPhi  0.02 // Pitch 80um
+           resLocalZ  0.02 // Pitch 80um
           }
 
           Ring 1 {
@@ -154,8 +154,8 @@ def addTripletECRings(ofile):
 
            @include TripletPixel_module0.cfg
            @include TripletPixel_material.cfg
-           resolutionLocalX  0.01 // Pitch 40um
-           resolutionLocalY  0.01 // Pitch 40um
+           resLocalRPhi  0.01 // Pitch 40um
+           resLocalZ  0.01 // Pitch 40um
           }
 
           Ring 7-15 {
@@ -168,8 +168,8 @@ def addTripletECRings(ofile):
 
            @include TripletPixel_module0.cfg
            @include TripletPixel_material.cfg
-           resolutionLocalX  0.01 // Pitch 40um
-           resolutionLocalY  0.01 // Pitch 40um
+           resLocalRPhi  0.01 // Pitch 40um
+           resLocalZ  0.01 // Pitch 40um
           }
           Ring 16 {
            moduleShape rectangular
@@ -182,8 +182,8 @@ def addTripletECRings(ofile):
 
            @include TripletPixel_module0.cfg
            @include TripletPixel_material.cfg
-           resolutionLocalX  0.01 // Pitch 40um
-           resolutionLocalY  0.01 // Pitch 40um
+           resLocalRPhi  0.01 // Pitch 40um
+           resLocalZ  0.01 // Pitch 40um
           }
 
           Ring 1 {
@@ -222,8 +222,8 @@ def addDefaultECRings(ofile):
 
            @include Pixel_OuterFwd_module0.cfg
            @include Pixel_material.cfg
-           resolutionLocalX 0.0075 // Pitch ~25um
-           resolutionLocalY 0.015  // Pitch ~50um
+           resLocalRPhi 0.0075 // Pitch ~25um
+           resLocalZ 0.015  // Pitch ~50um
           }
           Ring 2 {
            moduleShape wedge
@@ -232,8 +232,8 @@ def addDefaultECRings(ofile):
 
            @include Pixel_OuterFwd_module1.cfg
            @include Pixel_material.cfg
-           resolutionLocalX 0.0095 // Pitch ~100/3um
-           resolutionLocalY 0.030  // Pitch ~100um
+           resLocalRPhi 0.0095 // Pitch ~100/3um
+           resLocalZ 0.030  // Pitch ~100um
           }
           Ring 3 {
            moduleShape wedge
@@ -242,8 +242,8 @@ def addDefaultECRings(ofile):
 
            @include MacroPixel_OuterFwd_module0.cfg
            @include MacroPixel_material.cfg
-           resolutionLocalX 0.0095 // Pitch ~100/3um
-           resolutionLocalY 0.115  // Pitch ~400um
+           resLocalRPhi 0.0095 // Pitch ~100/3um
+           resLocalZ 0.115  // Pitch ~400um
           }
           Ring 4 {
            moduleShape wedge
@@ -252,8 +252,8 @@ def addDefaultECRings(ofile):
 
            @include MacroPixel_OuterFwd_module1.cfg
            @include MacroPixel_material.cfg
-           resolutionLocalX 0.0095 // Pitch ~100/3um
-           resolutionLocalY 0.115  // Pitch ~400um
+           resLocalRPhi 0.0095 // Pitch ~100/3um
+           resLocalZ 0.115  // Pitch ~400um
           }
           Ring 5 {
            moduleShape wedge
@@ -262,8 +262,8 @@ def addDefaultECRings(ofile):
 
            @include MacroPixel_OuterFwd_module2.cfg
            @include MacroPixel_material.cfg
-           resolutionLocalX 0.0095 // Pitch ~100/3um
-           resolutionLocalY 0.115  // Pitch ~400um
+           resLocalRPhi 0.0095 // Pitch ~100/3um
+           resLocalZ 0.115  // Pitch ~400um
           }
           Ring 6 {
            moduleShape wedge
@@ -272,8 +272,8 @@ def addDefaultECRings(ofile):
 
            @include MacroPixel_OuterFwd_module3.cfg
            @include MacroPixel_material.cfg
-           resolutionLocalX 0.0095 // Pitch ~100/3um
-           resolutionLocalY 0.115  // Pitch ~400um
+           resLocalRPhi 0.0095 // Pitch ~100/3um
+           resLocalZ 0.115  // Pitch ~400um
           }
           Ring 7-9 {
            moduleShape rectangular
@@ -285,8 +285,8 @@ def addDefaultECRings(ofile):
 
            @include MacroPixel_module1.cfg
            @include MacroPixel_material.cfg
-           resolutionLocalX 0.0095 // Pitch ~100/3um
-           resolutionLocalY 0.115  // Pitch ~400um
+           resLocalRPhi 0.0095 // Pitch ~100/3um
+           resLocalZ 0.115  // Pitch ~400um
           }
           Ring 10-15 {
            moduleShape rectangular
@@ -299,8 +299,8 @@ def addDefaultECRings(ofile):
 
            @include Strip_Fwd_module.cfg
            @include Strip_material_2.5.cfg
-           resolutionLocalX 0.0095 // Pitch ~100/3um
-           resolutionLocalY 2.887  // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
+           resLocalRPhi 0.0095 // Pitch ~100/3um
+           resLocalZ 2.887  // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
           }
           Ring 16 {
            moduleShape rectangular
@@ -312,8 +312,8 @@ def addDefaultECRings(ofile):
 
            @include Strip_Fwd_half_module.cfg
            @include Strip_material_2.5.cfg
-           resolutionLocalX 0.0095
-           resolutionLocalY 2.887 // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
+           resLocalRPhi 0.0095
+           resLocalZ 2.887 // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
           }
 
           Ring 1 {
@@ -368,8 +368,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags inner,tracker
        @include Pixel_OuterFwd_module0.cfg
        @include Pixel_material.cfg
-       resolutionLocalX 0.0075 // Pitch ~25um
-       resolutionLocalY 0.015  // Pitch ~50um
+       resLocalRPhi 0.0075 // Pitch ~25um
+       resLocalZ 0.015  // Pitch ~50um
       }
       Ring 2 {
        moduleShape wedge
@@ -379,8 +379,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags inner,tracker
        @include Pixel_OuterFwd_module1.cfg
        @include Pixel_material.cfg
-       resolutionLocalX 0.0095 // Pitch ~100/3um
-       resolutionLocalY 0.030  // Pitch ~100um
+       resLocalRPhi 0.0095 // Pitch ~100/3um
+       resLocalZ 0.030  // Pitch ~100um
       }
       Ring 3 {
        moduleShape wedge
@@ -390,8 +390,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags inner,tracker
        @include MacroPixel_OuterFwd_module0.cfg
        @include MacroPixel_material.cfg
-       resolutionLocalX 0.0095 // Pitch ~100/3um
-       resolutionLocalY 0.115  // Pitch ~400um
+       resLocalRPhi 0.0095 // Pitch ~100/3um
+       resLocalZ 0.115  // Pitch ~400um
       }
       Ring 4 {
        moduleShape wedge
@@ -401,8 +401,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags inner,tracker
        @include MacroPixel_OuterFwd_module1.cfg
        @include MacroPixel_material.cfg
-       resolutionLocalX 0.0095 // Pitch ~100/3um
-       resolutionLocalY 0.115  // Pitch ~400um
+       resLocalRPhi 0.0095 // Pitch ~100/3um
+       resLocalZ 0.115  // Pitch ~400um
       }
       Ring 5 {
        moduleShape wedge
@@ -412,8 +412,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags inner,tracker
        @include MacroPixel_OuterFwd_module2.cfg
        @include MacroPixel_material.cfg
-       resolutionLocalX 0.0095 // Pitch ~100/3um
-       resolutionLocalY 0.115  // Pitch ~400um
+       resLocalRPhi 0.0095 // Pitch ~100/3um
+       resLocalZ 0.115  // Pitch ~400um
       }
       Ring 6 {
        moduleShape wedge
@@ -423,8 +423,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags outer,tracker
        @include MacroPixel_OuterFwd_module3.cfg
        @include MacroPixel_material.cfg
-       resolutionLocalX 0.0095 // Pitch ~100/3um
-       resolutionLocalY 0.115  // Pitch ~400um
+       resLocalRPhi 0.0095 // Pitch ~100/3um
+       resLocalZ 0.115  // Pitch ~400um
       }
       Ring 7-9 {
        moduleShape rectangular
@@ -437,8 +437,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags outer,tracker
        @include MacroPixel_module1.cfg
        @include MacroPixel_material.cfg
-       resolutionLocalX 0.0095 // Pitch ~100/3um
-       resolutionLocalY 0.115  // Pitch ~400um
+       resLocalRPhi 0.0095 // Pitch ~100/3um
+       resLocalZ 0.115  // Pitch ~400um
       }
       Ring 10-15 {
        moduleShape rectangular
@@ -452,8 +452,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags outer,tracker
        @include Strip_Fwd_module.cfg
        @include Strip_material_2.5.cfg
-       resolutionLocalX 0.0095 // Pitch ~100/3um
-       resolutionLocalY 2.887  // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
+       resLocalRPhi 0.0095 // Pitch ~100/3um
+       resLocalZ 2.887  // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
       }
       Ring 16 {
        moduleShape rectangular
@@ -466,8 +466,8 @@ def addDefaultOuterEndcap(ofile):
        trackingTags outer,tracker
        @include Strip_Fwd_half_module.cfg
        @include Strip_material_2.5.cfg
-       resolutionLocalX 0.0095
-       resolutionLocalY 2.887 // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
+       resLocalRPhi 0.0095
+       resLocalZ 2.887 // Strip = 10mm or r-phi pitch / rot. by angle 20mrad
       }
 
       Ring 1 {
@@ -504,10 +504,13 @@ def addBeampipe(ofile):
     bp='''
 BeamPipe Pipe {
 
-    radius         20.0   // mm
-    thickness      0.8    // mm
-    radLength      0.00227
-    intLength      0.00190
+    // 2D Beam-pipe: original shape withou flanges
+    radius         20.00,20.00 // mm (N-points defining contour)
+    zPos           0.000,18000 // mm (N-points defining contour)
+    thickness      0.8         // N-1 segments thickness in mm
+    radLength      352.8       // N-1 segments rad. length in mm
+    intLength      421.0       // N-1 segments int. length in mm
+    
 }
 '''
     ofile.write(bp)
@@ -555,8 +558,8 @@ Tracker Inner {
        plotColor 2
        @include Pixel_BRL0_module0.cfg
        @include Pixel_material_innermost.cfg
-       resolutionLocalX 0.0075 // Pitch ~25um
-       resolutionLocalY 0.015  // Pitch ~50um
+       resLocalRPhi 0.0075 // Pitch ~25um
+       resLocalZ 0.015  // Pitch ~50um
       }
       Layer 2 {
        outerZ 820
@@ -572,8 +575,8 @@ Tracker Inner {
        plotColor 2
        @include Pixel_BRL0_module1.cfg
        @include Pixel_material_innermost.cfg
-       resolutionLocalX 0.0075 // Pitch ~25um
-       resolutionLocalY 0.015  // Pitch ~50um
+       resLocalRPhi 0.0075 // Pitch ~25um
+       resLocalZ 0.015  // Pitch ~50um
       }
       Layer 3 {
        outerZ 820
@@ -589,8 +592,8 @@ Tracker Inner {
        plotColor 2
        @include Pixel_BRL0_module1.cfg
        @include Pixel_material_innermost.cfg
-       resolutionLocalX 0.0075 // Pitch ~25um
-       resolutionLocalY 0.015  // Pitch ~50um
+       resLocalRPhi 0.0075 // Pitch ~25um
+       resLocalZ 0.015  // Pitch ~50um
       }
       Layer 4 {
        outerZ 820
@@ -606,8 +609,8 @@ Tracker Inner {
        plotColor 2
        @include Pixel_BRL0_module1.cfg
        @include Pixel_material_innermost.cfg
-       resolutionLocalX 0.0075 // Pitch ~25um
-       resolutionLocalY 0.015  // Pitch ~50um
+       resLocalRPhi 0.0075 // Pitch ~25um
+       resLocalZ 0.015  // Pitch ~50um
       }
 
       innerRadius 23.5
@@ -639,8 +642,8 @@ Tracker Inner {
        plotColor 7
        @include MacroPixel_module0.cfg
        @include MacroPixel_material.cfg
-       resolutionLocalX 0.0095 // Pitch ~100/3um
-       resolutionLocalY 0.115  // Pitch ~400um
+       resLocalRPhi 0.0095 // Pitch ~100/3um
+       resLocalZ 0.115  // Pitch ~400um
       }
       innerRadius 197.0
       outerRadius 460.0
@@ -666,8 +669,8 @@ Tracker Inner {
           moduleType pixel
           @include Pixel_InnerFwd_module0.cfg
           @include Pixel_material.cfg
-          resolutionLocalX 0.0075 // Pitch ~25um
-          resolutionLocalY 0.015  // Pitch ~50um
+          resLocalRPhi 0.0075 // Pitch ~25um
+          resLocalZ 0.015  // Pitch ~50um
           plotColor 11
         }
         Ring 2 {
@@ -676,8 +679,8 @@ Tracker Inner {
           moduleType pixel
           @include Pixel_InnerFwd_module1.cfg
           @include Pixel_material.cfg
-          resolutionLocalX 0.0095 // Pitch ~100/3um
-          resolutionLocalY 0.030  // Pitch ~100um
+          resLocalRPhi 0.0095 // Pitch ~100/3um
+          resLocalZ 0.030  // Pitch ~100um
           plotColor 5
         }
         Ring 3 {
@@ -686,8 +689,8 @@ Tracker Inner {
           moduleType macroPixel
           @include MacroPixel_InnerFwd_module0.cfg
           @include MacroPixel_material.cfg
-          resolutionLocalX 0.0095 // Pitch ~100/3um
-          resolutionLocalY 0.115  // Pitch ~400um
+          resLocalRPhi 0.0095 // Pitch ~100/3um
+          resLocalZ 0.115  // Pitch ~400um
           plotColor 7
         }
         Ring 4 {
@@ -696,8 +699,8 @@ Tracker Inner {
           moduleType macroPixel
           @include MacroPixel_InnerFwd_module1.cfg
           @include MacroPixel_material.cfg
-          resolutionLocalX 0.0095 // Pitch ~100/3um
-          resolutionLocalY 0.115  // Pitch ~400um
+          resLocalRPhi 0.0095 // Pitch ~100/3um
+          resLocalZ 0.115  // Pitch ~400um
           plotColor 7
         }
       }
