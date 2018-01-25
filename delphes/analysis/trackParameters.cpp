@@ -171,8 +171,8 @@ void PrintTrack(Track *track)
   std::cout << "phi "      << track->Phi      << std::endl;
   std::cout << "CotTheta " << track->CtgTheta << std::endl;
   std::cout << "Charge "   << track->Charge   << std::endl;
-  std::cout << "D0 "       << track->DZ       << std::endl;
-  std::cout << "DZ "       << track->D0       << std::endl;
+  std::cout << "DZ "       << track->DZ       << std::endl;
+  std::cout << "D0 "       << track->D0       << std::endl;
 }
 
 inline float calculatDeltaPhi(float phi1, float phi2){

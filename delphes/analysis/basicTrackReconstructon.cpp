@@ -10,6 +10,9 @@
 #include "classes/DelphesFactory.h"
 #include "modules/FastJetFinder.h"
 
+// my analysis classes
+#include "classes/anaClasses.h"
+
 // c++ libs
 #include <iostream>
 #include <sstream>
@@ -33,177 +36,7 @@
 
 using namespace fastjet;
 
-// typedef for hit container 
-//using hitContainer = std::map<int, std::vector<myHit*> >; 
-using hitContainer = std::map<int, std::vector<Hit*> >; 
 
-// object to store track parameters (TO DO)! 
-class myTrack{
-  public:
-    float coord;
-};
-
-// enum for different fit types (can add more later) 
-enum fitTypes{
-  linear,
-  MAX
-};
-
-// class to 
-class TrackFitter{
-
-  private:
-    std::vector< myTrack > tracks; 
-    fitTypes fitType;
-    std::vector<float> parameters;
-
-    std::vector< std::vector< Hit* >> associatedHitCollection; 
-
-    bool associateHitsLinearOutToIn(hitContainer hc, float minZ, float maxZ){
-      /***********************************************
-       * Hit association algorithm
-       * - Assumes concentric barrel layers, no endcaps
-       * - Innermost layer labelled with 0, incremented as layers increase
-       *
-       * The algorithm:
-       * - Starts from a hit in the outer layer, calculates a window in the layer benieth in which to search for other hits
-       * - Loops over hits in the next innermost layer, if within the search window, then this hit is assigned the hit in the above layer
-       *   -- repeat untill the last layer
-       * *********************************************/
-
-      // Get layer IDs from hitContainer
-      std::vector<int> layers;
-      for(auto const& key : hc){
-        layers.push_back(key.first);
-      }
-      std::reverse(layers.begin(), layers.end()); // should count from 3 .. 2 .. 1 
-
-      // start from outermost barrel layer, and work inwards
-      for(int layerID : layers){
-        if(layerID == layers.back()) continue; // don't execute algorithm for innermost layer
-
-        // get the r coordinate of the next-innermost layer
-        float rInner = hc[layerID-1].at(0)->Perp(); // should be able to optimize this away? 
-
-        // loop over all hits in layer
-        for(Hit* hit : hc[layerID]){
-
-          // find window for hits in the next layer to be assigned to this one
-          float r = hit->Perp();
-          float z = hit->Z;
-          float zLeft  = calculateZWindowForNextLevel(r, z, rInner, minZ); 
-          float zRight = calculateZWindowForNextLevel(r, z, rInner, maxZ); 
-
-          // loop over all hits in next layer
-          for(Hit* innerHit : hitMap[layerID - 1]){
-            float innerHitZ = innerHit.Z; 
-
-            // if hit within window, assign to the bit above 
-            if(zLeft < innerHitZ && innerHitZ < zRight){
-              hit->addHit(&innerHit); 
-            }
-          }
-          
-        } // loop over hits in layer
-      }
-      return true;
-    } // end associateHitsLinearOutToIn
-
-
-  public:
-    
-    // constructor 
-    TrackFitter(const fitTypes ftIn, std::vector<float> paramIn){
-      fitType=ftIn;
-      parameters=paramIn;
-    };
-
-    bool FitFromHits(hitContainer hc){
-
-      switch (fitType) { 
-        case linear:
-          float minZ = parameters.at(0);
-          float maxZ = parameters.at(1);
-          return this->associateHitsLinearOutToIn(hc, minZ, maxZ);
-      }
-
-      return true; 
-    }
-
-
-    std::vector <myTrack> GetTracks(){
-      std::vector<myTrack> temp; 
-      return temp;
-    }
-
-    // select the algorithm to associate hits to one another 
-    /***
-    switch (fitType) {
-      case linear:
-        return this->associateHitsLinear(hc);
-      default:
-        std::cout << "default" << std::endl;
-        break;
-    }
-    ***/
-
-
-};
-
-
-
-// possibly now obsolete class to store hits (and relationships between hits) 
-class myHit{
-  private:
-    TLorentzVector position;
-    int SurfaceID;
-    int UniqueHitID; 
-
-    //std::map<int, std::vector<int> > assignedHits;
-    std::map<int, std::vector<myHit*> > assignedHits; // maybe const myHit* .... to think about 
-
-  public:
-
-    // constructor 
-    myHit(const Hit *hitIn, const int ID){
-      position.SetXYZT(hitIn->X, hitIn->Y, hitIn->Z, hitIn->T);
-      SurfaceID = hitIn->SurfaceID;
-      UniqueHitID = ID; 
-      //assignedHits = 0;
-    };
-
-
-    void printHit(){
-      std::cout << "position: (" << position.X() << ", " << position.Y() << ", " << position.Z() << ")" 
-        << "\t surface: " << SurfaceID 
-        << "\t UID: " << UniqueHitID 
-        << std::endl;
-    }
-
-    // other hits matched to this hit 
-    void addHit(myHit * hitIn){
-      assignedHits[hitIn->SurfaceID].push_back(hitIn);
-    }
-
-    int countAssignedHitsInLayer(const int layerID){
-      return assignedHits[layerID].size();
-    }
-
-    void printAssignedHits(){
-      std::cout << "Hit has: " << std::endl;
-      for(const auto &surface : assignedHits){ // returns a pair
-          std::cout << "\t" << surface.second.size() << " hits in layer " << surface.first << std::endl;
-      }
-    }
-
-    // access some of the TLorentzVector functions
-    float X() {return position.X();}
-    float Y() {return position.Y();}
-    float Z() {return position.Z();}
-    float T() {return position.T();}
-    float Perp() {return position.Perp();}
-
-};
 
 //------------------------------------------------------------------------------
 
@@ -300,8 +133,8 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
       hc[SurfaceID].push_back(hit); 
     }
 
-    TrackFitter tf(linear, parameters); // contains the rules to associate hits together, and then the collection of hits into tracks 
-    bool success = tf.FitFromHits( hc ); 
+    TrackFitter tf(fitTypes::linearInToOut, parameters); // contains the rules to associate hits together, and then the collection of hits into tracks 
+    bool success = tf.AssociateHits( hc ); 
     std::vector< myTrack > theTracks = tf.GetTracks(); 
 
     /////////////////////

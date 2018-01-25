@@ -12,6 +12,7 @@ set ExecutionPath {
   ParticlePropagator
 
   TrackMerger
+  HitFinder
   TrackEfficiency
   TrackSmearing
 
@@ -74,8 +75,8 @@ module ParticlePropagator ParticlePropagator {
   set ElectronOutputArray electrons
   set MuonOutputArray muons
 
-  # radius of the magnetic field coverage, in m (radius of innermost tiplet layer in r)
-  set Radius 0.532
+  # radius of the magnetic field coverage, in m (want radius of the tracker)  ######## NOT THIS -> (radius of innermost tiplet layer in r) <- NOT THIS
+  set Radius 0.582
   # half-length of the magnetic field coverage, in m (length of tracker in z)
   set HalfLength 2.250 
 
@@ -96,6 +97,22 @@ module Merger TrackMerger {
   set OutputArray tracks 
 }
 
+module HitFinder HitFinder {
+  set InputArray PileUpMerger/stableParticles
+  set OutputArray hits
+
+  set BarrelLength 2.250 
+  set TrackPtMin 1.0
+  set Bz 4.0
+
+  add BarrelLayerRadii {0.532} {0.582} {0.632}
+  
+  # assumed andcap symmetry
+  #add EndCapZ {3.0} {3.2}
+  #add EndCapZ {3.0} 
+  #set EndCapRadius 1.6 
+
+}
 
 #################################
 # Remove truth tracks with pT < 0.5 GeV and |eta| > 2.0 
@@ -337,6 +354,8 @@ module TreeWriter TreeWriter {
 
   add Branch PrimaryBinFinder/vertices PrimaryBin Vertex
   add Branch VertexTrackAssociator/tracks AssociatedTracks Track
+
+  add Branch HitFinder/hits Hits Hit
 
   # Then write a module to take the vertices and spit out the tracks from the highest pT vertex 
   # Need access to pointers inside vertex 
