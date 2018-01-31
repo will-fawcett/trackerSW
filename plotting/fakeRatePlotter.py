@@ -37,6 +37,7 @@ def main():
         # styling
         REBIN = 4
         nDelphesTracks1GeV.Draw()
+        nDelphesTracks1GeV.SetTitle("Pileup {0}".format(PILEUP))
         xaxis = nDelphesTracks1GeV.GetXaxis()
         nDelphesTracks1GeV.SetLineColor(colours.blue)
         nDelphesTracks1GeV.Rebin(REBIN)
@@ -51,9 +52,9 @@ def main():
         # Legend
         leg = prepareLegend("topRight")
         leg.AddEntry(nDelphesTracks1GeV, "True", "l")     
-        leg.AddEntry(0, "mean : {0}".format(meanDelphesTracks), "")
+        leg.AddEntry(0, "mean : {0}".format(round(meanDelphesTracks)), "")
         leg.AddEntry(nRecoTracks, "Reco", "l")
-        leg.AddEntry(0, "mean : {0}".format(meanRecoTracks), "")
+        leg.AddEntry(0, "mean : {0}".format(round(meanRecoTracks)), "")
         leg.Draw()
 
         can.SaveAs(outputDir+"trackComparrison_pu{0}.pdf".format(PILEUP))
