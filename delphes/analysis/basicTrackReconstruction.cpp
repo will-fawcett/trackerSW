@@ -36,7 +36,7 @@
 
 // attempt with eigen
 //#include <Eigen/Core>
-//#include "tricktrack/RiemannFit.h"
+#include "tricktrack/RiemannFit.h"
 
 
 //------------------------------------------------------------------------------
