@@ -4,16 +4,17 @@ include_directories(
   ${DelphesExternals_INCLUDE_DIR} 
 )
 
-#file(GLOB sources basicTrackReconstructon.cpp)
 
+file(GLOB executables RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 
-add_executable(basicTrackReconstruction basicTrackReconstructon.cpp)
-target_link_libraries(basicTrackReconstruction Delphes)
+# build all executables and put them into bin/
+foreach(sourcefile ${executables})
+  string(REPLACE ".cpp" "" name ${sourcefile})
+  add_executable(${name} ${sourcefile})
+  target_link_libraries(${name} Delphes)
+  install(TARGETS ${name} DESTINATION bin)
+endforeach()
 
-
-# install pcms if they are created
-if (NOT ${ROOT_VERSION} VERSION_LESS "6.0.0")
-  install(FILES
-      ${PROJECT_BINARY_DIR}/classes/libClassesDict_rdict.pcm
-      DESTINATION lib)
-endif()
+# take all other relevant files and put them into analysis/
+#install(FILES ${macros} DESTINATION analysis)
+#
