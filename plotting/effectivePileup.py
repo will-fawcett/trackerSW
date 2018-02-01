@@ -9,7 +9,7 @@ gStyle.SetPalette(kViridis)
 
 RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
 
-from extract_coords import is_profile, prepareLegend
+from utils import is_profile, prepareLegend
 
 gStyle.SetGridStyle(3)
 gStyle.SetGridColor(kGray)

@@ -1,5 +1,12 @@
 
 #____________________________________________________________________________
+def is_profile(p):
+    import ROOT
+    # Convenience function to check if an object is a TProfile
+    return isinstance(p, ROOT.TProfile)
+
+
+#____________________________________________________________________________
 def checkDir(dir, CHECK=False):
     import os
     ''' Create a directory if it does not exist,

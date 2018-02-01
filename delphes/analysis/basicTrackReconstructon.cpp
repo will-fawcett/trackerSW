@@ -34,30 +34,10 @@
 #include "fastjet/JetDefinition.hh"
 #include "fastjet/ClusterSequence.hh"
 
-using namespace fastjet;
+// attempt with eigen
+//#include <Eigen/Core>
+//#include "tricktrack/RiemannFit.h"
 
-
-
-//------------------------------------------------------------------------------
-
-std::string PrintTLorentz(TLorentzVector &v){
-  std::ostringstream s;
-  s <<  " (" << v.Pt() << ", " << v.Eta() << ", " << v.Phi() << ", " << v.M() << ")";
-  return s.str();
-}
-
-//------------------------------------------------------------------------------
-
-// Rule for sorting vector of tracks 
-bool reverse(const Track* i, const Track* j){
-  return i->PT > j->PT; 
-}
-
-//------------------------------------------------------------------------------
-
-inline float calculatDeltaPhi(float phi1, float phi2){
-  return acos( cos( phi1 - phi2 ));
-}
 
 //------------------------------------------------------------------------------
 
@@ -66,6 +46,9 @@ struct TestPlots
 
   TH1 *nJets;
   TH1 *allJetPt;
+  TH1* nDelphesTracks;
+  TH1* nDelphesTracks1GeV;
+  TH1* nRecoTracks; 
 
 };
 
@@ -74,19 +57,18 @@ struct TestPlots
 void BookHistograms(ExRootResult *result, TestPlots *plots)
 {
 
-  plots->nJets           = result->AddHist1D( "nJets", "nJets", "Number of Jets", "", 100, 0, 100, 0, 0 );
-  plots->allJetPt        = result->AddHist1D("allJetPt", "", "Jet p_{T} (all jets) [GeV]", "", 100, 0, 1000);
+  plots->nJets          = result->AddHist1D("nJets", "nJets", "Number of Jets", "", 100, 0, 100, 0, 0 );
+  plots->allJetPt       = result->AddHist1D("allJetPt", "", "Jet p_{T} (all jets) [GeV]", "", 100, 0, 1000);
+  plots->nDelphesTracks = result->AddHist1D("nDelphesTracks", "TrueTracks", "Number of tracks", "Number of events", 10000, 0, 10000,0,0);
+  plots->nDelphesTracks1GeV = result->AddHist1D("nDelphesTracks1GeV", "TrueTracks > 1 GeV", "Number of tracks", "Number of events", 10000, 0, 10000,0,0);
+  plots->nRecoTracks    = result->AddHist1D("nRecoTracks", "Tracks+fakes", "Number of tracks", "Number of events", 10000, 0, 10000,0,0);
 
 }
 
 //------------------------------------------------------------------------------
 
-
-//------------------------------------------------------------------------------
-
 void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *plots, float vertexDistSigma, int nVertexSigma)
 {
-
 
   // Define branches
   TClonesArray *branchParticle   = treeReader->UseBranch("Particle");
@@ -101,13 +83,13 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
   parameters.push_back(minZ);
   parameters.push_back(maxZ);
 
-  bool debug = true; 
-
 
   // Loop over all events
   Long64_t allEntries = treeReader->GetEntries();
   int nEventsCorrectlyIdentifiedVertex(0);
   std::cout << "** Chain contains " << allEntries << " events" << std::endl;
+  // an event weight for normalising histograms
+  float eventWeight = 1.0/allEntries; 
   for(Long64_t entry = 0; entry < allEntries; ++entry)
   {
 
@@ -120,9 +102,6 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
     // print every 10% complete
     if( entry % 100==0 ) std::cout << "Event " << entry << " out of " << allEntries << std::endl;
 
-    /////////////////////
-    // Marco's suggestion 
-    /////////////////////
     
     // Fill the hitContainer with all the hits in the event (geometry defined by the surfaces) 
     std::map<int, std::vector<Hit*> > event; 
@@ -133,84 +112,27 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
       hc[SurfaceID].push_back(hit); 
     }
 
-    TrackFitter tf(fitTypes::linearInToOut, parameters); // contains the rules to associate hits together, and then the collection of hits into tracks 
+    // contains the rules to associate hits together, and then the collection of hits into tracks 
+    TrackFitter tf(fitTypes::linearInToOut, parameters); 
     bool success = tf.AssociateHits( hc ); 
     std::vector< myTrack > theTracks = tf.GetTracks(); 
 
-    /////////////////////
-    // WJF original code
-    /////////////////////
+    //std::cout << "event has: " << theTracks.size() << " reconstructed tracks" << std::endl;
+    plots->nRecoTracks->Fill(theTracks.size(), eventWeight);
 
-    // sort hits into layers
-    /************************************
-    std::map<int, std::vector<myHit> > hitMap; 
-    int uniqueHitID = 0;
-    for(auto itHit = branchHit->begin(); itHit != branchHit->end(); ++itHit){
-      Hit * hit = dynamic_cast<Hit*>(*itHit);
-      TLorentzVector position;
-      position.SetXYZT(hit->X, hit->Y, hit->Z, hit->T);
-      int SurfaceID = hit->SurfaceID; 
-      hitMap[SurfaceID].push_back( myHit(hit, uniqueHitID ) );
-      uniqueHitID++; 
+    int nTracks(0);
+    int nTracks1GeV(0);
+    for(auto itTrack=branchTrack->begin(); itTrack != branchTrack->end(); ++itTrack){
+      Track* track = dynamic_cast<Track*>(*itTrack);
+      nTracks++;
+      if(track->PT < 1.0) continue;
+      nTracks1GeV++;
     }
-
-    // extract the unique keys in the hit map (should correspond to the number of layers)
-    std::vector<int> layers;
-    for(auto const& key: hitMap){
-      layers.push_back(key.first);
-    }
-    std::reverse(layers.begin(), layers.end()); // should count from 3 .. 2 .. 1 
-    if(debug){
-      std::cout << "Event has: " << layers.size() << " layers" << std::endl;
-      for(auto l : layers){
-        std::cout << "\tLayer " << l << " has " << hitMap[l].size() << " hits." << std::endl;
-      }
-    }
+    plots->nDelphesTracks->Fill(nTracks, eventWeight);
+    plots->nDelphesTracks1GeV->Fill(nTracks1GeV, eventWeight);
+    //std::cout << "event has: " << nTracks << " delphes tracks" << std::endl;
 
 
-    // start from outermost barrel layer, and work inwards
-    for(int layerID : layers){
-      if(layerID == layers.back()) continue; // don't execute algorithm for innermost layer
-
-      // loop over all hits in layer
-      //for(auto hit : hitMap[layerID]){
-      for(int hitID=0; hitID < hitMap[layerID].size(); ++hitID){
-
-        myHit *hit = &hitMap[layerID].at(hitID); // get pointer to the hit inside the map
-
-        // get the r coordinate of the next layer
-        float rInner = hitMap[layerID-1].at(0)->Position.Perp(); 
-
-        // find window for hits in the next layer to be assigned to this one
-        float r = hit->Perp();
-        float z = hit->Z();
-        float zLeft  = calculateZWindowForNextLevel(r, z, rInner, minZ); 
-        float zRight = calculateZWindowForNextLevel(r, z, rInner, maxZ); 
-
-        // loop over all hits in next layer
-        for(auto innerHit : hitMap[layerID - 1]){
-          float innerHitZ = innerHit.Z(); 
-          //std::cout << "inner hit Z " << innerHitZ << std::endl;
-
-          // if hit within window, assign to the bit above 
-          if(zLeft < innerHitZ && innerHitZ < zRight){
-            hit->addHit(&innerHit); 
-          }
-        }
-
-        //hit->printHit();
-        //hit->printAssignedHits();
-        
-      } // loop over hits in layer
-    } // end loop over layers 
-
-    // now investigate the hits
-    for(auto & hit : hitMap[2]){
-      hit.printHit();
-      hit.printAssignedHits();
-    //std::cout << "has " << hit.countAssignedHitsInLayer(1) << " assigned hits in layer 1" << std::endl;
-    }
-    ****************************************/
 
 
   } // end loop over entries
@@ -230,8 +152,10 @@ void PrintHistograms(ExRootResult *result, TestPlots *plots)
 int main(int argc, char *argv[])
 {
 
+  //Matrix3xNd hits = Matrix3xNd::Random(3,3);
+  //Matrix3Nd hits_cov = Matrix3Nd::Random(9,9);
+
   gROOT->SetBatch(1);
-  bool DEBUG = false;
 
   // configurable(>) parameters
   float vertexDistSigma = 53.0; // standard deviation (1 sigma) of the distribution of vertices along z

@@ -1,20 +1,25 @@
 from ROOT import *
 from colours import colours
-from extract_coords import prepareLegend
+from utils import prepareLegend
+import os
 
 
 gROOT.SetBatch(1)
 gStyle.SetPadBottomMargin(0.15)
+gStyle.SetPadLeftMargin(0.12) # increase space for left margin
 gStyle.SetPadTickX(1)
 gStyle.SetPadTickY(1)
 
-path = "/Users/Will/Desktop/hits/"
+if os.environ["isGeneva"]:
+    path = "/atlas/users/wfawcett/fcc/delphes/results/hits/"
+else:
+    path = "/Users/Will/Desktop/hits/"
 
 
 def main():
 
     can = TCanvas("can", "can", 500, 500)
-    for PILEUP in [1, 200]:
+    for PILEUP in [0, 200]:
     
         # filesystem 
         fName = path+"hits_ttbar_pu{0}_result.root".format(PILEUP) 
@@ -39,10 +44,11 @@ def main():
         nDelphesTracks1GeV.Draw()
         nDelphesTracks1GeV.SetTitle("Pileup {0}".format(PILEUP))
         xaxis = nDelphesTracks1GeV.GetXaxis()
+        xaxis.SetNdivisions(5, 5, 0)
         nDelphesTracks1GeV.SetLineColor(colours.blue)
         nDelphesTracks1GeV.Rebin(REBIN)
 
-        if PILEUP == 1:
+        if PILEUP == 0:
             xaxis.SetRangeUser(0, 500)
 
         nRecoTracks.SetLineColor(colours.green)

@@ -4,7 +4,7 @@ Quick script to plot the ratio of the track parameters between quartet and tripl
 
 import json 
 from glob import glob 
-from extract_coords import prepareLegend
+from utils import prepareLegend
 
 from ROOT import * 
 gROOT.SetBatch(1)
