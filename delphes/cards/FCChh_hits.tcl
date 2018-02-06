@@ -11,7 +11,11 @@ set ExecutionPath {
   ParticlePropagator
 
   TrackMerger
-  HitFinder
+  HitFinder50
+  HitFinder40
+  HitFinder30
+  HitFinder20
+  HitFinder10
   TrackEfficiency
   TrackSmearing
 
@@ -61,16 +65,45 @@ module Merger TrackMerger {
   set OutputArray tracks 
 }
 
-module HitFinder HitFinder {
+module HitFinder HitFinder50 {
   set InputArray Delphes/stableParticles
   set OutputArray hits
-
   set BarrelLength 2.250 
   set Bz 4.0
-
   add BarrelLayerRadii {0.532} {0.582} {0.632}
 }
 
+module HitFinder HitFinder40 {
+  set InputArray Delphes/stableParticles
+  set OutputArray hits
+  set BarrelLength 2.250 
+  set Bz 4.0
+  add BarrelLayerRadii {0.542} {0.582} {0.622}
+}
+
+module HitFinder HitFinder30 {
+  set InputArray Delphes/stableParticles
+  set OutputArray hits
+  set BarrelLength 2.250 
+  set Bz 4.0
+  add BarrelLayerRadii {0.552} {0.582} {0.612}
+}
+
+module HitFinder HitFinder20 {
+  set InputArray Delphes/stableParticles
+  set OutputArray hits
+  set BarrelLength 2.250 
+  set Bz 4.0
+  add BarrelLayerRadii {0.562} {0.582} {0.602}
+}
+
+module HitFinder HitFinder10 {
+  set InputArray Delphes/stableParticles
+  set OutputArray hits
+  set BarrelLength 2.250 
+  set Bz 4.0
+  add BarrelLayerRadii {0.572} {0.582} {0.592}
+}
 
 #################################
 # Remove truth tracks with pT < 0.5 GeV and |eta| > 2.0 
@@ -206,7 +239,11 @@ module TreeWriter TreeWriter {
   add Branch PrimaryBinFinder/vertices PrimaryBin Vertex
   add Branch VertexTrackAssociator/tracks AssociatedTracks Track
 
-  add Branch HitFinder/hits Hits Hit
+  add Branch HitFinder50/hits Hits50 Hit
+  add Branch HitFinder50/hits Hits40 Hit
+  add Branch HitFinder50/hits Hits30 Hit
+  add Branch HitFinder50/hits Hits20 Hit
+  add Branch HitFinder50/hits Hits10 Hit
 
   # Then write a module to take the vertices and spit out the tracks from the highest pT vertex 
   # Need access to pointers inside vertex 
