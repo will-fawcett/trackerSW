@@ -15,10 +15,10 @@ if os.environ["isGeneva"]:
 else:
     path = "/Users/Will/Desktop/hits/"
 
+outputDir = "FakeRate/"
 
 def main():
 
-    can = TCanvas("can", "can", 500, 500)
     pileups = [0, 200]
     pileups = [0]
 
@@ -26,59 +26,86 @@ def main():
 
         fName = path+"hits_ttbar_pu{0}_simplestAlgo.root".format(PILEUP) 
         fName = "/atlas/users/wfawcett/fcc/delphes/test_output.root"
-        outputDir = "FakeRate/"
         ifile = TFile.Open(fName)
 
         for geometry in [10, 20, 30, 40, 50]:
+            numberOfTracks(ifile, PILEUP, geometry)
+            fakeRates(ifile, PILEUP, geometry)
 
-            # histograms
-            #nDelphesTracks = ifile.Get("nDelphesTracks")
-            #nDelphesTracks1GeV = ifile.Get("nDelphesTracks1GeV")
-            #nDelphesTracks10GeV = ifile.Get("nDelphesTracks10GeV")
-            nRecoTracks = ifile.Get("nRecoTracks_"+str(geometry))
-            nRecoTracksMatched = ifile.Get("nRecoTracksMatched_"+str(geometry))
-            nDelphesHits = ifile.Get("nDelphesHits_"+str(geometry))
+def fakeRates(ifile, PILEUP, geometry):
+    can = TCanvas("can", "can", 500, 500)   
 
-            # stats
-            baseHistogram = nDelphesHits.Clone();
+    label = "Pt"
 
+    nReco = ifile.Get("recoTrack{0}_{1}".format(label, geometry))
+    nReco.Sumw2()
+    nRecoFake = ifile.Get("recoTrack{0}_fake_{1}".format(label, geometry))
+    nRecoFake.Sumw2()
 
-            # styling
-            REBIN = 10
-            baseHistogram.Draw()
-            can.Update()
-            ymax2 = gPad.GetUymax()
-            xaxis = baseHistogram.GetXaxis()
-            yaxis = baseHistogram.GetYaxis()
-            xaxis.SetNdivisions(5, 5, 0)
-            yaxis.SetTitle("Frequency")
-            xaxis.SetTitle("Number of tracks")
-            print 'ymax:', baseHistogram.GetMaximum(), ymax2
-            #yaxis.SetRangeUser(0, baseHistogram.GetMaximum()*1.3)
-            baseHistogram.SetLineColor(colours.blue)
-            baseHistogram.SetMarkerSize(0)
-            baseHistogram.SetTitle("Triplet spacing {1} mm, Pileup {0}".format(PILEUP, geometry))
-            baseHistogram.Rebin(REBIN)
+    REBIN = 5
+    nReco.Rebin(REBIN)
+    nRecoFake.Rebin(REBIN)
 
-            if PILEUP == 0:
-                xaxis.SetRangeUser(0, 500)
-            if PILEUP == 200:
-                xaxis.SetRangeUser(0, 1000)
+    fakeRate = nRecoFake.Clone()
+    fakeRate.Divide(nReco)
+
+    fakeRate.GetXaxis().SetRangeUser(0, 200)
+    fakeRate.Draw("PE")
+
+    can.SaveAs(outputDir+"fakeRate_{0}_pu{1}_geometry{2}.pdf".format(label, PILEUP, geometry))
 
 
-            # Add legend and other plots
-            leg = prepareLegend("topRight")
-            #addLegendEntry(leg, nDelphesTracks1GeV, "True > 1 GeV") 
-            addLegendEntry(leg, baseHistogram, "Hits")
+def numberOfTracks(ifile, PILEUP, geometry):
 
-            addPlot(nRecoTracks, colours.green, REBIN, leg, "Reco")
-            addPlot(nRecoTracksMatched, colours.red, REBIN, leg, "Reco matched")
-            #addPlot(nDelphesTracks10GeV, colours.red, REBIN, leg, "True > 10 GeV")
-            #addPlot(nDelphesHits, colours.grey, REBIN, leg, "Hits")
+    can = TCanvas("can", "can", 500, 500)
+    # histograms
+    #nDelphesTracks = ifile.Get("nDelphesTracks")
+    #nDelphesTracks1GeV = ifile.Get("nDelphesTracks1GeV")
+    #nDelphesTracks10GeV = ifile.Get("nDelphesTracks10GeV")
+    nRecoTracks = ifile.Get("nRecoTracks_"+str(geometry))
+    nRecoTracksMatched = ifile.Get("nRecoTracksMatched_"+str(geometry))
+    nDelphesHits = ifile.Get("nDelphesHits_"+str(geometry))
 
-            leg.Draw()
+    # stats
+    baseHistogram = nDelphesHits.Clone();
 
-            can.SaveAs(outputDir+"trackComparrison_pu{0}_geometry{1}.pdf".format(PILEUP, geometry))
+
+    # styling
+    REBIN = 10
+    baseHistogram.Draw()
+    can.Update()
+    ymax2 = gPad.GetUymax()
+    xaxis = baseHistogram.GetXaxis()
+    yaxis = baseHistogram.GetYaxis()
+    xaxis.SetNdivisions(5, 5, 0)
+    yaxis.SetTitle("Frequency")
+    xaxis.SetTitle("Number of tracks")
+    print 'ymax:', baseHistogram.GetMaximum(), ymax2
+    #yaxis.SetRangeUser(0, baseHistogram.GetMaximum()*1.3)
+    baseHistogram.SetLineColor(colours.blue)
+    baseHistogram.SetMarkerSize(0)
+    baseHistogram.SetTitle("Triplet spacing {1} mm, Pileup {0}".format(PILEUP, geometry))
+    baseHistogram.Rebin(REBIN)
+
+    if PILEUP == 0:
+        xaxis.SetRangeUser(0, 500)
+    if PILEUP == 200:
+        xaxis.SetRangeUser(0, 1000)
+
+
+    # Add legend and other plots
+    leg = prepareLegend("topRight")
+    #addLegendEntry(leg, nDelphesTracks1GeV, "True > 1 GeV") 
+    addLegendEntry(leg, baseHistogram, "Hits")
+
+    addPlot(nRecoTracks, colours.green, REBIN, leg, "Reco")
+    addPlot(nRecoTracksMatched, colours.red, REBIN, leg, "Reco matched")
+    #addPlot(nDelphesTracks10GeV, colours.red, REBIN, leg, "True > 10 GeV")
+    #addPlot(nDelphesHits, colours.grey, REBIN, leg, "Hits")
+
+    leg.Draw()
+
+    can.SaveAs(outputDir+"trackComparrison_pu{0}_geometry{1}.pdf".format(PILEUP, geometry))
 
 def addLegendEntry(leg, hist, text):
     leg.AddEntry(hist, text, "l")
