@@ -12,7 +12,6 @@
 
 // my analysis classes
 #include "classes/TrackFitter.h"
-#include "classes/UtilityFunctions.h"
 
 // c++ libs
 #include <iostream>
@@ -60,6 +59,13 @@ struct TestPlots
   TH1* trueParticlePt_numParticles;
   TH1* trueParticlePt_numRecoTracks;
 
+
+  // Fake rate as a function of pT, eta
+  std::vector<TH1*> recoTrackPt;
+  std::vector<TH1*> recoTrackPt_fake; 
+  std::vector<TH1*> recoTrackEta;
+  std::vector<TH1*> recoTrackEta_fake; 
+
 };
 
 //------------------------------------------------------------------------------
@@ -81,6 +87,21 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
     plots->nRecoTracksMatched.push_back(
         result->AddHist1D("nRecoTracksMatched_"+trackerID, "Matched tracks", "Number of tracks", "Number of events", hitMultiplicity, 0, hitMultiplicity,0,0)
         );
+
+    plots->recoTrackPt.push_back(
+        result->AddHist1D("recoTrackPt_"+trackerID, "Reco track pT", "", "", 1000, 0, 1000, 0, 0)
+        );
+    plots->recoTrackPt_fake.push_back(
+        result->AddHist1D("recoTrackPt_fake_"+trackerID, "Fake Reco track pT", "", "", 1000, 0, 1000, 0, 0)
+        );
+    plots->recoTrackEta.push_back(
+        result->AddHist1D("recoTrackEta_"+trackerID, "Reco track eta", "", "", 100, -5, 5, 0, 0)
+        );
+    plots->recoTrackEta_fake.push_back(
+        result->AddHist1D("recoTrackEta_fake_"+trackerID, "Fake Reco track eta", "", "", 100, -5, 5, 0, 0)
+        );
+
+
   }
 
     plots->nDelphesTracks = result->AddHist1D("nDelphesTracks", "TrueTracks", "Number of tracks", "Number of events", hitMultiplicity, 0, hitMultiplicity,0,0);
@@ -220,6 +241,17 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
         plots->nDelphesHits.at(counter)->Fill( outerHits.size(), eventWeight); // number of hits in outer layer
         plots->nRecoTracks.at(counter)->Fill(theTracks.size(), eventWeight);
         plots->nRecoTracksMatched.at(counter)->Fill(theTracks.size() - nFakes, eventWeight);
+
+        // loop over tracks to fill fake rate plots
+        for(const auto& track : theTracks){
+          plots->recoTrackPt.at(counter)->Fill(track.Pt());
+          plots->recoTrackEta.at(counter)->Fill(track.Eta()); // might want to check theta calculation
+          if(track.isFake()){
+            plots->recoTrackPt_fake.at(counter)->Fill(track.Pt());
+            plots->recoTrackEta_fake.at(counter)->Fill(track.Eta()); // might want to check theta calculation
+          }
+        }
+
       }
       //std::cout << "i: " << counter << std::endl;
       ++counter;
