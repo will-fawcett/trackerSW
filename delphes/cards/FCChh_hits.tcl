@@ -240,10 +240,10 @@ module TreeWriter TreeWriter {
   add Branch VertexTrackAssociator/tracks AssociatedTracks Track
 
   add Branch HitFinder50/hits Hits50 Hit
-  add Branch HitFinder50/hits Hits40 Hit
-  add Branch HitFinder50/hits Hits30 Hit
-  add Branch HitFinder50/hits Hits20 Hit
-  add Branch HitFinder50/hits Hits10 Hit
+  add Branch HitFinder40/hits Hits40 Hit
+  add Branch HitFinder30/hits Hits30 Hit
+  add Branch HitFinder20/hits Hits20 Hit
+  add Branch HitFinder10/hits Hits10 Hit
 
   # Then write a module to take the vertices and spit out the tracks from the highest pT vertex 
   # Need access to pointers inside vertex 

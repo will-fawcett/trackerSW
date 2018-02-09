@@ -11,7 +11,7 @@
 #include "modules/FastJetFinder.h"
 
 // my analysis classes
-#include "classes/anaClasses.h"
+#include "classes/TrackFitter.h"
 #include "classes/UtilityFunctions.h"
 
 // c++ libs
@@ -206,13 +206,13 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
 
 
     // contains the rules to associate hits together, and then the collection of hits into tracks 
-    TrackFitter tf(fitTypes::simpleLinear, parameters, layerIDs); 
     //tf.debug();
     
     std::vector<hitContainer> theHitContainers = {hc10, hc20, hc30, hc40, hc50};
     int counter(0);
     for(hitContainer hc : theHitContainers){
 
+      TrackFitter tf(fitTypes::simpleLinear, parameters, layerIDs); 
       if( tf.AssociateHits(hc) ){
         std::vector< myTrack > theTracks = tf.GetTracks(); 
         int nFakes = countFakes(theTracks);
@@ -227,8 +227,9 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
 
 
 
-    if( tf.AssociateHits(hc50) ){
-      std::vector< myTrack > theTracks50 = tf.GetTracks(); 
+    TrackFitter tf2(fitTypes::simpleLinear, parameters, layerIDs); 
+    if( tf2.AssociateHits(hc50) ){
+      std::vector< myTrack > theTracks50 = tf2.GetTracks(); 
       int nFakes50 = countFakes(theTracks50);
     }
 

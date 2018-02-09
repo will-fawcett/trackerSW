@@ -381,9 +381,6 @@ struct TestPlots
 void BookHistograms(ExRootResult *result, TestPlots *plots, bool calculateTrackParameters)
 {
 
-
-
-
   // Track occupancy
   plots->trackOccupancy = result->AddHist2D("trackOccupancy", "", "Track multi per tower", "Track pT [GeV]", 100, 0, 100, 100, 0, 300);
   plots->trackOccupancyProf = result->AddProfile("trackOccupancyProf", "", "Track multi per tower", "Number of towers", 100, 0, 100);
