@@ -36,31 +36,48 @@ def main():
     #graph('( x**2 - 1)**0.5 / (1.2)', range(2, 1000), 'bendingRvE', 'E [GeV]', 'Bending Radius [m]')
 
     # bending radius versus transverse momentum (with nice lines)   (multiply by 100 for m->cm )
-    graph2('( 500.0*x / 6.0 ) ', range(0, 3), 'bendingRvP', 'pT [GeV]', 'Bending Radius [cm]') 
+    #graph2('( 500.0*x / 6.0 ) ', range(0, 3), 'bendingRvP', 'pT [GeV]', 'Bending Radius [cm]') 
 
     # deviation as a function of bending radius  
     #graph('(x - np.sqrt(x*x - 0.25))', range(1, 10), 'deviation', 'Bending radius [m]', 'deviaton[$\mu$m]')
 
     # deviation as a function of momentum, triplet spacing 0.05 m (so total distance 0.1m) 
     #graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.1)**2 ))*10**6', range(40, 201), 'deviation100mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 100mm')
-    #graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.05)**2 ))*10**6', range(1, 61), 'deviation50mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 50mm')
+    
+    #graph3('(x*(5.0/6.0) - np.sqrt( (x*(5.0/6.0))**2 - (0.05)**2 ))*10**6', range(1, 11), 'deviation50mm', ptGeV, 'Perpendicular Deviaton [$\mu$m]', 'Perpendicular deviation as a function of '+pt+' for longitudinal spacing of 50mm')
+    # (above) previous range (1, 61)
     
     # spacing required for deviation of 40 um as a function of pT
     #graph( 'np.sqrt( (x*5.0/6.0)**2 - (x*5.0/6.0 - 40*10**(-6))**2 )*1000', range(1, 101), 'spacing', '$p_{\mathrm{T}}$ [GeV]', 'Spacing [mm]', 'Tracker layer spacing required for 40 $\mu$m track deviation as a function of $p_{\mathrm{T}}$')
     #graph( 'np.sqrt( (x*5.0/6.0)**2 - (x*5.0/6.0 - 40*10**(-6))**2 )*1000', range(1, 101), 'spacingInverse', 'Spacing [mm]', ptGeV, 'Tracker layer spacing required for 40 $\mu$m track deviation as a function of $p_{\mathrm{T}}$', True)
 
-    printRad(1*GeV/lightSpeed,  4.0)
-    printRad(2*GeV/lightSpeed,  4.0)
-    printRad(5*GeV/lightSpeed,  4.0)
+    # phi deviation of a particle emination from the origin and and intersecting barrel layers at 
+    # radii r1 and r2 for the cases, as a function of transverse momentum [GeV]
+    # Factor of 57.296 to convert radians to degrees
+    # r1 = 0.532, r2 = 0.632 m (100 mm spacing) 
+    # r1 = 0.532, r2 = 0.582 m (50 mm spacing)
+    # r1 = 0.532, r2 = 0.542 m (10 mm spacing)
+    plotRange = [float(x)/10 for x in range(6,60)]
+    
+    graph('(np.arccos( 0.532 / (2.0 * 1.199*x) ) - np.arccos( 0.632 / (2.0 * 1.199*x) ))*57.296', plotRange, 'phiDeviation', 'pT [GeV]', '$\Delta \phi$ [degrees]')
+    graph('(np.arccos( 0.532 / (2.0 * 1.199*x) ) - np.arccos( 0.582 / (2.0 * 1.199*x) ))*57.296', plotRange, 'phiDeviation', 'pT [GeV]', '$\Delta \phi$ [degrees]')
+    graph('(np.arccos( 0.532 / (2.0 * 1.199*x) ) - np.arccos( 0.542 / (2.0 * 1.199*x) ))*57.296', plotRange, 'phiDeviation', 'pT [GeV]', '$\Delta \phi$ [degrees]')
 
-    #printDev(1*GeV/lightSpeed, 0.05)
-    #printDev(2*GeV/lightSpeed, 0.05)
-    #printDev(5*GeV/lightSpeed, 0.05)
-    #printDev(100*GeV/lightSpeed, 0.05)
 
+    #printRad(1*GeV/lightSpeed,  4.0)
+    #printRad(2*GeV/lightSpeed,  4.0)
+    #printRad(5*GeV/lightSpeed,  4.0)
+
+    ##printDev(1*GeV/lightSpeed, 0.05)
+    ##printDev(2*GeV/lightSpeed, 0.05)
+    ##printDev(5*GeV/lightSpeed, 0.05)
+    ##printDev(100*GeV/lightSpeed, 0.05)
+
+    '''
     for i in range(140, 160):
         #printDev(i*GeV/lightSpeed, 0.05)
         printDev(i*GeV/lightSpeed, 0.10)
+    '''
 
 def printDev(p, spacing, B=4.0):
     bendingRadius = radius(p , B)
@@ -133,6 +150,7 @@ def graph(formula, x_range, save, x_title='', y_title='', title='', inverse=Fals
     plt.ylabel(y_title)
     maxy = plt.gca().grid()
     plt.savefig(save+'.pdf')
+    plt.savefig(save+'.eps')
 
 def graph3(formula, x_range, save, x_title='', y_title='', title='', inverse=False):
     x = np.array(x_range)  
