@@ -62,9 +62,14 @@ struct TestPlots
 
   // Fake rate as a function of pT, eta
   std::vector<TH1*> recoTrackPt;
-  std::vector<TH1*> recoTrackPt_fake; 
+  std::vector<TH1*> recoTrackPt_fake;
+  std::vector<TH1*> recoTrackPt_true;
   std::vector<TH1*> recoTrackEta;
   std::vector<TH1*> recoTrackEta_fake; 
+  
+  std::vector<TH1*> nHitsPt; 
+  std::vector<TH1*> recoTrackPtResolution;
+
 
 };
 
@@ -75,7 +80,7 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
 
   int hitMultiplicity = 5000;
 
-  for(int i=0; i<6; ++i ){
+  for(int i=0; i<5; ++i ){
     std::string trackerID = std::to_string((i+1)*10);
 
     plots->nDelphesHits.push_back(
@@ -94,13 +99,21 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
     plots->recoTrackPt_fake.push_back(
         result->AddHist1D("recoTrackPt_fake_"+trackerID, "Fake Reco track pT", "", "", 1000, 0, 1000, 0, 0)
         );
+    plots->recoTrackPt_true.push_back(
+        result->AddHist1D("recoTrackPt_true_"+trackerID, "True Reco track pT", "", "", 1000, 0, 1000, 0, 0)
+        );
     plots->recoTrackEta.push_back(
         result->AddHist1D("recoTrackEta_"+trackerID, "Reco track eta", "", "", 100, -5, 5, 0, 0)
         );
     plots->recoTrackEta_fake.push_back(
         result->AddHist1D("recoTrackEta_fake_"+trackerID, "Fake Reco track eta", "", "", 100, -5, 5, 0, 0)
         );
-
+    plots->nHitsPt.push_back(
+        result->AddHist1D("nHitsPt_"+trackerID, "Hit Pt", "", "", 1000, 0, 1000, 0, 0)
+        );
+    plots->recoTrackPtResolution.push_back(
+        result->AddHist1D("recoTrackPtResolution_"+trackerID, "Reconstructed track pT resolution", "", "", 400, -2, 2, 0, 0)
+        );
 
   }
 
@@ -233,6 +246,11 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
     int counter(0);
     for(hitContainer hc : theHitContainers){
 
+      // fill histogram with the pT of hits in the outermost layer
+      for(auto& hit : hc[ layerIDs.back() ]){
+        plots->nHitsPt.at(counter)->Fill(hit->PT);
+      }
+
       TrackFitter tf(fitTypes::simpleLinear, parameters, layerIDs); 
       if( tf.AssociateHits(hc) ){
         std::vector< myTrack > theTracks = tf.GetTracks(); 
@@ -249,6 +267,10 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
           if(track.isFake()){
             plots->recoTrackPt_fake.at(counter)->Fill(track.Pt());
             plots->recoTrackEta_fake.at(counter)->Fill(track.Eta()); // might want to check theta calculation
+          }
+          else{
+            plots->recoTrackPtResolution.at(counter)->Fill(track.Pt() - track.GetHitPtAtLayer(2) ); 
+            plots->recoTrackPt_true.at(counter)->Fill(track.Pt());
           }
         }
 

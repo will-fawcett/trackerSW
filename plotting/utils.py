@@ -31,8 +31,8 @@ def checkDir(dir, CHECK=False):
 def prepareLegend(position):
     import ROOT
 
-    bottomLeft  = [0.15, 0.1, 0.35, 0.3]
-    bottomRight = [0.7, 0.1, 0.9, 0.3]
+    bottomLeft  = [0.15, 0.15, 0.35, 0.35]
+    bottomRight = [0.7, 0.15, 0.9, 0.35]
     topRight    = [0.7, 0.7, 0.9, 0.9]
     topLeft     = [0.15, 0.7, 0.35, 0.9]
 
