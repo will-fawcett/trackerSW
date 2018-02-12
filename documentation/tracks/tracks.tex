@@ -1,0 +1,52 @@
+\documentclass[a4paper, 12pt]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{xspace}
+\usepackage{cleveref}
+\usepackage{booktabs}
+\usepackage[parfill]{parskip}
+\usepackage{booktabs}
+
+
+\newcommand{\pt}{\ensuremath{p_{\mathrm{T}}}\xspace}
+
+\begin{document}
+
+\section{Tracks}
+The myTrack class is used to take a vector of hit objects and calculate the track parameters. 
+At current, two track parameter extraction methods are used: beamline constraint and no-beamline constraint. 
+First, some definitions.
+\begin{description}
+  \item[A fake track]
+    A track is labelled as fake if any one of the hits belonging to the track do not come from the same particle.
+
+  \item[Track reconstruction efficiency] 
+    The ATLAS convention defines this as the fraction of truth particles matched to a reconstructed track (after the track passes the relevant quality criteria).
+    Here, we used the following definition
+    \begin{equation}
+      \epsilon = \frac{\mathrm{Number~of~tracks~matched}}{\mathrm{Number~of~particles~in~outermost~layer}}
+    \end{equation}
+    The number of particles in the outermost layer is used as a proxy for the number of true particles. 
+    The number of matched tracks is equivalent to the number of truth particles matched to a track. 
+    This efficiency can be calculated as a function of the reconstructed tracks $\eta$ or \pt, or of the truth particles $\eta$ or \pt. 
+
+  \item[Fake rate]
+    The fake rate is defined as 
+    \begin{equation}
+      R_f = \frac{\mathrm{Numer~of~fake~tracks}}{\mathrm{Numer~of~reconstructed~tracks}}.
+    \end{equation}
+    This can be defined as a per event quantity, or as a function of $\eta$ or $\pt$. 
+
+\end{description}
+
+\subsection{Beamline constraint}
+All tracks are assumed to have only three hits, one for each layer of the triplet.
+
+
+
+
+
+
+\end{document}
