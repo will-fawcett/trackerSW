@@ -9,18 +9,12 @@
 
 set ExecutionPath {
   PileUpMerger
-  ParticlePropagator
 
-  TrackMerger
   HitFinder50
   HitFinder40
   HitFinder30
   HitFinder20
   HitFinder10
-  TrackEfficiency
-  TrackSmearing
-
-  NeutrinoFilter
 
   TreeWriter
 }
@@ -36,9 +30,7 @@ module PileUpMerger PileUpMerger {
   set VertexOutputArray vertices
 
   # pre-generated minbias input file
-  #set PileUpFile /afs/cern.ch/work/w/wfawcett/private/geneva/delphes/samples/pileup/MinBias_s10.pileup 
   set PileupParticle /atlas/data4/userdata/wfawcett/delphes/samples/pileup/MinBias_s10.pileup
-  #set PileUpFile MinBias.pileup
 
   # average expected pile up
   set MeanPileUp 700
@@ -57,40 +49,6 @@ module PileUpMerger PileUpMerger {
 
 }
 
-
-#################################
-# Propagate particles in cylinder
-#################################
-
-module ParticlePropagator ParticlePropagator {
-  set InputArray PileUpMerger/stableParticles
-
-  set OutputArray stableParticles
-  set ChargedHadronOutputArray chargedHadrons
-  set ElectronOutputArray electrons
-  set MuonOutputArray muons
-
-  # radius of the magnetic field coverage, in m (want radius of the tracker)  ######## NOT THIS -> (radius of innermost tiplet layer in r) <- NOT THIS
-  set Radius 0.582
-  # half-length of the magnetic field coverage, in m (length of tracker in z)
-  set HalfLength 2.250 
-
-  # magnetic field
-  set Bz 4.0
-}
-
-
-#################################
-# Truth tracks full pT and Eta range 
-#################################
-# Creates truth tracks 
-module Merger TrackMerger {
-  add InputArray ParticlePropagator/chargedHadrons
-  add InputArray ParticlePropagator/muons
-  add InputArray ParticlePropagator/electrons
-  set TrackPtMax 100
-  set OutputArray tracks 
-}
 
 module HitFinder HitFinder50 {
   set InputArray PileUpMerger/stableParticles
@@ -133,68 +91,14 @@ module HitFinder HitFinder10 {
 }
 
 
-
-#################################
-# Remove truth tracks with pT < 0.5 GeV and |eta| > 2.0 
-#################################
-
-module Efficiency TrackEfficiency {
-  set InputArray TrackMerger/tracks
-  set OutputArray tracks 
-  set EfficiencyFormula { (pt <= 1.00) * (0.00) +
-                        (abs(eta) <= 2.0) * (pt > 1.00) * (1.00) +
-                        (abs(eta) > 2.0)  * (0.00)}
-}
-
-
-#################################
-# Smear the tracks according to the resolution formula from tkLayout 
-#################################
-
-module TrackSmearing TrackSmearing {
-  set InputArray TrackEfficiency/tracks
-  #set BeamSpotInputArray BeamSpotFilter/beamSpotParticle
-  set OutputArray tracks
-  set ApplyToPileUp true 
-
-  # magnetic field
-  set Bz 4.0
-  source tripletFCCresolutions.tcl 
-}
-
-
-#################
-# Neutrino Filter
-#################
-
-module PdgCodeFilter NeutrinoFilter {
-
-  set InputArray Delphes/stableParticles
-  set OutputArray filteredParticles
-
-  set PTMin 0.0
-
-  add PdgCode {12}
-  add PdgCode {14}
-  add PdgCode {16}
-  add PdgCode {-12}
-  add PdgCode {-14}
-  add PdgCode {-16}
-
-}
-
-
 ##################
 # ROOT tree writer
 ##################
 
 module TreeWriter TreeWriter {
+
   add Branch Delphes/allParticles Particle GenParticle
-
   add Branch PileUpMerger/vertices Vertex Vertex
-
-  add Branch TrackEfficiency/tracks TruthTrack Track
-  add Branch TrackSmearing/tracks Track Track
 
   add Branch HitFinder50/hits Hits50 Hit
   add Branch HitFinder40/hits Hits40 Hit
@@ -203,4 +107,3 @@ module TreeWriter TreeWriter {
   add Branch HitFinder10/hits Hits10 Hit
 
 }
-

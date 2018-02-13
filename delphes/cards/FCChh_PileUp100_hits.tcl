@@ -33,7 +33,7 @@ module PileUpMerger PileUpMerger {
   set PileupParticle /atlas/data4/userdata/wfawcett/delphes/samples/pileup/MinBias_s10.pileup
 
   # average expected pile up
-  set MeanPileUp 300
+  set MeanPileUp 100
 
   # Set pileup distribution: 0 for poisson, 1 for uniform 
   set PileUpDistribution 0 
