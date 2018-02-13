@@ -2,6 +2,7 @@ from ROOT import *
 from colours import colours
 from utils import prepareLegend
 import os
+import math
 
 gROOT.SetBatch(1)
 gStyle.SetPadBottomMargin(0.15)
@@ -30,16 +31,78 @@ def main():
     geometries = [10, 20, 30, 40, 50]
     pileups = [0]
     pileups = [0, 200, 1000]
+
+
     for PILEUP in pileups:
         fName = path+"hits_ttbar_pu{0}_multiGeometry.root".format(PILEUP) 
-        #fName = "/atlas/users/wfawcett/fcc/delphes/test_output.root"
         print "Opening file:", fName
         ifile = TFile.Open(fName)
         efficiency(ifile, PILEUP, geometries) 
         fakeRates(ifile, PILEUP, geometries, "Pt")
         fakeRates(ifile, PILEUP, geometries, "Eta")
-        for geometry in geometries:
-            numberOfTracks(ifile, PILEUP, geometry)
+        ifile.Close()
+
+    
+    efficiencySummaries = {}
+    fakeRateSummaries   = {}
+    for geometry in geometries:
+        efficiencySummary = TGraphErrors()
+        fakeRateSummary = TGraphErrors()
+        counter = 0
+        pileups = [0, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+        for PILEUP in pileups:
+            fName = path+"hits_ttbar_pu{0}_multiGeometry.root".format(PILEUP) 
+            ifile = TFile.Open(fName)
+            [efficiencyMean, efficiencyError, fakeRate, fakeRateError] = numberOfTracks(ifile, PILEUP, geometry)
+
+            print "adding point", counter, PILEUP, efficiencyMean
+            efficiencySummary.SetPoint(counter, PILEUP, efficiencyMean) 
+            efficiencySummary.SetPointError(counter, 0, efficiencyError)
+            efficiencySummary.SetMarkerColor( cols[geometry] )
+            efficiencySummary.SetLineColor( cols[geometry] )
+            efficiencySummary.SetMarkerStyle(20)
+
+            fakeRateSummary.SetPoint(counter, PILEUP, fakeRate) 
+            fakeRateSummary.SetPointError(counter, 0, fakeRateError)
+            fakeRateSummary.SetMarkerColor( cols[geometry] )
+            fakeRateSummary.SetLineColor( cols[geometry] )
+
+            efficiencySummaries[geometry] = efficiencySummary
+            fakeRateSummaries[geometry] = fakeRateSummary
+            ifile.Close()
+
+            counter += 1
+    
+
+    ########################
+    # Draw the summary plots
+    ########################
+
+    # Multigraph for efficiency
+    effMulti = TMultiGraph()
+    newCan = TCanvas("newCan", "", 500, 500)
+    newCan.SetLeftMargin(0.15)
+    for geometry in geometries:
+        effMulti.Add( efficiencySummaries[geometry], 'p')
+        effMulti.SetTitle(";Pileup;Average track reconstruction efficiency")
+        effMulti.Draw('a')
+    newCan.SaveAs(outputDir+"EfficiencySummary.pdf")
+    newCan.Clear()
+
+    # Multigraph for fakes 
+    fakeMulti = TMultiGraph()
+    for geometry in geometries:
+        fakeMulti.Add( fakeRateSummaries[geometry], 'p')
+        fakeMulti.SetTitle(";Pileup;Average fake rate")
+        fakeMulti.Draw('a')
+    newCan.SaveAs(outputDir+"FakeRateSummary.pdf")
+
+
+
+
+
+
+
 
 def drawAndSave(hist, name):
     can = TCanvas("can", "can", 500, 500)   
@@ -72,7 +135,7 @@ def efficiency(ifile, PILEUP, geometries):
         #drawAndSave(recoTrackPt_true, "recoTrackPt_true.pdf")
 
         # Rebin
-        REBIN = 2 
+        REBIN = 1 
         recoTrackPt_true.Rebin(REBIN)
         nHitsPt.Rebin(REBIN)
 
@@ -111,7 +174,6 @@ def efficiency(ifile, PILEUP, geometries):
 def fakeRates(ifile, PILEUP, geometries, label):
     can = TCanvas("can", "can", 500, 500)   
 
-
     fakeRates = {} 
     leg = prepareLegend('topLeft')
     for geometry in geometries:
@@ -141,13 +203,11 @@ def fakeRates(ifile, PILEUP, geometries, label):
             xaxis.SetRangeUser(-2.5, 2.5)
             xaxis.SetTitle("Reconstructed Track #eta")
 
-        if PILEUP == 0:
-            yaxis.SetRangeUser(0, 0.3)
-        elif PILEUP == 200:
-            yaxis.SetRangeUser(0, 1)
+        # y-range 
+        yaxis.SetRangeUser(0, 0.35)
 
         yaxis.SetTitle("Fake Rate")
-        fakeRate.SetTitle("")
+        fakeRate.SetTitle("Pileup {0}".format(PILEUP))
 
         leg.AddEntry(fakeRate, "{0} mm".format(geometry), "lp")
         fakeRate.SetMarkerColor(cols[geometry]) 
@@ -170,6 +230,7 @@ def numberOfTracks(ifile, PILEUP, geometry):
     #nDelphesTracks = ifile.Get("nDelphesTracks")
     #nDelphesTracks1GeV = ifile.Get("nDelphesTracks1GeV")
     #nDelphesTracks10GeV = ifile.Get("nDelphesTracks10GeV")
+
     nRecoTracks = ifile.Get("nRecoTracks_"+str(geometry))
     nRecoTracksMatched = ifile.Get("nRecoTracksMatched_"+str(geometry))
     nDelphesHits = ifile.Get("nDelphesHits_"+str(geometry))
@@ -187,32 +248,38 @@ def numberOfTracks(ifile, PILEUP, geometry):
     xaxis.SetNdivisions(5, 5, 0)
     yaxis.SetTitle("Frequency")
     xaxis.SetTitle("Number of tracks")
-    #print 'ymax:', baseHistogram.GetMaximum(), ymax2
-    #yaxis.SetRangeUser(0, baseHistogram.GetMaximum()*1.3)
     baseHistogram.SetLineColor(colours.blue)
     baseHistogram.SetMarkerSize(0)
     baseHistogram.SetTitle("Triplet spacing {1} mm, Pileup {0}".format(PILEUP, geometry))
     baseHistogram.Rebin(REBIN)
 
-    if PILEUP == 0:
-        xaxis.SetRangeUser(0, 500)
-    if PILEUP == 200:
-        xaxis.SetRangeUser(0, 1000)
-
+    yaxis.SetRangeUser(0, baseHistogram.GetMaximum()*1.3)
+    xaxis.SetRangeUser(0, 500)
 
     # Add legend and other plots
     leg = prepareLegend("topRight")
-    #addLegendEntry(leg, nDelphesTracks1GeV, "True > 1 GeV") 
     addLegendEntry(leg, baseHistogram, "Hits")
 
     addPlot(nRecoTracks, colours.green, REBIN, leg, "Reco")
     addPlot(nRecoTracksMatched, colours.red, REBIN, leg, "Reco matched")
-    #addPlot(nDelphesTracks10GeV, colours.red, REBIN, leg, "True > 10 GeV")
-    #addPlot(nDelphesHits, colours.grey, REBIN, leg, "Hits")
-
     leg.Draw()
 
     can.SaveAs(outputDir+"trackComparrison_pu{0}_geometry{1}.pdf".format(PILEUP, geometry))
+
+    # Calculate mean efficiency 
+    efficiency = nRecoTracksMatched.GetMean() / nDelphesHits.GetMean() 
+    efficiencyError = efficiency * math.sqrt( (nRecoTracksMatched.GetMeanError()/nRecoTracksMatched.GetMean() )**2 + (nDelphesHits.GetMeanError()/nDelphesHits.GetMean())**2 ) 
+    
+    # Calculate mean fake rate 
+    nFakesMean = nRecoTracks.GetMean() - nRecoTracksMatched.GetMean()
+    nFakesError = math.sqrt( nRecoTracks.GetMeanError()**2 + nRecoTracksMatched.GetMean()**2 )
+
+    fakeRate =  nFakesMean / ( nRecoTracks.GetMean() )   
+    fakeRateError = fakeRate * math.sqrt( (nFakesError/nFakesMean)**2 + ( nRecoTracks.GetMeanError()/nRecoTracks.GetMean()  ) ) 
+
+
+
+    return [efficiency, efficiencyError, fakeRate, fakeRateError]  
 
 #______________________________________________________________________________
 def addLegendEntry(leg, hist, text):
