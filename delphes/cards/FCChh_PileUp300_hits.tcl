@@ -93,7 +93,7 @@ module Merger TrackMerger {
 }
 
 module HitFinder HitFinder50 {
-  set InputArray PileupMerger/stableParticles
+  set InputArray PileUpMerger/stableParticles
   set OutputArray hits
   set BarrelLength 2.250 
   set Bz 4.0
@@ -101,7 +101,7 @@ module HitFinder HitFinder50 {
 }
 
 module HitFinder HitFinder40 {
-  set InputArray PileupMerger/stableParticles
+  set InputArray PileUpMerger/stableParticles
   set OutputArray hits
   set BarrelLength 2.250 
   set Bz 4.0
@@ -109,7 +109,7 @@ module HitFinder HitFinder40 {
 }
 
 module HitFinder HitFinder30 {
-  set InputArray PileupMerger/stableParticles
+  set InputArray PileUpMerger/stableParticles
   set OutputArray hits
   set BarrelLength 2.250 
   set Bz 4.0
@@ -117,7 +117,7 @@ module HitFinder HitFinder30 {
 }
 
 module HitFinder HitFinder20 {
-  set InputArray PileupMerger/stableParticles
+  set InputArray PileUpMerger/stableParticles
   set OutputArray hits
   set BarrelLength 2.250 
   set Bz 4.0
@@ -125,7 +125,7 @@ module HitFinder HitFinder20 {
 }
 
 module HitFinder HitFinder10 {
-  set InputArray PileupMerger/stableParticles
+  set InputArray PileUpMerger/stableParticles
   set OutputArray hits
   set BarrelLength 2.250 
   set Bz 4.0
