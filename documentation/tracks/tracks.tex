@@ -43,9 +43,47 @@ First, some definitions.
 
 \subsection{Beamline constraint}
 All tracks are assumed to have only three hits, one for each layer of the triplet.
+To extract the track parameters, it is assumed that the particle originated form the beamline, i.e. $(0, 0, z_0)$ in $(x, y, z)$. 
+Only the hits in the outermost and innermost layer are used, with coordinates $(x_1, y_1, z_1)$ and $(x_3, y_3, z_3)$ respectively, giving a total of three coordinates.
+By definition $d_0=0$. 
 
 
+To extract the radius of curvature the centre of the circle connecting the three coordinates is calculated in the $x$--$y$ plane as follows:
+\begin{align}
+  a = \frac{y_3 r_{01}^2 - y_1 r_3^2}{2(y_3x_1 - y_1x_3)} \\
+  b = \frac{x_3 r_{01}^2 - x_1 r_3^2}{2(y_3x_1 - y_1x_3)} 
+\end{align}
+where $r_{0i} = \sqrt{x^2_i + y^2_i}$ and $(a, b)$ are the coordinates of the centre of the circle. 
+Since the circle touches the origin, the radius of curvature is then $R=\sqrt{a^2 + b^2}$ from which the \pt can be extracted using $\pt[\mathrm{GeV}] = 1.199 \times R[\mathrm{m}]$, which holds for a
+magnetic field of 4\,T.
 
+The $\phi$ parameter is calculated as the angle made by the tangent to the circle at the origin. 
+The angle is given by $\phi = \tan^{-1}( -b/a)$. 
+
+In the longitudinal plane $z_0$ and $\eta$ can also be extracted. 
+We follow the methodology of A. Sch\"oening.
+First the bending angles at the first and third layer positions are calculated
+\begin{align}
+  \Phi_1 & = 2 \sin^{-1} \left( \frac{C_{13}}{r_{13} r_{03} }\right) \\
+  \Phi_3 & = 2 \sin^{-1} \left( \frac{C_{13}}{r_{13} r_{01} }\right)
+\end{align}
+where $C_{13} = x_1 y_3 - y_1 x_3$.
+Then the corresponding arc lengths are calculated
+\begin{align}
+  s_1 & = R \Phi_1 \\
+  s_3 & = R \Phi_3 
+\end{align}
+From which the track parameters are extracted as follows:
+\begin{align}
+  z_0 & = z_1 - s_1 \frac{z_3 - z_1}{ s_3 - s_1} \\
+  \theta & = \tan^{-1} \left( \frac{s_3 - s_1}{ z_3 - z_1} \right)
+\end{align}
+
+\subsection{No beamline constraints}
+Here, the above assumption that the track originated from $(0, 0, z_0)$ is removed, and all three hit points are used to extract the track parameters. 
+
+\section{Results} 
+Track parameters are calculated with the beamline constraint by default.
 
 
 
