@@ -162,19 +162,43 @@ The result of \cref{eq:bendingRadiusSimp} is also shown graphically in \cref{fig
 
 \begin{table}
   \centering
-  \begin{tabular}{cc}
+  \begin{tabular}{ccc}
     \toprule
-    Momentum [GeV/c] & Bending radius [m] \\ 
+    Momentum [GeV/c] & Bending radius [m] & Max deviation from origin [m] \\ 
     \midrule
-    0.5 & 0.41 \\
-    1 & 0.83 \\ 
-    3 & 2.50 \\ 
-    5 & 4.17 \\ 
+    0.5 & 0.41 & 0.82 \\
+    1 & 0.83   & 1.66 \\ 
+    3 & 2.50   & 5.00 \\ 
+    5 & 4.17   & 8.34 \\ 
     \bottomrule
   \end{tabular}
   \caption{Some quick reference numbers for bending radius for a given \pt.}
   \label{tab:brquick}
 \end{table}
+
+\begin{table}
+  \centering
+  \begin{tabular}{cc}
+    \toprule
+    Barrel layer radius [m] & Min \pt required to reach [GeV] \\ 
+    \midrule 
+    0.632 & 0.378 \\
+    0.622 & 0.372 \\
+    0.612 & 0.367 \\
+    0.602 & 0.361 \\
+    0.592 & 0.355 \\
+    0.582 & 0.350 \\
+    0.572 & 0.343 \\
+    0.562 & 0.337 \\
+    0.552 & 0.331 \\ 
+    0.542 & 0.325 \\
+    0.532 & 0.319 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Minimum \pt required to reach a barrel layer of a given radius}
+\end{table}
+
+
 
 \begin{figure}
   \centering
