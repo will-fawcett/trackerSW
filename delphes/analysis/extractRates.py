@@ -18,55 +18,10 @@ resultsPath = '/Users/Will/Documents/fcc/delphes/results/'
 nEvents = 1000.0
 
 OUTPUT_DIR = 'plots/'
+OUTPUT_DIR = 'TEST_PLOTS/'
 
 def main(verbose):
 
-<<<<<<< HEAD
-    #     
-    can = TCanvas('can', 'can', 500, 500)
-    can.SetLogy()
-    h.GetXaxis().SetRangeUser(0, 200)
-    h.Draw()
-    can.SaveAs(outputDir+'testJetPt.pdf')
-
-    c.GetXaxis().SetRangeUser(0, 200)
-    c.SetMarkerColor(865)
-    c.SetLineColor(865)
-    c.GetYaxis().SetTitle('Relative Rate')
-
-    c2.SetMarkerColor(629)
-    c2.SetLineColor(629)
-
-
-    #c.DrawNormalized()
-    c.Draw()
-    c2.Draw('same')
-    can.SaveAs(outputDir+'testJetCumulativePt.pdf')
-
-
-def appendSlash(path):
-    if path[-1] != '/':
-        return path+'/'
-    else:
-        return path
-
-#____________________________________________________________________________
-def getReverseCumulativeHisto(histo):
-    '''
-    Function to return the cumulative efficiency curve from a
-    differential efficiency curve
-    '''
-    nbins = histo.GetNbinsX()
-    error = Double()
-    cumulHisto = histo.Clone()
-    cumulHisto.Reset()
-    for bin in range(1,nbins+1):
-        integral = histo.IntegralAndError(bin,nbins,error)
-        integralErr = error
-        cumulHisto.SetBinContent(bin,integral)
-        cumulHisto.SetBinError(bin,integralErr)
-    return cumulHisto
-=======
     can = TCanvas('can', 'can', 500, 500)
     can.SetLogy()
     can.SetGrid()
@@ -75,7 +30,6 @@ def getReverseCumulativeHisto(histo):
     ifile_ttbar = TFile.Open(resultsPath+'hist_ttbar_mu200_s80_n1000.root') 
 
     colours = Colours()
->>>>>>> 54e0299c0ae0762e5f6a22f0d1b491f6a61078a4
     
     for nJet in range(1,8):
 
