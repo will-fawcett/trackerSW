@@ -50,12 +50,25 @@ By definition $d_0=0$.
 
 To extract the radius of curvature the centre of the circle connecting the three coordinates is calculated in the $x$--$y$ plane as follows:
 \begin{align}
-  a = \frac{y_3 r_{01}^2 - y_1 r_3^2}{2(y_3x_1 - y_1x_3)} \\
-  b = \frac{x_3 r_{01}^2 - x_1 r_3^2}{2(y_3x_1 - y_1x_3)} 
+  a = \frac{y_3 r_{01}^2 - y_1 r_{03}^2}{2(y_3x_1 - y_1x_3)} \\
+  b = \frac{x_3 r_{01}^2 - x_1 r_{03}^2}{2(y_3x_1 - y_1x_3)} 
 \end{align}
 where $r_{0i} = \sqrt{x^2_i + y^2_i}$ and $(a, b)$ are the coordinates of the centre of the circle. 
 Since the circle touches the origin, the radius of curvature is then $R=\sqrt{a^2 + b^2}$ from which the \pt can be extracted using $\pt[\mathrm{GeV}] = 1.199 \times R[\mathrm{m}]$, which holds for a
 magnetic field of 4\,T.
+
+As an aside, one can further simplify the expression for $R$, consider $R^2 = a^2+b^2$ and let $C_{13} = x_1 y_3 - y_1 x_3$, 
+\begin{align}
+  a^2 + b^2 & = \frac{(y_3 r_{01}^2 - y_1 r_{03}^2)^2 + (x_3 r_{01}^2 - x_1 r_3^2)^2}{4C_{13}^2} \\ 
+  & = \frac{r^4_{01} y_3^2 + r_{03}^4 y_1^2 - 2 r^2_{01}r^2_{03}y_1 y_3    + r^4_{01} x_3^2 + r_{03}^4 x_1^2 - 2 r^2_{01}r^2_{03}x_1 x_3      }{4C_{13}^2} \\ 
+  & = \frac{r_{01}^4 (x_3^2 + y_3^2) + r_{03}^4 (x_1^2 + y_1^2) -2r^2_{01}r^2_{03}(x_1 x_3 + y_1 y_3)}{4 C_{13}^2} \\ 
+  & = \frac{r^2_{01}r^2_{03}(r^2_{01} + r^2_{03} -2(x_1 x_3 - y_1 y_3))}{4C_{13}^2} \\ 
+\end{align}
+Noticing that $r^2_{13} = (x_3 - x_1)^2 + (y_3 - y_1)^2 = r_{01}^2 + r_{03}^2 - 2(x_1 x_3 + y_1y_3)$, we have
+\begin{equation}
+  R = \sqrt{a^2 + b^2} = \frac{r_{01} r_{03} r_{13}}{2C_{13}}
+\end{equation} 
+
 
 The $\phi$ parameter is calculated as the angle made by the tangent to the circle at the origin. 
 The angle is given by $\phi = \tan^{-1}( -b/a)$. 
