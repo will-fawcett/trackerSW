@@ -135,7 +135,6 @@ def main():
     # now make some nice plots
     for variable in trackParameters:
 
-
         # 2D plots with variable:barrel layers:layer spacings
         for pt in momentumValues:
             for eta in plotEtaValues:
@@ -348,11 +347,7 @@ def make2DPlot_fixedBarrelLayer(plotInfo, trackParameter, xvariable, xconstant, 
     else:
         print 'ERROR: xvariable must be either etaValues or trackpT'
         sys.exit()
-
-
     plotTitle = '{0} = {1} {2}, barrel layer = {3}'.format(variableMap[okey]['title'], xconstant, variableMap[okey]['units'], barrelLayer)
-
-    
 
     # Fill points on graph 
     for spacing in layerSpacings: 
@@ -387,7 +382,9 @@ def make2DPlot_fixedBarrelLayer(plotInfo, trackParameter, xvariable, xconstant, 
     g.GetHistogram().GetYaxis().SetTitleOffset(2)
     g.GetHistogram().GetZaxis().SetTitleOffset(2.2)
 
-    saveName = '{0}_{1}_{2}_const{3}{4}'.format(trackParameter, 'layerSpacing', xvariable, okey, xconstant)
+    if xvariable == "trackpT":
+        xconstant *= 10;
+    saveName = '{0}_{1}_{2}_const{3}{4}'.format(trackParameter, 'layerSpacing', xvariable, okey, int(xconstant))
     can.SaveAs(PLOT_DIR+saveName+".pdf")
 
 
