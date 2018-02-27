@@ -1,14 +1,23 @@
+'''
+Script to make various plots from the combined results of tkLayout
+These include:
+    a 1D plot showing the projection of 
+    [barrel layer, triplet spacing, track pT, track eta, track parameter]
+    onto a 2D plane, with all other variables held constant, for example d0 vs barel layer
+
+    a 2D plot showing trackParameter:barrelLayer:tripletSpacing, for constant pT and eta
+
+The detector layout may also be chosen, e.g. a triplet, a quarted, or two "doublets"
+'''
+
 from ROOT import * 
 import json
 from utils import *
 gROOT.SetBatch(1)
 gStyle.SetPalette(kViridis)
 gStyle.SetPadLeftMargin(0.15) # increase space for left margin
-
 gStyle.SetGridStyle(3) 
 gStyle.SetGridColor(kGray)
-
-
 
 # Convenience function to print list of primitives associated with a TObject 
 def printPrimitiveNames(tobject):
@@ -17,10 +26,9 @@ def printPrimitiveNames(tobject):
     for x in primList:
         print '\t', x
 
-
 RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
-layoutType = 'triplet' # triplet|quartet|splitQuartet
 layoutType = 'quartet' # triplet|quartet|splitQuartet
+layoutType = 'triplet' # triplet|quartet|splitQuartet
 PLOT_DIR = 'plots_{0}/'.format(layoutType)
 checkDir(PLOT_DIR)
 
@@ -108,6 +116,7 @@ def main():
 
                 f.Close() 
 
+    # Add some metadata 
     megaDict['info'] = '{variable name -> barrel layer -> triplet spacing -> track momentum -> eta -> {value : variable value, error : variable error}'
     megaDict['metadata'] = {
             'barrelLayers' : barrelLayers,
@@ -126,10 +135,13 @@ def main():
     # now make some nice plots
     for variable in trackParameters:
 
+
+        # 2D plots with variable:barrel layers:layer spacings
         for pt in momentumValues:
             for eta in plotEtaValues:
                 make2DPlot(variable, megaDict[variable], barrelLayers=[1,2,3], tripletSpacings=tripletSpacings, trackMomentum=pt, trackEta=eta)
 
+        # plots 
         series = { "trackMomentum" : [1, 10, 100, 1000] }
         constants = { "trackEta" : 0 , 'tripletSpacing' : 20 } 
         xVar = 'barrelLayers' 
@@ -153,6 +165,13 @@ def main():
         makePlot(megaDict, xVar, variable, constants, series, legendPosition)
 
 
+    # make other 2D plots 
+    for eta in megaDict['metadata']['etaValues']:
+        make2DPlot_fixedBarrelLayer(megaDict, 'z0res', 'trackpT', eta, megaDict['metadata']['tripletSpacings'], 1)
+
+    for pt in megaDict['metadata']['trackpT']:
+        make2DPlot_fixedBarrelLayer(megaDict, 'z0res', 'etaValues', pt , megaDict['metadata']['tripletSpacings'], 1)
+
 
 #___________________________________________________________________________
 def makePlot(plotInfo, xVar, yVar, constants, series, legendPosition="topLeft"): 
@@ -161,7 +180,8 @@ def makePlot(plotInfo, xVar, yVar, constants, series, legendPosition="topLeft"):
     [barrel layer, triplet spacing, track pT, track eta, track parameter]
     This function will make a plot of one of these parameters versus another.
     Typically yVar will be a track parameter
-    (the plot is a projection of this space onto a 2d plane)
+    (for example, a plot could be d0 as a function of barrel layer, for constant triplet spacing and track eta) 
+    (the plot is a projection of this multidimensional array onto a 2d plane)
     Args:
         plotInfo: dictionary with points in multidimensional space
         xVar: string with the x-variable name 
@@ -293,6 +313,85 @@ def makePlot(plotInfo, xVar, yVar, constants, series, legendPosition="topLeft"):
     print '' 
         
 
+#___________________________________________________________________________
+def make2DPlot_fixedBarrelLayer(plotInfo, trackParameter, xvariable, xconstant, layerSpacings, barrelLayer=1):
+    '''
+    2D plot showing trackParameter:xvariable:layerSpacing
+    Where xvariable is expected to be either pT or Eta
+    xconstant is {xvariable - {pT, Eta}}
+
+    Args:
+        plotInfo: (dictionary) containing parsed plot information
+        trackParameter: (string) The track parameter to plot
+        xvariable: (string) the "other" variable to plot can be {etaValues | trackpT} 
+        xconstant: (float) the value of the quantity not being varied
+        layerSpacings: (list) the selection of layer spacings to be plotted
+        barrelLayer: (int) the barrel layer number (to be held constant)
+    '''
+
+    # Extract the range of the x-variable to be plotted 
+    metadata = plotInfo['metadata']
+    xvariableRange = metadata[xvariable]
+
+    # Declare plotting stuff 
+    can = TCanvas('can', 'can', 500, 500)
+    g   = TGraph2D()
+    ipoint = 0 
+
+    # Specifics for the plot
+    if xvariable == "trackpT":
+        ykey = 'trackMomentum'
+        okey = 'trackEta'
+    elif xvariable == "etaValues":
+        ykey = 'trackEta'
+        okey = 'trackMomentum'
+    else:
+        print 'ERROR: xvariable must be either etaValues or trackpT'
+        sys.exit()
+
+
+    plotTitle = '{0} = {1} {2}, barrel layer = {3}'.format(variableMap[okey]['title'], xconstant, variableMap[okey]['units'], barrelLayer)
+
+    
+
+    # Fill points on graph 
+    for spacing in layerSpacings: 
+        for xval in xvariableRange:
+
+            if xvariable == "etaValues":
+                point = plotInfo[trackParameter][barrelLayer][spacing][xconstant][xval]
+            elif xvariable == "trackpT":
+                point = plotInfo[trackParameter][barrelLayer][spacing][xval][xconstant]
+            else:
+                print 'ERROR: xvariable must be either etaValues or trackpT'
+                sys.exit()
+
+            # track parameter results for this coordinate
+            value = point['value']
+            error = point['error']
+
+            g.SetPoint(ipoint, spacing, xval, value)
+            #g.SetPoint(ipoint, xval, spacing, value)
+            #g.SetPoint(ipoint, value, spacing, xval)
+            ipoint += 1 
+
+    # Draw TGraph
+    g.Draw('surf3')
+    g.Draw('P0same')
+    yTitle = variableMap[ykey]['title'] + variableMap[ykey]['units']
+    zTitle = variableMap[trackParameter]['title'] + variableMap[trackParameter]['units']
+    g.SetTitle(plotTitle+";Layer spacing [mm];{0};{1}".format(yTitle, zTitle))
+    g.GetHistogram().GetXaxis().SetTitleOffset(2)
+    g.GetHistogram().GetYaxis().SetTitleOffset(2.2)
+    #g.GetHistogram().GetYaxis().SetNdivisions( len(barrelLayers) ,5,0)
+    g.GetHistogram().GetYaxis().SetTitleOffset(2)
+    g.GetHistogram().GetZaxis().SetTitleOffset(2.2)
+
+    saveName = '{0}_{1}_{2}_const{3}{4}'.format(trackParameter, 'layerSpacing', xvariable, okey, xconstant)
+    can.SaveAs(PLOT_DIR+saveName+".pdf")
+
+
+
             
 #___________________________________________________________________________
 def make2DPlot(variable, plotInfo, barrelLayers, tripletSpacings, trackMomentum, trackEta):
@@ -344,7 +443,6 @@ def make2DPlot(variable, plotInfo, barrelLayers, tripletSpacings, trackMomentum,
     saveName += '_tackMomenta{0}_trackEta{1}'.format(int(trackMomentum), int(trackEta*10)) 
     can.SaveAs(PLOT_DIR+saveName+'.pdf')
     g.Write()
-
 
     can.SetLogz()
     can.SaveAs(PLOT_DIR+'log_'+saveName+'.pdf')
