@@ -7,6 +7,7 @@ from glob import glob
 from utils import prepareLegend
 
 from ROOT import * 
+
 gROOT.SetBatch(1)
 gStyle.SetPalette(kViridis)
 gStyle.SetPadLeftMargin(0.12) # increase space for left margin

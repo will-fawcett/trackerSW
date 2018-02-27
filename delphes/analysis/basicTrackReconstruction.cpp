@@ -72,13 +72,21 @@ struct TestPlots
 
   // Fake rate as a function of pT, eta
   std::vector<TH1*> recoTrackPt;
-  std::vector<TH1*> recoTrackPt_fake;
-  std::vector<TH1*> recoTrackPt_true;
-  std::vector<TH1*> recoTrackHitPt_true;
   std::vector<TH1*> recoTrackEta;
+
+  std::vector<TH1*> recoTrackPt_fake;
   std::vector<TH1*> recoTrackEta_fake; 
+
+  std::vector<TH1*> recoTrackPt_true;
+  std::vector<TH1*> recoTrackEta_true; 
+
+  std::vector<TH1*> recoTrackHitPt_true;
+  std::vector<TH1*> recoTrackHitEta_true;
+  std::vector<TH1*> recoTrackHitEtaPt2_true;
   
   std::vector<TH1*> nHitsPt; 
+  std::vector<TH1*> nHitsEta;  
+  std::vector<TH1*> nHitsEtaPt2;  
   std::vector<TH1*> recoTrackPtResolution;
 
   // Simple histogram of curvature difference 
@@ -136,8 +144,20 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
     plots->recoTrackHitPt_true.push_back(
         result->AddHist1D("recoTrackHitPt_true_"+trackerID, "True Reco track, pT of hit", "", "", nBinsPt, 0, pTMax, 0, 0)
         );
+    plots->recoTrackHitEta_true.push_back(
+        result->AddHist1D("recoTrackHitEta_true_"+trackerID, "True Reco track, Eta of hit", "", "", 100, -5, 5, 0, 0)
+        );
+    plots->recoTrackHitEtaPt2_true.push_back(
+        result->AddHist1D("recoTrackHitEtaPt2_true_"+trackerID, "True Reco track, Eta of hit, hit pT > 2 GeV", "", "", 100, -5, 5, 0, 0)
+        );
     plots->nHitsPt.push_back(
         result->AddHist1D("nHitsPt_"+trackerID, "Hit Pt", "", "", nBinsPt, 0, pTMax, 0, 0)
+        );
+    plots->nHitsEta.push_back(
+        result->AddHist1D("nHitsEta_"+trackerID, "Hit Eta", "", "", 100, -5, 5, 0, 0)
+        );
+    plots->nHitsEtaPt2.push_back(
+        result->AddHist1D("nHitsEtaPt2_"+trackerID, "Hit Eta, hit pT > 2 GeV", "", "", 100, -5, 5, 0, 0)
         );
 
     plots->recoTrackEta.push_back(
@@ -145,6 +165,9 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
         );
     plots->recoTrackEta_fake.push_back(
         result->AddHist1D("recoTrackEta_fake_"+trackerID, "Fake Reco track eta", "", "", 100, -5, 5, 0, 0)
+        );
+    plots->recoTrackEta_true.push_back(
+        result->AddHist1D("recoTrackEta_true_"+trackerID, "true Reco track eta", "", "", 100, -5, 5, 0, 0)
         );
 
     plots->recoTrackPtResolution.push_back(
@@ -296,7 +319,11 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
       int nHitsPt2(0);
       for(auto& hit : hc[ layerIDs.back() ]){
         plots->nHitsPt.at(counter)->Fill(hit->PT);
-        if(hit->PT > 2.0) nHitsPt2++;
+        plots->nHitsEta.at(counter)->Fill(hit->Eta);
+        if(hit->PT > 2.0){
+          nHitsPt2++;
+          plots->nHitsEtaPt2.at(counter)->Fill(hit->Eta);
+        }
       }
       // number of hits with pT > 2 GeV
       plots->nDelphesHitsPt2.at(counter)->Fill(nHitsPt2); 
@@ -341,13 +368,14 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
           plots->recoTrackEta.at(counter)->Fill(track.Eta()); // might want to check theta calculation
           //if(track.Pt()>2) nTracksPt2++;
           float outerHitPt = track.GetHitPtAtLayer(2);
+          float outerHitEta = track.GetHitAtLayer(2)->Eta; 
           if(outerHitPt > 2) nTracksPt2++;
 
           float curvatureDifference =  track.kappa_bc() - track.kappa_nbc();
           if(track.isFake()){
             // FAKE tracks 
             plots->recoTrackPt_fake.at(counter)->Fill(track.Pt());
-            plots->recoTrackEta_fake.at(counter)->Fill(track.Eta()); // might want to check theta calculation
+            plots->recoTrackEta_fake.at(counter)->Fill(track.Eta()); 
             if(counter == 1){
               plots->curvatureDifference_fake->Fill(curvatureDifference); 
               static int fakePointCounter = 0;
@@ -361,9 +389,12 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
             plots->recoTrackPtResolution.at(counter)->Fill(track.Pt() - outerHitPt); 
             plots->recoTrackPt_true.at(counter)->Fill(track.Pt());
             plots->recoTrackHitPt_true.at(counter)->Fill(outerHitPt);
+            plots->recoTrackHitEta_true.at(counter)->Fill(outerHitEta);
+            plots->recoTrackEta_true.at(counter)->Fill(track.Eta()); 
             //if(track.Pt()>2) nMatchedTracksPt2++;
             if(track.GetHitPtAtLayer(2) > 2){
               nMatchedTracksPt2++; 
+              plots->recoTrackHitEtaPt2_true.at(counter)->Fill(outerHitEta);
             }
 
             if(counter == 1){

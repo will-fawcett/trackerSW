@@ -1,4 +1,5 @@
 import time
+import math
 import datetime
 import os
 import sys
@@ -21,7 +22,6 @@ if isGeneva:
     BASE_DIR = '/atlas/data4/userdata/wfawcett/delphes/'
     CODE_DIR = '/atlas/users/wfawcett/fcc/delphes/'
 
-JOB_DIR  = BASE_DIR+'batch/'
 OUTPUT_DIR = BASE_DIR+'samples/'
 
 unixTime = time.time()
@@ -29,44 +29,61 @@ CAMPAIGN = str(int(unixTime))
 USER     = os.environ['USER']
 
 #____________________________________________________________________________
-def main():
+def main(delphesCard, nEventsTotal, eventsPerJob, pileup):
 
-    nEvents    = 10000
-    randomSeed = 80
+
+    JOB_DIR  = BASE_DIR+'batch/'
+    nJobs = int(math.ceil( float(nEventsTotal) / float(eventsPerJob) ) )
+
+    print 'Will use delphes card', delphesCard
+    print 'nEvents Total', nEventsTotal
+    print 'Events per job', eventsPerJob
+    print 'number of jobs', nJobs 
+    print 'pileup', pileup
+
+    randomSeedStart = 10
+
     #pileup     = 0 # 0 | 200 | 1000
     #pileup     = 1000 # 0 | 200 | 1000
 
     #process = 'pileup' # maybe don't need this? 
     #process = 'MinBias' # MinBias | ttbar 
     #process = 'ttbar' # MinBias | ttbar 
+
     processes = ['ttbar', 'MinBias']
-    pileups = [200]
+    processes = ['ttbar']
 
     for process in processes:
-        for pileup in pileups:
+        randomSeed = randomSeedStart 
+
+        JOB_DIR += CAMPAIGN+"/" # create campaign dir
+        checkDir(JOB_DIR) 
+
+        for ijob in range(0, nJobs):
 
             if not process.lower() in ['ttbar', 'minbias']:
                 print 'ERROR: process {0} not defined'.format(process)
                 sys.exit()
 
             # estimate job time based on nevents 
-            jobDemand = nEvents*(pileup+1)
-            print 'Job demands: Nevents {0}\t pileup {1}\t demand\t{2}'.format(nEvents, pileup, jobDemand)
+            jobDemand = eventsPerJob*(pileup+1)
+            print 'Job demands: Nevents {0}\t pileup {1}\t demand\t{2}'.format(eventsPerJob, pileup, jobDemand)
 
             # Identifier for this submission
-            identifier = '{0}_mu{1}_s{2}_n{3}'.format(process, pileup, randomSeed, nEvents)
+            identifier = '{0}_mu{1}_s{2}_n{3}'.format(process, pileup, randomSeed, eventsPerJob)
 
             # Create directory for all batch scripts
-            jobDirName = JOB_DIR+'{0}_{1}/'.format(CAMPAIGN, identifier)
+            jobDirName = JOB_DIR+'{0}/'.format(identifier)
             checkDir(jobDirName)
 
             # Create Pythia8 card
-            pythiaCardName = writePythia8Card(jobDirName, nEvents, randomSeed, process)
+            pythiaCardName = writePythia8Card(jobDirName, eventsPerJob, randomSeed, process)
 
             # Write batch submission script 
+            batchScriptName = 'submit_{0}.sh'.format(ijob)
             outputSampleDir = OUTPUT_DIR+'{0}/'.format(process)
-            submission = open(jobDirName+'submit.sh', 'w')
-            writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup)
+            submission = open(jobDirName+batchScriptName, 'w')
+            writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup, jobDirName, delphesCard)
 
             # change to jobDir
             print 'cd', jobDirName
@@ -88,16 +105,8 @@ def main():
                         sys.exit("Exiting, try again with a new name")
             elif isGeneva:
                 print 'Geneva environment detected'
-                if jobDemand > 0 and  jobDemand < 30000:
-                    queue = 'veryshort' 
-                elif jobDemand > 30000 and jobDemand < 100000:
-                    queue = 'short' 
-                elif jobDemand > 100000 and jobDemand < 300000:
-                    queue = 'medium'
-                elif jobDemand > 300000 and jobDemand < 10**7:
-                    queue = 'long'
-                else:
-                    queue = 'production' 
+                queue = 'rhel6-medium' 
+
                 
             else:
                 print 'Not using either Geneva or Lxplus cluster. Exit'
@@ -106,9 +115,10 @@ def main():
             # Create the submisson command
             batchName = 'py8_{0}'.format(identifier) 
             if isLXplus:
-                command = 'bsub -q {0} -J {1} < submit.sh'.format(queue, batchName)
+                command = 'bsub -q {0} -J {1} < {2}'.format(queue, batchName, batchScriptName)
             if isGeneva:
-                command = 'qsub -q {0} -N {1} -e {2} -o {3} submit.sh'.format(queue, batchName, jobDirName+batchName+'.err', jobDirName+batchName+'.out')
+                #command = 'qsub -q {0} -N {1} -e {2} -o {3} submit.sh'.format(queue, batchName, jobDirName+batchName+'.err', jobDirName+batchName+'.out')
+                command = 'sbatch -p {0} {1}'.format(queue, batchScriptName)
             
             # Add submit command to script
             submission.write('#Sumbitted with command: {0}\n'.format(command))
@@ -117,6 +127,8 @@ def main():
             # Submit the batch job
             print command
             os.system(command)
+
+            randomSeed = randomSeed+1 
 
     '''
     8nm (8 minutes)
@@ -130,11 +142,22 @@ def main():
 
 
 #____________________________________________________________________________
-def writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup):
+def writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardName, pileup, jobDir, delphesCard):
 
     checkDir(outputSampleDir, False)
     outputSampleName = outputSampleDir + '{0}.root'.format(identifier)
-    
+
+    # interpereter directive  
+    submission.write("#!/bin/bash\n")
+
+    # SLURM directives
+    submission.write('#SBATCH --job-name="{0}"\n'.format(identifier))
+    submission.write('#SBATCH --partition=rhel6-short\n')
+    submission.write('#SBATCH --workdir="{0}"\n'.format(jobDir)) # default to PWD from where the job was submitted
+    submission.write('#SBATCH --output={0}%j.o\n'.format(identifier))
+    submission.write('#SBATCH --error={0}%j.o\n'.format(identifier))
+    submission.write('#SBATCH --mem=6GB\n')
+
     
     # tracking
     submission.write('hostname\n')
@@ -142,19 +165,13 @@ def writeSubmissionScript(submission, outputSampleDir, identifier, pythiaCardNam
 
     submission.write('cd '+CODE_DIR+'\n')
     submission.write('source '+CODE_DIR+'setup.sh\n')
-    if pileup == 0:
-        submission.write('./DelphesPythia8 cards/triplet/FCChh.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
-    elif pileup == 200:
-        submission.write('./DelphesPythia8 cards/triplet/FCChh_PileUp200.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
-    elif pileup == 1000:
-        submission.write('./DelphesPythia8 cards/triplet/FCChh_PileUp1000.tcl {0} {1}\n'.format(pythiaCardName, outputSampleName)) 
 
-    
+    submission.write("./build/readers/DelphesPythia8 {0} {1} {2}\n".format(delphesCard, pythiaCardName, outputSampleName))
 
 
 
 #____________________________________________________________________________
-def writePythia8Card(jobDirName, nEvents, seed, process):
+def writePythia8Card(jobDirName, eventsPerJob, seed, process):
 
     # Open file
     pythiaCardName = jobDirName+'generateFile.cmnd'
@@ -166,9 +183,9 @@ def writePythia8Card(jobDirName, nEvents, seed, process):
     lines.append('! User: {0}'.format(USER))
     lines.append('! Process {0}'.format(process))
 
-    # nEvents
+    # eventsPerJob
     lines.append('\n! 1) Settings that will be used in a main program.')
-    lines.append('Main:numberOfEvents = {0}          ! number of events to generate'.format(nEvents))
+    lines.append('Main:numberOfEvents = {0}          ! number of events to generate'.format(eventsPerJob))
     lines.append('Main:timesAllowErrors = 3          ! abort run after this many flawed events')
 
     lines.append('\n! 2) Settings related to output in init(), next() and stat().')
@@ -234,4 +251,21 @@ def checkDir(dir, CHECK=True):
 
 #____________________________________________________________________________
 if __name__ == "__main__":
-    main()
+
+    import argparse
+    parser = argparse.ArgumentParser()
+    #parser.add_argument("-v", "--verbose", help="Turn on verbose messages", action="store_true", default=False)
+    parser.add_argument("-d", "--delphesCard", help="Input Delphes card")
+
+    parser.add_argument("-n", "--nEventsTotal", help="Total number of events to simulate") 
+    parser.add_argument("-j", "--eventsPerJob", help="Number of events per job") 
+    parser.add_argument("-p", "--pileup", help="pileup") 
+
+    args = parser.parse_args()
+
+    delphesCard = args.delphesCard
+    nEventsTotal = args.nEventsTotal
+    eventsPerJob = args.eventsPerJob
+    pileup = int(args.pileup)
+
+    main(delphesCard, nEventsTotal, eventsPerJob, pileup)
