@@ -46,6 +46,18 @@ void printTime(clock_t begin, clock_t end, std::string message){
   std::cout << message << ": time elapsed: " << double(end - begin) / CLOCKS_PER_SEC << std::endl;
 }
 
+struct trackStruct
+{
+  Float_t pT;
+  Float_t d0;
+  Float_t z0;
+  Float_t eta;
+  Float_t phi;
+  Float_t kappa_013;
+  Float_t kappa_123;
+  Int_t isFake; 
+};
+
 //------------------------------------------------------------------------------
 
 struct TestPlots
@@ -197,6 +209,7 @@ void BookHistograms(ExRootResult *result, TestPlots *plots)
 
 //------------------------------------------------------------------------------
 
+// using hitContainer = std::map<int, std::vector<Hit*> >; 
 hitContainer fillHitContainer(TClonesArray* hitBranch){
   // Fill a  hitContainer object with the hits form a particular branch
 
@@ -223,7 +236,7 @@ int countFakes(std::vector<myTrack>& theTracks){
 
 //------------------------------------------------------------------------------
 
-void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *plots, float vertexDistSigma, int nVertexSigma)
+void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *plots, float vertexDistSigma, int nVertexSigma, TTree* tree)
 {
 
   // Define branches
@@ -237,6 +250,21 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
   TClonesArray *branchHit30        = treeReader->UseBranch("Hits30");
   TClonesArray *branchHit20        = treeReader->UseBranch("Hits20");
   TClonesArray *branchHit10        = treeReader->UseBranch("Hits10");
+
+  // Declare track structs 
+  trackStruct tracks50;
+  trackStruct tracks40;
+  trackStruct tracks30;
+  trackStruct tracks20;
+  trackStruct tracks10;
+
+  // Create the branches
+  TBranch* branchTrack50 = tree->Branch("tracks50", &tracks50, "pT/F:d0/F:z0/F:eta/F:phi/F:kappa_013/F:kappa_123/F:isFake/I");
+  TBranch* branchTrack40 = tree->Branch("tracks40", &tracks40, "pT/F:d0/F:z0/F:eta/F:phi/F:kappa_013/F:kappa_123/F:isFake/I");
+  TBranch* branchTrack30 = tree->Branch("tracks30", &tracks30, "pT/F:d0/F:z0/F:eta/F:phi/F:kappa_013/F:kappa_123/F:isFake/I");
+  TBranch* branchTrack20 = tree->Branch("tracks20", &tracks20, "pT/F:d0/F:z0/F:eta/F:phi/F:kappa_013/F:kappa_123/F:isFake/I");
+  TBranch* branchTrack10 = tree->Branch("tracks10", &tracks10, "pT/F:d0/F:z0/F:eta/F:phi/F:kappa_013/F:kappa_123/F:isFake/I");
+
 
   // based on the spread of vertices, calculate the maximum tolerance along the beam line to which a track can point
   float maxZ = nVertexSigma*vertexDistSigma;
@@ -264,6 +292,7 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
     // print every 10% complete
     if( entry % int(allEntries/10)==0 ) std::cout << "Event " << entry << " out of " << allEntries << std::endl;
     if( entry % 100==0 ) std::cout << "Event " << entry << " out of " << allEntries << std::endl;
+
 
 
     //////////////////////////////////////////
@@ -325,6 +354,7 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
           plots->nHitsEtaPt2.at(counter)->Fill(hit->Eta);
         }
       }
+
       // number of hits with pT > 2 GeV
       plots->nDelphesHitsPt2.at(counter)->Fill(nHitsPt2); 
 
@@ -339,7 +369,25 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
         std::cout << "\tOf which " << nBaseFakes << " are fake." << std::endl;
         ***********/
 
-        tf.ApplyCurvatureCut( 0.01 ); // reject tracks with curvature difference greater than this number [m^-1]
+        std::vector< myTrack > tracksNoCurvature = tf.GetTracks();
+        if(counter==0){
+          for(const myTrack& track : tracksNoCurvature){
+            tracks10.pT = track.Pt();
+            tracks10.d0 = track.D0();
+            tracks10.z0 = track.Z0();
+            tracks10.eta = track.Eta();
+            tracks10.phi = track.Phi();
+            tracks10.kappa_013 = track.kappa_bc();
+            tracks10.kappa_123 = track.kappa_nbc();
+            tracks10.isFake = track.isFake(); 
+            tree->Fill();
+          }
+
+        }
+
+        //tf.ApplyCurvatureCut( 0.01 ); // reject tracks with curvature difference greater than this number [mm^-1]
+        tf.ApplyCurvatureCut( 0.005 ); // reject tracks with curvature difference greater than this number [mm^-1]
+
         std::vector< myTrack > theTracks = tf.GetTracks(); 
         int nFakes = countFakes(theTracks);
 
@@ -501,6 +549,7 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
     //std::cout << "event has: " << nTracks << " delphes tracks" << std::endl;
 
   } // end loop over entries
+  tree->Write();
 } // end AnalyseEvents
 
 
@@ -552,12 +601,36 @@ int main(int argc, char *argv[])
   std::cout << "Adding " << inputFile << " to chain" << std::endl;
   chain->Add(inputFile.c_str());
 
+
+  // Try to add a new ROOT file
+  TFile* oFile = new TFile("newFile.root", "RECREATE");
+  TTree* tree = new TTree("Tracks", "A tree with tracks");
+
+  /*************
+  // test with a struct
+  TestStruct track;
+  track.pT = 5.0;
+  track.z0 = 10;
+  track.kappa = 0.001; 
+
+  tree->Branch("track", &track, "pT/F:z0/F:kappa/F");
+  tree->Fill();
+  track.pT = 10.0;
+  track.z0 = 11.0;
+  track.kappa = 0.02;
+  tree->Fill(); 
+  tree->Write();
+  oFile->Close();
+  delete oFile;
+  *************/
+
+
   ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
   ExRootResult *result = new ExRootResult();
 
   TestPlots *plots = new TestPlots;
   BookHistograms(result, plots);
-  AnalyseEvents(nEvents, treeReader, plots, vertexDistSigma, nVertexSigma);
+  AnalyseEvents(nEvents, treeReader, plots, vertexDistSigma, nVertexSigma, tree);
 
   if(doPrintHistograms) PrintHistograms(result, plots);
 

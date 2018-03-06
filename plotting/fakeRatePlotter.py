@@ -3,6 +3,7 @@ from colours import colours
 from utils import prepareLegend
 import os
 import math
+from array import array
 
 gROOT.SetBatch(1)
 gStyle.SetPadBottomMargin(0.15)
@@ -17,6 +18,7 @@ if os.environ["isGeneva"]:
     path = "/atlas/users/wfawcett/fcc/delphes/results/hits_phiEtaSeg_tolerance1mm_phi2GeV/"
     path = "/atlas/users/wfawcett/fcc/delphes/results/hits_phiEtaSeg_tolerance01mm_phi2GeV/"
     path = "/atlas/users/wfawcett/fcc/delphes/results/hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature001/"
+    path = "/atlas/users/wfawcett/fcc/delphes/results/hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature0005/"
 else:
     path = "/Users/Will/Desktop/hits/"
 
@@ -26,6 +28,7 @@ outputDir = "FakeRate_tolerance1mm_phi2GeV/"
 outputDir = "FakeRate_phiEta_tolerance1mm_phi2GeV/"
 outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV/"
 outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature001/"
+outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature0005/"
 
 cols = {
         10: colours.blue,
@@ -34,6 +37,10 @@ cols = {
         40: colours.green,
         50: colours.grey
     }
+
+binslist  = [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 50, 60, 80, 100] 
+binsarray = array('d', binslist)
+
 
 #______________________________________________________________________________
 def main():
@@ -45,9 +52,9 @@ def main():
     pileups = [0, 100, 200]
     pileups = [400]
     pileups = [0, 100]
-    pileups = [0]
     pileups = [0, 1000]
-    pileups = [0, 100, 200, 300, 400, 500, 600, 800, 900, 1000]
+    pileups = [0, 100, 200, 400, 500]
+    pileups = [0, 100, 200, 300, 400, 500, 700, 800, 900, 1000]
 
 
     # For each pileup scenario, plot:
@@ -180,8 +187,6 @@ def main():
     leg.Draw()
     newCan.SaveAs(outputDir+"FakeRateSummaryPt2.pdf")
 
-
-
 #______________________________________________________________________________
 def drawAndSave(hist, name):
     can = TCanvas("can", "can", 500, 500)   
@@ -229,7 +234,6 @@ def efficiency(ifile, PILEUP, geometries, label="Pt"):
 
         #binInfo(nHitsPt, recoTrackPt_true)
 
-
         # Reconstruction efficiency 
         UseTGraph = True
         if UseTGraph:
@@ -252,9 +256,7 @@ def efficiency(ifile, PILEUP, geometries, label="Pt"):
             #yaxis.SetRangeUser(0.8, 1.1)
 
         yaxis.SetTitle("Reconstruction efficiency")
-
         ratios[geometry] = recoEfficiency
-
         
         if geometry == 10:
             if UseTGraph:
@@ -293,8 +295,13 @@ def fakeRates(ifile, PILEUP, geometries, label):
         elif label == "Eta":
             REBIN = 2
 
+
         nReco.Rebin(REBIN)
         nRecoFake.Rebin(REBIN)
+
+        # rebin for variable bin widths
+        nReco     = rebin_plot(nReco,     binsarray)
+        nRecoFake = rebin_plot(nRecoFake, binsarray) 
 
         fakeRate = TGraphAsymmErrors(nRecoFake, nReco)
         #fakeRate = nRecoFake.Clone()
@@ -311,7 +318,8 @@ def fakeRates(ifile, PILEUP, geometries, label):
             xaxis.SetTitle("Reconstructed Track #eta")
 
         # y-range 
-        yaxis.SetRangeUser(0, 0.35)
+        yaxis.SetRangeUser(0, 0.25)
+        yaxis.SetTitleOffset(1.5)
 
         yaxis.SetTitle("Fake Rate")
         fakeRate.SetTitle("Pileup {0}".format(PILEUP))
@@ -431,8 +439,31 @@ def addPlot(histogram, colour, REBIN, legend, legendEntry):
     histogram.Rebin(REBIN)
     histogram.Draw("same")
     addLegendEntry(legend, histogram, legendEntry)
-    
 
+
+#____________________________________________________________________________
+def rebin_plot(histogram, bins_array):
+    """Will rebin the histogram
+    Draws a legend onto the plot with the specified histograms.
+
+    Bin edges and overflow bins must be carefully considered, see the documentation
+    https://root.cern.ch/doc/master/classTH1.html#aff6520fdae026334bf34fa1800946790
+    Bin 0 contains the underflow
+    Nbins+1 contains the overflow
+
+    The Rebin function is also a bit messy:
+    Double_t xbins[25] = {...} // array of low-edges (xbins[25] is the upper edge of last bin)
+    h1->Rebin(24,"hnew",xbins);  //creates a new variable bin size histogram hnew
+
+    Args:
+        histogram: A single histogram
+        bins_array: an array containing the list of bin edges
+    """
+    newname = histogram.GetName()+'_rebinned'
+    newplot = histogram.Rebin(len(bins_array)-1, newname, bins_array)
+    newplot.SetDirectory(0)
+
+    return newplot
 
 #______________________________________________________________________________
 if __name__ == "__main__":
