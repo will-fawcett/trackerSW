@@ -12,13 +12,15 @@ gStyle.SetPadTickX(1)
 gStyle.SetPadTickY(1)
 
 if os.environ["isGeneva"]:
-    path = "/atlas/users/wfawcett/fcc/delphes/results/hits/"
-    path = "/atlas/users/wfawcett/fcc/delphes/results/hits_tolerance01mm_phi1GeV/"
-    path = "/atlas/users/wfawcett/fcc/delphes/results/hits_tolerance1mm_phi2GeV/"
-    path = "/atlas/users/wfawcett/fcc/delphes/results/hits_phiEtaSeg_tolerance1mm_phi2GeV/"
-    path = "/atlas/users/wfawcett/fcc/delphes/results/hits_phiEtaSeg_tolerance01mm_phi2GeV/"
-    path = "/atlas/users/wfawcett/fcc/delphes/results/hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature001/"
-    path = "/atlas/users/wfawcett/fcc/delphes/results/hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature0005/"
+    path = "/atlas/users/wfawcett/fcc/delphes/results/"
+    #path += "hits_tolerance01mm_phi1GeV/"
+    #path += "hits_tolerance1mm_phi2GeV/"
+    #path += "hits_phiEtaSeg_tolerance1mm_phi2GeV/"
+    #path += "hits_phiEtaSeg_tolerance01mm_phi2GeV/"
+    #path += "hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature001/"
+    #path += "hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature0005/"
+    #path += "hits_phiEtaSeg_tolerance05mm_phi2GeV_curvature0005/"
+    path += "hits_phiEtaSeg_tolerance05mm_phi2GeV_curvature0005_nVertexSigma5/"
 else:
     path = "/Users/Will/Desktop/hits/"
 
@@ -29,6 +31,8 @@ outputDir = "FakeRate_phiEta_tolerance1mm_phi2GeV/"
 outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV/"
 outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature001/"
 outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature0005/"
+outputDir = "FakeRate_phiEta_tolerance05mm_phi2GeV_curvature0005/"
+outputDir = "FakeRate_phiEta_tolerance05mm_phi2GeV_curvature0005_nVertexSigma5/"
 
 cols = {
         10: colours.blue,
@@ -49,11 +53,11 @@ def main():
     pileups = [0, 200, 1000]
     pileups = [0, 100, 200, 300]
     pileups = [0, 100, 1000]
-    pileups = [0, 100, 200]
     pileups = [400]
     pileups = [0, 100]
     pileups = [0, 1000]
     pileups = [0, 100, 200, 400, 500]
+    pileups = [0, 100, 200]
     pileups = [0, 100, 200, 300, 400, 500, 700, 800, 900, 1000]
 
 
@@ -122,7 +126,7 @@ def main():
             fakeRateSummaries[geometry] = fakeRateSummary
 
             efficiencySummariesPt2[geometry] = efficiencySummaryPt2
-            fakeRateSummariesPt2[geometry] = fakeRateSummaryPt2
+            fakeRateSummariesPt2[geometry]   = fakeRateSummaryPt2
 
             ifile.Close()
 
@@ -145,7 +149,7 @@ def main():
         effMulti.Draw('a')
         leg.AddEntry(efficiencySummaries[geometry], '{0} mm'.format(geometry), 'lp') 
     leg.Draw()
-    effMulti.GetHistogram().GetYaxis().SetTitleOffset(1.5)
+    effMulti.GetHistogram().GetYaxis().SetTitleOffset(1.75)
     newCan.SaveAs(outputDir+"EfficiencySummary.pdf")
     newCan.Clear()
 
@@ -158,7 +162,7 @@ def main():
         effMultiPt2.Draw('a')
         leg.AddEntry(efficiencySummariesPt2[geometry], '{0} mm'.format(geometry), 'lp') 
     leg.Draw()
-    effMultiPt2.GetHistogram().GetYaxis().SetTitleOffset(1.5)
+    effMultiPt2.GetHistogram().GetYaxis().SetTitleOffset(1.75)
     newCan.SaveAs(outputDir+"EfficiencySummaryPt2.pdf")
     newCan.Clear()
 
