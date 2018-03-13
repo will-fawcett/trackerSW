@@ -13,6 +13,9 @@
 // my analysis classes
 #include "classes/TrackFitter.h"
 
+// plotting stuff (shared)
+#include "plotting.cpp"
+
 // c++ libs
 #include <iostream>
 #include <sstream>
@@ -28,6 +31,7 @@
 #include "TLegend.h"
 #include "TPaveText.h"
 #include "TClonesArray.h"
+#include "TVector3.h"
 
 #include "TNamed.h"
 
@@ -82,6 +86,10 @@ struct TrackStruct
   Float_t hit1rho; 
   Float_t hit1eta;
   Float_t hit1phi; 
+
+  Float_t z_phi12; 
+  Float_t z_phi23; 
+  Float_t z_phi13; 
 
   // don't forget to modify structDecoder string if this struct is edited
 
@@ -150,157 +158,21 @@ TrackStruct fillTrackStruct(const myTrack& track){
   trackHolder.hit1eta = tempHit1->Eta;
   trackHolder.hit1phi = tempHit1->Phi;
 
+  // signed aangular differences in x--y plane 
+  TVector3 p1(tempHit1->X, tempHit1->Y, 0); 
+  TVector3 p2(tempHit2->X, tempHit2->Y, 0); 
+  TVector3 p3(tempHit3->X, tempHit3->Y, 0); 
+  TVector3 zhat(0, 0, 1); // z direction vector
+  
+  trackHolder.z_phi12 = p1.Cross(p2)*zhat / (p1.Mag() * p2.Mag());
+  trackHolder.z_phi13 = p1.Cross(p3)*zhat / (p1.Mag() * p3.Mag());
+  trackHolder.z_phi23 = p2.Cross(p3)*zhat / (p2.Mag() * p3.Mag());
+
   return trackHolder; 
 }
 
 //------------------------------------------------------------------------------
 
-struct TestPlots
-{
-
-
-  // Number of true tracks
-  TH1* nDelphesTracks;
-  TH1* nDelphesTracks1GeV;
-  TH1* nDelphesTracks10GeV;
-  std::vector<TH1*> nDelphesHits; 
-  std::vector<TH1*> nDelphesHitsPt2; 
-  
-  // number of reconstructed tracks
-  std::vector<TH1*> nRecoTracks; 
-  std::vector<TH1*> nRecoTracksPt2; 
-  std::vector<TH1*> nRecoTracksMatched;
-  std::vector<TH1*> nRecoTracksMatchedPt2;
-  TH1* fractionOfFakeTracks;
-
-  TH1* trueParticlePt_numParticles;
-  TH1* trueParticlePt_numRecoTracks;
-
-
-  // Fake rate as a function of pT, eta
-  std::vector<TH1*> recoTrackPt;
-  std::vector<TH1*> recoTrackEta;
-
-  std::vector<TH1*> recoTrackPt_fake;
-  std::vector<TH1*> recoTrackEta_fake; 
-
-  std::vector<TH1*> recoTrackPt_true;
-  std::vector<TH1*> recoTrackEta_true; 
-
-  std::vector<TH1*> recoTrackHitPt_true;
-  std::vector<TH1*> recoTrackHitEta_true;
-  std::vector<TH1*> recoTrackHitEtaPt2_true;
-  
-  std::vector<TH1*> nHitsPt; 
-  std::vector<TH1*> nHitsEta;  
-  std::vector<TH1*> nHitsEtaPt2;  
-  std::vector<TH1*> recoTrackPtResolution;
-
-  // Simple histogram of curvature difference 
-  TH1* curvatureDifference_true;
-  TH1* curvatureDifference_fake;
-
-  TGraph* curvatureDifference_curvature_true;
-  TGraph* curvatureDifference_curvature_fake;
-
-
-
-};
-
-//------------------------------------------------------------------------------
-
-void BookHistograms(ExRootResult *result, TestPlots *plots)
-{
-
-  int hitMultiplicity = 12000;
-  int hitMultiplicityBins = hitMultiplicity/10; 
-
-  for(int i=0; i<5; ++i ){
-    std::string trackerID = std::to_string((i+1)*10);
-
-    plots->nDelphesHits.push_back(
-        result->AddHist1D("nDelphesHits_"+trackerID, "Number of hits in outermost layer", "", "", hitMultiplicityBins, 0, hitMultiplicity,0,0)
-        );
-    plots->nDelphesHitsPt2.push_back(
-        result->AddHist1D("nDelphesHitsPt2_"+trackerID, "Number of hits in outermost layer with pT>2", "", "", hitMultiplicityBins, 0, hitMultiplicity,0,0)
-        );
-    plots->nRecoTracks.push_back(
-        result->AddHist1D("nRecoTracks_"+trackerID, "Tracks+fakes", "Number of tracks", "Number of events", hitMultiplicityBins, 0, hitMultiplicity,0,0)
-        );
-    plots->nRecoTracksMatched.push_back(
-        result->AddHist1D("nRecoTracksMatched_"+trackerID, "Matched tracks", "Number of tracks", "Number of events", hitMultiplicityBins, 0, hitMultiplicity,0,0)
-        );
-    plots->nRecoTracksPt2.push_back(
-        result->AddHist1D("nRecoTracksPt2_"+trackerID, "Tracks+fakes", "Number of tracks pT>2", "Number of events", hitMultiplicityBins, 0, hitMultiplicity,0,0)
-        );
-    plots->nRecoTracksMatchedPt2.push_back(
-        result->AddHist1D("nRecoTracksMatchedPt2_"+trackerID, "Matched tracks pT>2GeV", "Number of tracks", "Number of events", hitMultiplicityBins, 0, hitMultiplicity,0,0)
-        );
-
-    int nBinsPt = 1000;
-    int pTMax = 500;
-    plots->recoTrackPt.push_back(
-        result->AddHist1D("recoTrackPt_"+trackerID, "Reco track pT", "", "", nBinsPt, 0, pTMax, 0, 0)
-        );
-    plots->recoTrackPt_fake.push_back(
-        result->AddHist1D("recoTrackPt_fake_"+trackerID, "Fake Reco track pT", "", "", nBinsPt, 0, pTMax, 0, 0)
-        );
-    plots->recoTrackPt_true.push_back(
-        result->AddHist1D("recoTrackPt_true_"+trackerID, "True Reco track pT", "", "", nBinsPt, 0, pTMax, 0, 0)
-        );
-    plots->recoTrackHitPt_true.push_back(
-        result->AddHist1D("recoTrackHitPt_true_"+trackerID, "True Reco track, pT of hit", "", "", nBinsPt, 0, pTMax, 0, 0)
-        );
-    plots->recoTrackHitEta_true.push_back(
-        result->AddHist1D("recoTrackHitEta_true_"+trackerID, "True Reco track, Eta of hit", "", "", 100, -5, 5, 0, 0)
-        );
-    plots->recoTrackHitEtaPt2_true.push_back(
-        result->AddHist1D("recoTrackHitEtaPt2_true_"+trackerID, "True Reco track, Eta of hit, hit pT > 2 GeV", "", "", 100, -5, 5, 0, 0)
-        );
-    plots->nHitsPt.push_back(
-        result->AddHist1D("nHitsPt_"+trackerID, "Hit Pt", "", "", nBinsPt, 0, pTMax, 0, 0)
-        );
-    plots->nHitsEta.push_back(
-        result->AddHist1D("nHitsEta_"+trackerID, "Hit Eta", "", "", 100, -5, 5, 0, 0)
-        );
-    plots->nHitsEtaPt2.push_back(
-        result->AddHist1D("nHitsEtaPt2_"+trackerID, "Hit Eta, hit pT > 2 GeV", "", "", 100, -5, 5, 0, 0)
-        );
-
-    plots->recoTrackEta.push_back(
-        result->AddHist1D("recoTrackEta_"+trackerID, "Reco track eta", "", "", 100, -5, 5, 0, 0)
-        );
-    plots->recoTrackEta_fake.push_back(
-        result->AddHist1D("recoTrackEta_fake_"+trackerID, "Fake Reco track eta", "", "", 100, -5, 5, 0, 0)
-        );
-    plots->recoTrackEta_true.push_back(
-        result->AddHist1D("recoTrackEta_true_"+trackerID, "true Reco track eta", "", "", 100, -5, 5, 0, 0)
-        );
-
-    plots->recoTrackPtResolution.push_back(
-        result->AddHist1D("recoTrackPtResolution_"+trackerID, "Reconstructed track pT resolution", "", "", 400, -10, 10, 0, 0)
-        );
-
-  }
-
-  plots->nDelphesTracks = result->AddHist1D("nDelphesTracks", "TrueTracks", "Number of tracks", "Number of events", hitMultiplicityBins, 0, hitMultiplicity,0,0);
-  plots->nDelphesTracks1GeV = result->AddHist1D("nDelphesTracks1GeV", "TrueTracks > 1 GeV", "Number of tracks", "Number of events", hitMultiplicityBins, 0, hitMultiplicity,0,0);
-  plots->nDelphesTracks10GeV = result->AddHist1D("nDelphesTracks10GeV", "TrueTracks > 10 GeV", "Number of tracks", "Number of events", hitMultiplicityBins, 0, hitMultiplicity,0,0);
-
-  plots->curvatureDifference_true = result->AddHist1D("curvatureDifference_true", "", "Curvature difference", "Number of tracks", 100, -0.1, 0.1, 0, 0);
-  plots->curvatureDifference_fake = result->AddHist1D("curvatureDifference_fake", "", "Curvature difference", "Number of tracks", 100, -0.1, 0.1, 0, 0);
-
-  //plots->curvatureDifference_curvature_true = new TGraph();
-  plots->curvatureDifference_curvature_true = result->AddTGraph("curvatureDifference_curvature_true");
-  plots->curvatureDifference_curvature_fake = result->AddTGraph("curvatureDifference_curvature_fake");
-
-
-  plots->fractionOfFakeTracks = result->AddHist1D("fractionOfFakeTracks", "", "", "", 100, 0, 1, 0, 0);
-
-  plots->trueParticlePt_numParticles = result->AddHist1D("trueParticlePt_numParticles", "", "", "", 100, 0, 100, 0, 0);
-  plots->trueParticlePt_numRecoTracks = result->AddHist1D("trueParticlePt_numRecoTracks", "", "", "", 100, 0, 100, 0, 0);
-
-}
 
 //------------------------------------------------------------------------------
 
@@ -331,7 +203,7 @@ int countFakes(std::vector<myTrack>& theTracks){
 
 //------------------------------------------------------------------------------
 
-void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *plots, float vertexDistSigma, int nVertexSigma, std::string oFileName, float beamLineTolerance)
+void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, Plots *plots, float vertexDistSigma, int nVertexSigma, std::string oFileName, float beamLineTolerance)
 {
 
   // Define branches
@@ -375,6 +247,7 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
   structDecoder += ":hit3pT/F:hit3rho/F:hit3eta/F:hit3phi/F";
   structDecoder += ":hit2pT/F:hit2rho/F:hit2eta/F:hit2phi/F";
   structDecoder += ":hit1pT/F:hit1rho/F:hit1eta/F:hit1phi/F";
+  structDecoder += ":z_phi12/F:z_phi23/F:z_phi13/F";
 
   TBranch* branchTrack10 = tree10->Branch("tracks10", &tracks10, structDecoder);
   TBranch* branchTrack20 = tree20->Branch("tracks20", &tracks20, structDecoder);
@@ -538,7 +411,10 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
 
 
         //tf.ApplyCurvatureCut( 0.01 ); // reject tracks with curvature difference greater than this number [mm^-1]
-        tf.ApplyCurvatureCut( 0.005 ); // reject tracks with curvature difference greater than this number [mm^-1]
+        //tf.ApplyCurvatureCut( 0.005 ); // reject tracks with curvature difference greater than this number [mm^-1]
+
+        // first argument: vector of pT thresholds. Second argument: deltaKappa threshoolds
+        tf.ApplyPtDependantCurvatureCut( {0, 2, 10, 50}, {0.005, 0.004, 0.0025, 0.001} );
 
         std::vector< myTrack > theTracks = tf.GetTracks(); 
         int nFakes = countFakes(theTracks);
@@ -625,7 +501,7 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, TestPlots *p
 
 //------------------------------------------------------------------------------
 
-void PrintHistograms(ExRootResult *result, TestPlots *plots)
+void PrintHistograms(ExRootResult *result, Plots *plots)
 {
   result->Print("pdf");
 }
@@ -701,7 +577,7 @@ int main(int argc, char *argv[])
   ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
   ExRootResult *result = new ExRootResult();
 
-  TestPlots *plots = new TestPlots;
+  Plots *plots = new Plots;
   BookHistograms(result, plots);
   AnalyseEvents(nEvents, treeReader, plots, vertexDistSigma, nVertexSigma, outputFile, beamLineTolerance);
 
