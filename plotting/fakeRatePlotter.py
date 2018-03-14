@@ -17,10 +17,13 @@ if os.environ["isGeneva"]:
     #path += "hits_tolerance1mm_phi2GeV/"
     #path += "hits_phiEtaSeg_tolerance1mm_phi2GeV/"
     #path += "hits_phiEtaSeg_tolerance01mm_phi2GeV/"
-    #path += "hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature001/"
     #path += "hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature0005/"
     #path += "hits_phiEtaSeg_tolerance05mm_phi2GeV_curvature0005/"
-    path += "hits_phiEtaSeg_tolerance05mm_phi2GeV_curvature0005_nVertexSigma5/"
+    #path += "hits_phiEtaSeg_tolerance05mm_phi2GeV_curvature0005_nVertexSigma5/"
+    #path += "processedTracks/"
+    #path += "hits_tolerance05mm_phi2GeV_multiCurvature_nVertexSigma5/"
+    #path += "hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature001/"
+    path += "processedTracks_kappa_deltaPhi_zresiduum/"
 else:
     path = "/Users/Will/Desktop/hits/"
 
@@ -29,10 +32,14 @@ outputDir = "FakeRate_tolerance01mm_phi1GeV/"
 outputDir = "FakeRate_tolerance1mm_phi2GeV/"
 outputDir = "FakeRate_phiEta_tolerance1mm_phi2GeV/"
 outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV/"
-outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature001/"
 outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature0005/"
 outputDir = "FakeRate_phiEta_tolerance05mm_phi2GeV_curvature0005/"
 outputDir = "FakeRate_phiEta_tolerance05mm_phi2GeV_curvature0005_nVertexSigma5/"
+outputDir = "processedTracks/"
+#outputDir = "FakeRate_tolerance05mm_phi2GeV_multiCurvature_nVertexSigma5/"
+outputDir = "processedTracks_kappa_deltaPhi/"
+outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature001/"
+outputDir = "processedTracks_kappa_deltaPhi_zresiduum/"
 
 cols = {
         10: colours.blue,
@@ -42,23 +49,25 @@ cols = {
         50: colours.grey
     }
 
-binslist  = [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 50, 60, 80, 100] 
+binslist  = [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 50.0, 60.0, 80.0, 100.0] 
 binsarray = array('d', binslist)
 
 
 #______________________________________________________________________________
 def main():
 
-    geometries = [10, 20, 30, 40, 50]
     pileups = [0, 200, 1000]
-    pileups = [0, 100, 200, 300]
     pileups = [0, 100, 1000]
     pileups = [400]
     pileups = [0, 100]
-    pileups = [0, 1000]
     pileups = [0, 100, 200, 400, 500]
+    pileups = [500]
     pileups = [0, 100, 200]
-    pileups = [0, 100, 200, 300, 400, 500, 700, 800, 900, 1000]
+    pileups = [0, 100, 200, 300]
+    pileups = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+
+    geometries = [50]
+    geometries = [10, 20, 30, 40, 50]
 
 
     # For each pileup scenario, plot:
@@ -94,8 +103,13 @@ def main():
             fName = path+"hits_ttbar_pu{0}_multiGeometry.root".format(PILEUP) 
             ifile = TFile.Open(fName)
             # plot histogram of number of tracks (all reconstructed, fake, nHits)
-            [efficiencyMean, efficiencyError, fakeRate, fakeRateError] = numberOfTracks(ifile, PILEUP, geometry)
-            [efficiencyMeanPt2, efficiencyErrorPt2, fakeRatePt2, fakeRateErrorPt2] = numberOfTracks(ifile, PILEUP, geometry, 2)
+            #[efficiencyMean, efficiencyError, fakeRate, fakeRateError] = numberOfTracks(ifile, PILEUP, geometry)
+            #[efficiencyMeanPt2, efficiencyErrorPt2, fakeRatePt2, fakeRateErrorPt2] = numberOfTracks(ifile, PILEUP, geometry, 2)
+            [efficiencyMean, efficiencyError, efficiencyMeanPt2, efficiencyErrorPt2] = [0.1,0,0.1,0]
+            fakeRate = calculateAverageFakeRate(ifile, PILEUP, geometry, 0)
+            fakeRateError = 0
+            fakeRatePt2 = calculateAverageFakeRate(ifile, PILEUP, geometry, 2)
+            fakeRateErrorPt2 = 0
 
             efficiencySummary.SetPoint(counter, PILEUP, efficiencyMean) 
             efficiencySummary.SetPointError(counter, 0, efficiencyError)
@@ -136,60 +150,56 @@ def main():
     ########################
     # Draw the summary plots
     ########################
+    
+    for doLogy in [False, True]:
+        pass
+        #doLogy = True
+    drawMultigraph("topRight", ";Pileup;Average track reconstruction efficiency", outputDir+"EfficiencySummary.pdf", geometries, efficiencySummaries , doLogy)
+    drawMultigraph("topRight", "p_{T} > 2 GeV;Pileup;Average track reconstruction efficiency", outputDir+"EfficiencySummaryPt2.pdf", geometries, efficiencySummariesPt2 , doLogy)
+    drawMultigraph("topLeft",  ";Pileup;Average fake rate", outputDir+"FakeRateSummary.pdf", geometries, fakeRateSummaries , doLogy)
+    drawMultigraph("topLeft",  ";Pileup;Average fake rate", outputDir+"FakeRateSummaryPt2.pdf", geometries, fakeRateSummariesPt2 , doLogy)
 
-    newCan = TCanvas("newCan", "", 500, 500)
+#______________________________________________________________________________
+def drawMultigraph(legendPosition, title, saveName, geometries, graphDict, doLogy):
+
+
+    newCan = TCanvas("newCan"+title+str(doLogy)+_rand_uuid(), "", 500, 500)
     newCan.SetLeftMargin(0.15)
 
-    # Multigraph for efficiency
-    effMulti = TMultiGraph()
-    leg = prepareLegend("topRight")
-    for geometry in geometries:
-        effMulti.Add( efficiencySummaries[geometry], 'p')
-        effMulti.SetTitle(";Pileup;Average track reconstruction efficiency")
-        effMulti.Draw('a')
-        leg.AddEntry(efficiencySummaries[geometry], '{0} mm'.format(geometry), 'lp') 
-    leg.Draw()
-    effMulti.GetHistogram().GetYaxis().SetTitleOffset(1.75)
-    newCan.SaveAs(outputDir+"EfficiencySummary.pdf")
-    newCan.Clear()
+    smallestYvalue = 999.0
+    largestYvalue = -11.0
 
-    # Multigraph for efficiency with pT>2 GeV
-    effMultiPt2 = TMultiGraph()
-    leg = prepareLegend("topRight")
+    theGraph = TMultiGraph(_rand_uuid(), _rand_uuid())
+    leg = prepareLegend(legendPosition)
     for geometry in geometries:
-        effMultiPt2.Add( efficiencySummariesPt2[geometry], 'p')
-        effMultiPt2.SetTitle("p_{T} > 2 GeV;Pileup;Average track reconstruction efficiency")
-        effMultiPt2.Draw('a')
-        leg.AddEntry(efficiencySummariesPt2[geometry], '{0} mm'.format(geometry), 'lp') 
+        # find min and max of the TGraphs ... kinda defeats the point of the multigraph ... but yeah ... 
+        minX = Double(0.)
+        minY = Double(0.)
+        maxY = Double(0.)
+        dummy = graphDict[geometry].GetPoint(0, minX, minY)
+        dummy = graphDict[geometry].GetPoint(graphDict[geometry].GetN()-1, minX, maxY)
+        if float(minY) < smallestYvalue:
+            smallestYvalue = minY
+        if float(maxY) > largestYvalue:
+            largestYvalue = maxY
+        
+        theGraph.Add( graphDict[geometry], 'p' )
+        theGraph.SetTitle(title)
+        leg.AddEntry( graphDict[geometry], '{0} mm'.format(geometry), 'lp')
+    theGraph.Draw('a')
+    theGraph.GetHistogram().GetYaxis().SetTitleOffset(1.75)
     leg.Draw()
-    effMultiPt2.GetHistogram().GetYaxis().SetTitleOffset(1.75)
-    newCan.SaveAs(outputDir+"EfficiencySummaryPt2.pdf")
-    newCan.Clear()
+    newCan.SaveAs(saveName)
 
 
-    # Multigraph for fakes 
-    fakeMulti = TMultiGraph()
-    leg = prepareLegend("topLeft")
-    for geometry in geometries:
-        fakeMulti.Add( fakeRateSummaries[geometry], 'p')
-        fakeMulti.SetTitle(";Pileup;Average fake rate")
-        fakeMulti.Draw('a')
-        leg.AddEntry(fakeRateSummaries[geometry], '{0} mm'.format(geometry), 'lp') 
-    fakeMulti.GetHistogram().GetYaxis().SetTitleOffset(1.5)
-    leg.Draw()
-    newCan.SaveAs(outputDir+"FakeRateSummary.pdf")
+    # Draw with log y
+    theGraph.GetHistogram().SetMinimum(smallestYvalue / 5) 
+    theGraph.GetHistogram().SetMaximum(largestYvalue * 5) 
+    newCan.SetLogy(1)
+    saveName = saveName.replace(".pdf", "_log.pdf")
+    newCan.SaveAs(saveName)
 
-    # Multigraph for fakes with pT>2GeV 
-    fakeMultiPt2 = TMultiGraph()
-    leg = prepareLegend("topLeft")
-    for geometry in geometries:
-        fakeMultiPt2.Add( fakeRateSummariesPt2[geometry], 'p')
-        fakeMultiPt2.SetTitle("p_{T} > 2 GeV;Pileup;Average fake rate")
-        fakeMultiPt2.Draw('a')
-        leg.AddEntry(fakeRateSummariesPt2[geometry], '{0} mm'.format(geometry), 'lp') 
-    fakeMultiPt2.GetHistogram().GetYaxis().SetTitleOffset(1.5)
-    leg.Draw()
-    newCan.SaveAs(outputDir+"FakeRateSummaryPt2.pdf")
+
 
 #______________________________________________________________________________
 def drawAndSave(hist, name):
@@ -203,6 +213,7 @@ def binInfo(h1, h2):
     print '{0}\t{1}\t{2}\t{3}'.format('ibin', 'h1', 'h2', 'h1-h2')
     for ibin in range(h1.GetNbinsX()):
         print '{0}\t{1}\t{2}\t{3}'.format(ibin, h1.GetBinContent(ibin), h2.GetBinContent(ibin), h1.GetBinContent(ibin)-h2.GetBinContent(ibin) )
+
 
 #______________________________________________________________________________
 def efficiency(ifile, PILEUP, geometries, label="Pt"):
@@ -239,6 +250,7 @@ def efficiency(ifile, PILEUP, geometries, label="Pt"):
         #binInfo(nHitsPt, recoTrackPt_true)
 
         # Reconstruction efficiency 
+        UseTGraph = False
         UseTGraph = True
         if UseTGraph:
             recoEfficiency = TGraphAsymmErrors( recoTrackPt_true, nHitsPt )
@@ -339,6 +351,47 @@ def fakeRates(ifile, PILEUP, geometries, label):
 
     leg.Draw() 
     can.SaveAs(outputDir+"fakeRate_{0}_pu{1}.pdf".format(label, PILEUP))
+
+
+#______________________________________________________________________________
+def calculateAverageFakeRate(ifile, PILEUP, geometry, ptThreshold):
+
+    trueTracks = ifile.Get("recoTrackPt_true_{0}".format(geometry)).Clone()
+    fakeTracks = ifile.Get("recoTrackPt_fake_{0}".format(geometry)).Clone()
+
+    totalTracks = fakeTracks.Clone("totalTracks")
+    totalTracks.Add(trueTracks)
+
+    errorTrue = Double(0.)
+    errorFake = Double(0.)
+    errorTotal = Double(0.)
+    
+    nTrueTracks  = trueTracks.IntegralAndError(  trueTracks.FindFirstBinAbove(ptThreshold, 1), -1, errorTrue )
+    nFakeTracks  = fakeTracks.IntegralAndError(  fakeTracks.FindFirstBinAbove(ptThreshold, 1), -1, errorFake )
+    nTotalTracks = totalTracks.IntegralAndError( totalTracks.FindFirstBinAbove(ptThreshold, 1), -1, errorTotal )
+
+    averageFakeRate = nFakeTracks / nTotalTracks
+
+    '''
+    can = TCanvas("can2", "can2", 500, 500)
+    can.SetLogy()
+    totalTracks.SetLineColor(4)
+    totalTracks.GetXaxis().SetRangeUser(0, 50)
+    totalTracks.Draw()
+    trueTracks.SetLineColor(2)
+    trueTracks.Draw("same")
+    fakeTracks.SetLineColor(3)
+    fakeTracks.Draw("same")
+    can.SaveAs("test.pdf")
+
+    print "calculateAverageFakeRate(pt>{0})".format(ptThreshold)
+    print 'First bin above is: ', trueTracks.FindFirstBinAbove(ptThreshold)
+    print "total tracks: {0}\t Total Fake tracks: {1}\t average: {2}".format(nTotalTracks, nFakeTracks, averageFakeRate)
+    print "fake integral: ", fakeTracks.Integral()
+    '''
+
+    return averageFakeRate
+
 
 
 #______________________________________________________________________________
@@ -468,6 +521,12 @@ def rebin_plot(histogram, bins_array):
     newplot.SetDirectory(0)
 
     return newplot
+
+#______________________________________________________________________________
+# Convenience function for generating random IDs
+def _rand_uuid():
+    from uuid import uuid4
+    return uuid4().hex
 
 #______________________________________________________________________________
 if __name__ == "__main__":
