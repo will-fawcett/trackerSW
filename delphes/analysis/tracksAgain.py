@@ -25,7 +25,7 @@ def main(inputFile, outputFile, treeName):
     
     oFile = TFile(outputFile, "RECREATE")
     # define histograms
-    pTcuts = [0, 2, 10, 50]
+    pTcuts = [0, 2, 10, 20, 30, 40, 50]
     deltaKappaTrueHists = {}
     deltaKappaFakeHists = {}
     for pTcut in pTcuts:
@@ -57,7 +57,7 @@ def main(inputFile, outputFile, treeName):
     iEvent = 0 
     for event in tree:
         
-        #if iEvent>1000: break
+        #if iEvent>100000: break
             
         if event.isFake:
             nFakesOriginal += 1 

@@ -8,13 +8,16 @@ gROOT.SetBatch(1)
 
 def main(verbose):
 
-    spacings = [50]
+    spacings = [10, 20, 30, 40, 50]
+    spacings = [10, 50]
     pTcuts = [0, 2, 10, 50]
-    pileup  = 0
+    pTcuts = [0, 2, 10, 20, 30, 40, 50]
+    pileup  = 200
 
     
     for spacing in spacings:
         for pTcut in pTcuts:
+            print 'Apply pT > ', pTcut
             iFileName = "/atlas/users/wfawcett/fcc/delphes/results/kappaOptimisation/hits_ttbar_pu{0}_multiGeometry_tracks{1}.root".format(pileup, spacing)
             compareKappasPlot(iFileName, pTcut, pileup, spacing)
 
@@ -25,11 +28,12 @@ def compareKappasPlot(iFileName, pTcut, pileup, spacing):
     REBIN = 5 
 
     # oohhh 
+    REBIN = 2
     true = iFile.Get("deltaKappaTruePt{0}".format(pTcut))
-    true.Rebin(5)
+    true.Rebin(REBIN)
     fake = iFile.Get("deltaKappaFakePt{0}".format(pTcut))
-    fake.Rebin(5)
-    print fake.GetEntries()
+    fake.Rebin(REBIN)
+    #print fake.GetEntries()
 
     # declare canvas 
     can = TCanvas("can", "can", 500, 500)
@@ -40,7 +44,7 @@ def compareKappasPlot(iFileName, pTcut, pileup, spacing):
     yaxis = true.GetYaxis()
     
     xaxis.SetTitle("#kappa_{123} #minus #kappa_{013} [mm^{#minus1}]" )
-    xaxis.SetRangeUser(-0.01, 0.01) 
+    xaxis.SetRangeUser(-0.005, 0.005) 
 
 
     # histogram drawing 
@@ -59,7 +63,7 @@ def compareKappasPlot(iFileName, pTcut, pileup, spacing):
     leg.AddEntry(true, 'True tracks', 'l')
     leg.Draw()
 
-    can.SaveAs('kappa_pu{0}_{1}mm_{2}GeV.pdf'.format(pileup, spacing, pTcut))
+    can.SaveAs('kappaOptimisation/kappa_pu{0}_{1}mm_{2}GeV.pdf'.format(pileup, spacing, pTcut))
 
     iFile.Close()
 
@@ -72,5 +76,3 @@ if __name__ == "__main__":
     verbose = args.verbose
 
     main(verbose)
-
-

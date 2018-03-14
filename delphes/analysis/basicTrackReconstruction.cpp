@@ -387,6 +387,9 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, Plots *plots
         *******/
         
         for(const myTrack& track : baseTracks){
+          
+          //if(track.isFake()) continue; // only true tracks
+
           if(counter==0){
             tracks10 = fillTrackStruct(track); 
             tree10->Fill();
