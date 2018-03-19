@@ -1,6 +1,6 @@
 from ROOT import *
 from colours import colours
-from utils import prepareLegend
+from utils import prepareLegend, checkDir, rand_uuid
 import os
 import math
 from array import array
@@ -24,25 +24,33 @@ if os.environ["isGeneva"]:
     #plotDir = "hits_tolerance05mm_phi2GeV_multiCurvature_nVertexSigma5/"
     #plotDir = "hits_phiEtaSeg_tolerance01mm_phi2GeV_curvature001/"
     plotDir = "processedTracks_kappa_deltaPhi_zresiduum_BDT/"
+    plotDir = "processedTracks_BDT07_both/"
+    plotDir = "processedTracks_kappa_deltaPhi_zresiduum_BDT_specific/"
+    plotDir = "processedTracks_kappa_deltaPhi_zresiduum_BDT07_specific/"
     plotDir = "processedTracks_kappa_deltaPhi_zresiduum/"
     path = basePath + plotDir
 else:
     path = "/Users/Will/Desktop/hits/"
 
-outputDir = "FakeRate/"
-outputDir = "FakeRate_tolerance01mm_phi1GeV/"
-outputDir = "FakeRate_tolerance1mm_phi2GeV/"
-outputDir = "FakeRate_phiEta_tolerance1mm_phi2GeV/"
-outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV/"
-outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature0005/"
-outputDir = "FakeRate_phiEta_tolerance05mm_phi2GeV_curvature0005/"
-outputDir = "FakeRate_phiEta_tolerance05mm_phi2GeV_curvature0005_nVertexSigma5/"
-outputDir = "processedTracks/"
-#outputDir = "FakeRate_tolerance05mm_phi2GeV_multiCurvature_nVertexSigma5/"
-outputDir = "processedTracks_kappa_deltaPhi/"
-outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature001/"
-outputDir = "processedTracks_kappa_deltaPhi_zresiduum_BDT/"
-outputDir = "processedTracks_kappa_deltaPhi_zresiduum/"
+#outputDir = "FakeRate/"
+#outputDir = "FakeRate_tolerance01mm_phi1GeV/"
+#outputDir = "FakeRate_tolerance1mm_phi2GeV/"
+#outputDir = "FakeRate_phiEta_tolerance1mm_phi2GeV/"
+#outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV/"
+#outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature0005/"
+#outputDir = "FakeRate_phiEta_tolerance05mm_phi2GeV_curvature0005/"
+#outputDir = "FakeRate_phiEta_tolerance05mm_phi2GeV_curvature0005_nVertexSigma5/"
+#outputDir = "processedTracks/"
+##outputDir = "FakeRate_tolerance05mm_phi2GeV_multiCurvature_nVertexSigma5/"
+#outputDir = "processedTracks_kappa_deltaPhi/"
+#outputDir = "FakeRate_phiEta_tolerance01mm_phi2GeV_curvature001/"
+#outputDir = "processedTracks_kappa_deltaPhi_zresiduum_BDT/"
+#outputDir = "processedTracks_kappa_deltaPhi_zresiduum/"
+
+outputDir = path.split('/')[-2]+'/'
+print outputDir, path
+
+checkDir(outputDir)
 
 cols = {
         10: colours.blue,
@@ -67,6 +75,7 @@ def main():
     pileups = [0, 100, 200]
     pileups = [0, 100, 200, 300]
     pileups = [200]
+    pileups = [0, 100, 200, 300, 400, 500, 600, 700, 800]
     pileups = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
 
     geometries = [50]
@@ -110,7 +119,10 @@ def main():
             [efficiencyMean, efficiencyError, fakeRate, fakeRateError] = numberOfTracks(ifile, PILEUP, geometry)
             [efficiencyMeanPt2, efficiencyErrorPt2, fakeRatePt2, fakeRateErrorPt2] = numberOfTracks(ifile, PILEUP, geometry, 2)
             '''
-            [fakeRate, fakeRateError] = calculateAverageFakeRate(ifile, PILEUP, geometry, 0)
+            try:
+                [fakeRate, fakeRateError] = calculateAverageFakeRate(ifile, PILEUP, geometry, 0)
+            except:
+                [fakeRate, fakeRateError] = calculateAverageFakeRate(ifile, PILEUP, geometry, 0, debug=True)
             #fakeRateError = 0
             [fakeRatePt2, fakeRateErrorPt2] = calculateAverageFakeRate(ifile, PILEUP, geometry, 2)
             #fakeRateErrorPt2 = 0
@@ -170,13 +182,13 @@ def main():
 def drawMultigraph(legendPosition, title, saveName, geometries, graphDict):
 
 
-    newCan = TCanvas("newCan"+title+_rand_uuid(), "", 500, 500)
+    newCan = TCanvas("newCan"+title+rand_uuid(), "", 500, 500)
     newCan.SetLeftMargin(0.15)
 
     smallestYvalue = 999.0
     largestYvalue = -11.0
 
-    theGraph = TMultiGraph(_rand_uuid(), _rand_uuid())
+    theGraph = TMultiGraph(rand_uuid(), rand_uuid())
     leg = prepareLegend(legendPosition)
     for geometry in geometries:
         # find min and max of the TGraphs ... kinda defeats the point of the multigraph ... but yeah ... 
@@ -390,7 +402,7 @@ def calculateAverageEfficiency(ifile, PILEUP, geometry, ptThreshold):
 
 
 #______________________________________________________________________________
-def calculateAverageFakeRate(ifile, PILEUP, geometry, ptThreshold):
+def calculateAverageFakeRate(ifile, PILEUP, geometry, ptThreshold, debug=False):
 
     trueTracks = ifile.Get("recoTrackPt_true_{0}".format(geometry)).Clone()
     fakeTracks = ifile.Get("recoTrackPt_fake_{0}".format(geometry)).Clone()
@@ -406,26 +418,33 @@ def calculateAverageFakeRate(ifile, PILEUP, geometry, ptThreshold):
     nFakeTracks  = fakeTracks.IntegralAndError(  fakeTracks.FindBin(ptThreshold), -1, errorFake )
     nTotalTracks = totalTracks.IntegralAndError( totalTracks.FindBin(ptThreshold), -1, errorTotal )
 
+
+    if debug:
+    
+        print 'ERROR DETECTED'
+        can = TCanvas("can2", "can2", 500, 500)
+        can.SetLogy()
+        totalTracks.SetLineColor(4)
+        totalTracks.GetXaxis().SetRangeUser(0, 50)
+        totalTracks.Draw()
+        trueTracks.SetLineColor(2)
+        trueTracks.Draw("same")
+        fakeTracks.SetLineColor(3)
+        fakeTracks.Draw("same")
+        can.SaveAs("test.pdf")
+
+        print "calculateAverageFakeRate(pt>{0})".format(ptThreshold)
+        print 'First bin above is: ', trueTracks.FindFirstBinAbove(ptThreshold)
+        print "total tracks: {0}\t Total Fake tracks: {1}".format(nTotalTracks, nFakeTracks)
+        print "fake integral: ", fakeTracks.Integral()
+        averageFakeRate = nFakeTracks / nTotalTracks
+        print "Average: {0}".format(averageFakeRate)
     averageFakeRate = nFakeTracks / nTotalTracks
 
-    '''
-    can = TCanvas("can2", "can2", 500, 500)
-    can.SetLogy()
-    totalTracks.SetLineColor(4)
-    totalTracks.GetXaxis().SetRangeUser(0, 50)
-    totalTracks.Draw()
-    trueTracks.SetLineColor(2)
-    trueTracks.Draw("same")
-    fakeTracks.SetLineColor(3)
-    fakeTracks.Draw("same")
-    can.SaveAs("test.pdf")
-
-    print "calculateAverageFakeRate(pt>{0})".format(ptThreshold)
-    print 'First bin above is: ', trueTracks.FindFirstBinAbove(ptThreshold)
-    print "total tracks: {0}\t Total Fake tracks: {1}\t average: {2}".format(nTotalTracks, nFakeTracks, averageFakeRate)
-    print "fake integral: ", fakeTracks.Integral()
-    '''
-    error = calculateErrorDivision(nFakeTracks, errorFake, nTotalTracks, errorTotal)
+    if(nFakeTracks != 0):
+        error = calculateErrorDivision(nFakeTracks, errorFake, nTotalTracks, errorTotal)
+    else:
+        error = 0
 
     return [averageFakeRate, error]
 
@@ -574,11 +593,6 @@ def calculateErrorDivision(numerator, numeratorError, denominator, denominatorEr
     sigma_a = math.sqrt( sigma_x**2 * (a/x)**2  + sigma_y**2 * (a/y)**2 )
     return sigma_a
 
-#______________________________________________________________________________
-# Convenience function for generating random IDs
-def _rand_uuid():
-    from uuid import uuid4
-    return uuid4().hex
 
 #______________________________________________________________________________
 if __name__ == "__main__":

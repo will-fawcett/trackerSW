@@ -1,4 +1,10 @@
 
+#______________________________________________________________________________
+# Convenience function for generating random IDs
+def rand_uuid():
+    from uuid import uuid4
+    return uuid4().hex
+
 #____________________________________________________________________________
 def is_profile(p):
     import ROOT

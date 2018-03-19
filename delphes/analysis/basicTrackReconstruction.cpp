@@ -203,7 +203,7 @@ int countFakes(std::vector<myTrack>& theTracks){
 
 //------------------------------------------------------------------------------
 
-void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, Plots *plots, float vertexDistSigma, int nVertexSigma, std::string oFileName, float beamLineTolerance)
+void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, Plots *plots, float vertexDistSigma, int nVertexSigma, std::string oFileName, float zresiduumTolerance)
 {
 
   // Define branches
@@ -375,7 +375,7 @@ void AnalyseEvents(const int nEvents, ExRootTreeReader *treeReader, Plots *plots
 
       //float tolerance = 0.4; // mm  2*sqrt(0.04) = 0.4 , 0.04 mm is size of pixel 
       //float tolerance = 0.5; // [mm]  2*sqrt(0.04) = 0.4 , 0.04 mm is size of pixel, got to 0.5 to be conservative (this is a preselection)
-      TrackFitter tf(fitTypes::simpleLinear, parameters, layerIDs, beamLineTolerance); 
+      TrackFitter tf(fitTypes::simpleLinear, parameters, layerIDs, zresiduumTolerance); 
       bool associated = tf.AssociateHits(hc);
 
       if(associated){
@@ -530,7 +530,7 @@ int main(int argc, char *argv[])
   std::string outputFile = argv[2];
   //int doPrintHistograms = atoi(argv[3]);
   int doPrintHistograms = 0; 
-  float beamLineTolerance = atof(argv[3]);
+  float zresiduumTolerance = atof(argv[3]);
   nVertexSigma = atoi(argv[4]);
   int nEvents(-1);
 
@@ -582,7 +582,7 @@ int main(int argc, char *argv[])
 
   Plots *plots = new Plots;
   BookHistograms(result, plots);
-  AnalyseEvents(nEvents, treeReader, plots, vertexDistSigma, nVertexSigma, outputFile, beamLineTolerance);
+  AnalyseEvents(nEvents, treeReader, plots, vertexDistSigma, nVertexSigma, outputFile, zresiduumTolerance);
 
   if(doPrintHistograms) PrintHistograms(result, plots);
 
