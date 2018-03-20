@@ -353,7 +353,10 @@ def fakeRates(ifile, PILEUP, geometries, label):
             xaxis.SetTitle("Reconstructed Track #eta")
 
         # y-range 
-        yaxis.SetRangeUser(0, 0.25)
+        if PILEUP > 700: 
+            yaxis.SetRangeUser(0, 0.3)
+        else:
+            yaxis.SetRangeUser(0, 0.05)
         yaxis.SetTitleOffset(1.5)
 
         yaxis.SetTitle("Fake Rate")

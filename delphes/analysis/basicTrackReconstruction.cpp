@@ -14,7 +14,7 @@
 #include "classes/TrackFitter.h"
 
 // plotting stuff (shared)
-#include "plotting.cpp"
+#include "plotting.h"
 
 // c++ libs
 #include <iostream>
