@@ -130,7 +130,7 @@ module TrackSmearing TrackSmearing {
 
   # magnetic field
   set Bz 4.0
-  source tripletFCCresolutions.tcl 
+  source tripletFCCresolutions_50mm.tcl 
 }
 
 
