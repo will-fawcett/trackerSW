@@ -72,9 +72,22 @@ def getReverseCumulativeHisto(histo):
     error = ROOT.Double()
     cumulHisto = histo.Clone()
     cumulHisto.Reset()
-    for bin in range(1,nbins+1):
-        integral = histo.IntegralAndError(bin,nbins,error)
+    for bin in range(1,nbins+1): #+1 for python range
+        integral = histo.IntegralAndError(bin,nbins+1,error) # nbins+1 to make sure overflow bin is included
         integralErr = error
         cumulHisto.SetBinContent(bin,integral)
         cumulHisto.SetBinError(bin,integralErr)
     return cumulHisto
+
+def getCumulativeHisto(histo):
+    import ROOT
+    '''
+    Function to return the cumulative histogram
+    No need to write function ... 
+    '''
+    nbins = histo.GetNbinsX()
+    error = ROOT.Double()
+    cumulHisto = histo.Clone()
+    cumulHisto.Reset()
+    #for bin in range(1, nbins+1):
+        #integral 

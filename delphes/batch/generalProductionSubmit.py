@@ -9,19 +9,28 @@ import json
 import os
 import time
 
-def main(verbose):
+DATA_DIR = "/atlas/data4/userdata/wfawcett/delphes/"
+BATCH_SCRIPT_DIR = DATA_DIR + "particleProductionBatch/"
+OUTPUT_DIR = DATA_DIR + "particleProductionResults/"
+LHE_DIR = DATA_DIR + "lhe/"
+CMD_DIR = DATA_DIR + "pythiaControl/"
 
-    DATA_DIR = "/atlas/data4/userdata/wfawcett/delphes/"
-    BATCH_SCRIPT_DIR = DATA_DIR + "particleProductionBatch/"
-    OUTPUT_DIR = DATA_DIR + "particleProductionResults/"
-    LHE_DIR = DATA_DIR + "lhe/"
-    CMD_DIR = DATA_DIR + "pythiaControl/"
+#____________________________________________________________________________
+def getSampleList(path):
+
+    samples = [x[0].split('/')[-1] for x in os.walk(path)] # [ "mg_pp_hh",  "mg_pp_tth",  "mg_pp_tt_nlo" ] 
+    samples = [x for x in samples if x != '']
+    return samples
+
+#____________________________________________________________________________
+def main(verbose):
 
     NJOBS_PER_SAMPLE = 50
 
+
     # get list of samples from LHE dir
-    samples = [x[0].split('/')[-1] for x in os.walk(LHE_DIR)] # [ "mg_pp_hh",  "mg_pp_tth",  "mg_pp_tt_nlo" ] 
-    samples = [x for x in samples if x != '']
+    samples = getSampleList(LHE_DIR)
+
 
     for sample in samples:
 
@@ -89,11 +98,21 @@ def main(verbose):
         with open(jFileName, 'w') as fp:
             json.dump(information, fp, sort_keys=True, indent=4)
 
-
+#____________________________________________________________________________
 def writeSubmissionScript(scriptName, batchName, cmdFile, outputName, jobDir):
 
     print 'Writing submission script', scriptName
     ofile = open(scriptName, "w") 
+
+    writeSubmissionHeader(ofile, batchName, jobDir)
+
+    ofile.write("./build/readers/DelphesPythia8 cards/gen_card.tcl {0} {1}\n".format(cmdFile, outputName)) 
+    ofile.write("echo \"End.\"\n")
+    ofile.write("date\n")
+    ofile.close()
+#____________________________________________________________________________
+def writeSubmissionHeader(ofile, batchName, jobDir):
+
     ofile.write("#!/bin/bash\n") # interpereter directive  
 
     # SLURM directives
@@ -110,11 +129,7 @@ def writeSubmissionScript(scriptName, batchName, cmdFile, outputName, jobDir):
     ofile.write("cd /atlas/users/wfawcett/fcc/delphes\n")
     ofile.write("source setup.sh\n")
 
-    ofile.write("./build/readers/DelphesPythia8 cards/gen_card.tcl {0} {1}\n".format(cmdFile, outputName)) 
-    ofile.write("echo \"End.\"\n")
-    ofile.write("date\n")
-    ofile.close()
-
+#____________________________________________________________________________
 if __name__ == "__main__":
 
     import argparse
