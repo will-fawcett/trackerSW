@@ -11,8 +11,12 @@ essentially runs this command:
 '''
 
 import json
-from generalProductionSubmit import DATA_DIR, BATCH_SCRIPT_DIR, OUTPUT_DIR, LHE_DIR, CMD_DIR, getSampleList, writeSubmissionHeader
+from generalProductionSubmit import DATA_DIR, OUTPUT_DIR, LHE_DIR, CMD_DIR, getSampleList, writeSubmissionHeader
+import time
 
+unixTime = time.time()
+CAMPAIGN = str(int(unixTime))
+USER     = os.environ['USER']
 
 def main(verbose):
 
@@ -21,9 +25,14 @@ def main(verbose):
     # get list of samples from LHE dir
     samples = getSampleList(LHE_DIR)
 
+    CAMPAIGN_DIR = "/atlas/data4/userdata/wfawcett/delphes/processedLHE/"+CAMPAIGN+"/"
+    checkDir(CAMPAIGN_DIR)
+
     for pu in pileupScenarios:
 
         for sample in samples: 
+
+            BATCH_SCRIPT_DIR = CAMPAIGN_DIR + sample + SOMETHING!!!!
 
             # find "finished" samples
             jFileName = BATCH_SCRIPT_DIR+sample+'.json'
@@ -46,7 +55,7 @@ def main(verbose):
                     #writeSubmissionScript(JOB_FILE, batchName, cmdFile, outputName, JOB_DIR)
 
 
-            print 'For', sample, 'there are {0} finished evt files'.format(len(finishedSamples)) 
+            #print 'For', sample, 'there are {0} finished evt files'.format(len(finishedSamples)) 
 
 
 def writeSubmissionScript():
