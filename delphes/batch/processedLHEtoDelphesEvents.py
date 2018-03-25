@@ -18,6 +18,8 @@ unixTime = time.time()
 CAMPAIGN = str(int(unixTime))
 USER     = os.environ['USER']
 
+CAMPAIGN = "TEST"
+
 def main(verbose):
 
     pileupScenarios = [0, 200, 1000]
@@ -25,14 +27,24 @@ def main(verbose):
     # get list of samples from LHE dir
     samples = getSampleList(LHE_DIR)
 
+    # Create a new campaign dir for all of the samples that are needed from this campaign
     CAMPAIGN_DIR = "/atlas/data4/userdata/wfawcett/delphes/processedLHE/"+CAMPAIGN+"/"
     checkDir(CAMPAIGN_DIR)
+
+    jobCounter = 0 
 
     for pu in pileupScenarios:
 
         for sample in samples: 
 
-            BATCH_SCRIPT_DIR = CAMPAIGN_DIR + sample + SOMETHING!!!!
+            # Create a directory for the all batch scripts and .sh files to go into 
+            BATCH_SCRIPT_DIR = CAMPAIGN_DIR + sample + "_" + str(pu) + '/'
+            print BATCH_SCRIPT_DIR
+
+            checkDir(BATCH_SCRIPT_DIR)
+
+            # Create a directory for all of the processed samples to go into 
+            JOB_OUTPUT_DIR = CAMPAIGN_DIR + sample + "_" + str(pu) + '/'
 
             # find "finished" samples
             jFileName = BATCH_SCRIPT_DIR+sample+'.json'
@@ -41,26 +53,48 @@ def main(verbose):
                 information = json.load(data_file)
             evts = information.keys()
 
-            JOB_BASE_DIR = BATCH_SCRIPT_DIR + sample + '/'
+            #JOB_BASE_DIR = BATCH_SCRIPT_DIR + sample + '/'
 
+            # For each input file to process, write a .sh file inside BATCH_SCRIPT_DIR, and direct the output ROOT file to JOB_OUTPUT_DIR 
             for evt in evts:
                 if information[evt]['finished'] == True:
 
+                    # Select the right delphes card (specific to pileup)  
+                    DELPHES_CARD = "cards/triplet/FCChh_HitsToTracks_PileUp{0}.tcl".format(pu)
+
+                    # input file path
+                    inputFile = information[evt]["FILE"]
+
+                    # output file path
+                    outputFile = JOB_OUTPUT_DIR + evt.replace('lhe', 'root')
+                    
+
                     # Write jobFile
-                    JOB_DIR = JOB_BASE_DIR + evt.replace('.lhe','') + '/'
-                    JOB_FILE = JOB_DIR + evt.replace('lhe', 'sh')
-                    #batchName = sample+"_"+str(jobCounter)
-                    #jobCounter += 1 
+                    #JOB_DIR = JOB_BASE_DIR + evt.replace('.lhe','') + '/'
+                    #JOB_FILE = JOB_DIR + evt.replace('lhe', 'sh')
+                    JOB_FILE = BATCH_SCRIPT_DIR + "{0}".format(evt.replace('.lhe',''))
+                    batchName = sample+"_"+str(jobCounter)
+                    jobCounter += 1 
                     print JOB_FILE
-                    #writeSubmissionScript(JOB_FILE, batchName, cmdFile, outputName, JOB_DIR)
+                    writeSubmissionScript(JOB_FILE, batchName, DELPHES_CARD, inputFile, outputFile)
 
 
             #print 'For', sample, 'there are {0} finished evt files'.format(len(finishedSamples)) 
 
 
-def writeSubmissionScript():
-    #ofile = open()
-    pass
+def writeSubmissionScript(JOB_FILE, batchName, DELPHES_CARD, inputName, outputName):
+    ofile = open(JOB_FILE, 'w')
+
+    # Write interpreter and slurm directives
+    writeSubmissionHeader(ofile)
+
+    ofile.write("./DelphesROOT {0} {1} {2}\n".format(tcl_card, outputName, inputName) )
+
+    ofile.write("echo \"End.\"\n")
+    ofile.write("date\n")
+    ofile.close()
+
+
 
 if __name__ == "__main__":
 
