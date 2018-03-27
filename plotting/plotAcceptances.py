@@ -4,7 +4,8 @@ Script to plot the acceptance of some cut on a variable X
 '''
 
 from ROOT import *
-from utils import getReverseCumulativeHisto, appendSlash, checkDir
+from utils import getReverseCumulativeHisto, appendSlash, checkDir, prepareLegend
+from colours import colours
 
 gROOT.SetBatch(1)
 gStyle.SetPadBottomMargin(0.15)
@@ -14,35 +15,60 @@ gStyle.SetPadTickY(1)
 
 def main(verbose):
 
-
-
-    branchNames = [
-         "TruthTrack",
-         "Track",
-         "PBMatchedTracks",
+    trackBranchNames = [
+         "TruthTrack", "Track", "PBMatchedTracks",
 
          "TracksFromHit30",
          "SmearedTracksFromHits",
          "PBMatchedHitTracks",
          ]
 
-    plots = [
+    trackPlots = [
             "track1Pt",
             "track2Pt",
             "track3Pt",
             "track4Pt",
             ]
 
+    jetBranchNames = [
+        'TruthTrackJets',
+        'SmearedTrackJets',
+        'PBMatchedTrackJets',
 
-    iFile = TFile.Open("/atlas/users/wfawcett/fcc/delphes/test.root")
+        'TruthHitTrackJets',
+        'SmearedHitTrackJets',
+        'PBMatchedHitTrackJets',
+        ]
+
+    jetPlots = [
+            "jet1Pt",
+            "jet2Pt",
+            "jet3Pt",
+            "jet4Pt",
+            ]
+
+
+    iFileName = "/atlas/data4/userdata/wfawcett/delphes/results/fromLHE/mg_pp_tth_pu0.root"
+    iFileName = "/atlas/users/wfawcett/fcc/delphes/py8_pp_minbias_pu200.root"
+    iFile = TFile.Open(iFileName)
     can = TCanvas("can", "can", 500, 500)
-    for branch in branchNames:
+    plotDict = {}
+    for branch in trackBranchNames+jetBranchNames:
         outputDir = "TrackPlots/"+appendSlash(branch)
         checkDir(outputDir)
-        for plot in plots:
+        plotDict[branch] = {}
+        if branch in trackBranchNames:
+            plotList = trackPlots
+        else:
+            plotList = jetPlots
+        for plot in plotList:
 
-            h0 = iFile.Get(branch+plot)
-            h0.GetXaxis().SetTitle(plot+" [GeV]")
+            histoName = branch+"_"+plot
+            print 'plotting', histoName
+            h0 = iFile.Get(histoName)
+            xTitle = plot.replace('track', 'Track ').replace('jet', 'Jet ').replace('Pt', ' p_{T}')
+            print xTitle
+            h0.GetXaxis().SetTitle(xTitle+" [GeV]")
             h0.GetYaxis().SetTitle("Fraction of events")
             h0.Draw()
             nbins = h0.GetNbinsX()
@@ -51,9 +77,9 @@ def main(verbose):
             print h0.Integral(1, nbins+1) # should include overflow
             print ''
 
-    
-
+            # plot acceptance
             can.SaveAs(outputDir+plot+".pdf")
+
 
             #acceptance = h0.GetCumulative(False)
             acceptance = getReverseCumulativeHisto(h0)
@@ -61,7 +87,7 @@ def main(verbose):
             xaxis = acceptance.GetXaxis()
             yaxis = acceptance.GetYaxis()
 
-            xaxis.SetTitle(plot+" [GeV]")
+            xaxis.SetTitle(xTitle+" [GeV]")
             yaxis.SetTitle("Acceptance")
             xaxis.SetRangeUser(0, 50) 
 
@@ -69,13 +95,85 @@ def main(verbose):
             acceptance.Draw()
             can.SaveAs(outputDir+"acceptance_"+plot+".pdf")
 
-            #efficiency = h0.GetCumulative(True) 
+            efficiency = h0.GetCumulative(True) 
             #efficiency.DrawNormalized()
             #efficiency.DrawNormalized()
             #can.SaveAs(outputDir+"efficiency_"+plot+".pdf")
+
+            plotDict[branch][plot] = {
+                    'efficiency' : efficiency, 
+                    'acceptance' : acceptance
+                    }
+
+    print plotDict
+
+
+    gStyle.SetGridStyle(3) 
+    gStyle.SetGridColor(kGray)
+    #can = TCanvas("can2", "can2", 500, 500)
+    can.SetGrid()
+
+    # plot trigger rates (for minbias) in the different scenarios 
+    s1 = {
+         #"TruthTrack",
+         "Track"            : {'marker' : 20, 'colour' : colours.red,  'leg' : 'L0'},
+         "PBMatchedTracks"  : {'marker' : 23, 'colour' : colours.blue, 'leg' : 'L0 Pileup suppressed' }
+         }
+    s2 = {
+            'SmearedTrackJets'   : {'marker' : 20, 'colour' : colours.red, 'leg' : 'L0' },
+            'PBMatchedTrackJets' : {'marker' : 23, 'colour' : colours.blue,'leg' : 'L0 Pileup suppressed' }
+         }
+
+    s3 = [
+         "TracksFromHit30",
+         "SmearedTracksFromHits",
+         "PBMatchedHitTracks",
+         ]
+
+    can.SetLogy()
+    for sSet in [s1, s2]:
+        outputDir = "TrackPlots/Rates/"
+        checkDir(outputDir)
+
+
+        plots = plotDict[sSet.keys()[0]].keys()
+
+        for plot in plots:
+            pCounter = 0
+            leg = prepareLegend('topRight')
+            for scenario in sSet.keys():
+                
+                style = sSet[scenario]
+                    
+                # scale to trigger rate
+                rate = plotDict[scenario][plot]['acceptance']
+                rate.SetTitle("Minbias #LT#mu#GT = 200")
+                rate.Scale(40*1e3) 
+                xaxis = rate.GetXaxis()
+                yaxis = rate.GetYaxis()
+                yaxis.SetTitle('Rate [kHz]')
+
+                if 'track' in plot:
+                    xaxis.SetRangeUser(0, 25)
+                if 'jet' in plot:
+                    xaxis.SetRangeUser(0, 100)
+
+                rate.SetMarkerStyle(style['marker'])
+                rate.SetMarkerColor(style['colour'])
+                rate.SetLineColor(style['colour'])
+
+                if pCounter == 0:
+                    rate.Draw()
+                else:
+                    rate.Draw('same')
+                pCounter += 1 
+    
+                leg.AddEntry(rate, style['leg'], 'lp') 
+                
+            leg.Draw()
+            can.SaveAs(outputDir+'rate_{0}.pdf'.format(plot))
+
             
-
-
 
 if __name__ == "__main__":
 
@@ -86,5 +184,3 @@ if __name__ == "__main__":
     verbose = args.verbose
 
     main(verbose)
-
-
