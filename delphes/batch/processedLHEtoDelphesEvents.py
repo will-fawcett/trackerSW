@@ -12,20 +12,29 @@ essentially runs this command:
 
 import json
 from generalProductionSubmit import DATA_DIR, OUTPUT_DIR, LHE_DIR, CMD_DIR, getSampleList, writeSubmissionHeader
+from submitPythia8Delphes import checkDir
 import time
+import os
 
 unixTime = time.time()
 CAMPAIGN = str(int(unixTime))
 USER     = os.environ['USER']
 
-CAMPAIGN = "TEST"
+
+
+
+JSON_DIR = DATA_DIR + "particleProductionBatch/"
 
 def main(verbose):
 
     pileupScenarios = [0, 200, 1000]
+    pileupScenarios = [0]
 
     # get list of samples from LHE dir
     samples = getSampleList(LHE_DIR)
+    samples = ['py8_pp_minbias']
+    samples = ['mg_pp_hh']
+    #CAMPAIGN = '1521996111'
 
     # Create a new campaign dir for all of the samples that are needed from this campaign
     CAMPAIGN_DIR = "/atlas/data4/userdata/wfawcett/delphes/processedLHE/"+CAMPAIGN+"/"
@@ -34,24 +43,24 @@ def main(verbose):
     jobCounter = 0 
 
     for pu in pileupScenarios:
-
         for sample in samples: 
 
+            # Create a directory for all of the processed samples to go into 
+            JOB_OUTPUT_DIR = CAMPAIGN_DIR + sample + "_pu" + str(pu) + '/'
+            checkDir(JOB_OUTPUT_DIR, False)
+
             # Create a directory for the all batch scripts and .sh files to go into 
-            BATCH_SCRIPT_DIR = CAMPAIGN_DIR + sample + "_" + str(pu) + '/'
+            BATCH_SCRIPT_DIR = CAMPAIGN_DIR + sample + "_pu" + str(pu) + '/jobs/'
+            checkDir(BATCH_SCRIPT_DIR, False)
             print BATCH_SCRIPT_DIR
 
-            checkDir(BATCH_SCRIPT_DIR)
-
-            # Create a directory for all of the processed samples to go into 
-            JOB_OUTPUT_DIR = CAMPAIGN_DIR + sample + "_" + str(pu) + '/'
-
             # find "finished" samples
-            jFileName = BATCH_SCRIPT_DIR+sample+'.json'
+            jFileName = JSON_DIR+sample+'.json'
             print 'Reading', jFileName
             with open(jFileName) as data_file:
                 information = json.load(data_file)
             evts = information.keys()
+            evts = sorted(evts)
 
             #JOB_BASE_DIR = BATCH_SCRIPT_DIR + sample + '/'
 
@@ -63,32 +72,45 @@ def main(verbose):
                     DELPHES_CARD = "cards/triplet/FCChh_HitsToTracks_PileUp{0}.tcl".format(pu)
 
                     # input file path
-                    inputFile = information[evt]["FILE"]
+                    inputFile = information[evt]["outputFile"]
 
                     # output file path
-                    outputFile = JOB_OUTPUT_DIR + evt.replace('lhe', 'root')
+                    outputFile = JOB_OUTPUT_DIR + evt.replace('.lhe', '_pu{0}.root'.format(pu))
                     
 
                     # Write jobFile
                     #JOB_DIR = JOB_BASE_DIR + evt.replace('.lhe','') + '/'
                     #JOB_FILE = JOB_DIR + evt.replace('lhe', 'sh')
-                    JOB_FILE = BATCH_SCRIPT_DIR + "{0}".format(evt.replace('.lhe',''))
+                    JOB_DIR = BATCH_SCRIPT_DIR
+                    JOB_FILE = JOB_DIR + "{0}".format(evt.replace('.lhe','.sh'))
                     batchName = sample+"_"+str(jobCounter)
                     jobCounter += 1 
-                    print JOB_FILE
-                    writeSubmissionScript(JOB_FILE, batchName, DELPHES_CARD, inputFile, outputFile)
+                    writeSubmissionScript(JOB_FILE, batchName, DELPHES_CARD, inputFile, outputFile, BATCH_SCRIPT_DIR)
+                    
+                    # select queue
+                    queue = 'veryshort'
+                    if pu == 200:
+                        queue = 'short'
+                    elif pu == 1000:
+                        queue = 'medium'
+
+                    # submit job
+                    os.chdir(JOB_DIR)
+                    command = 'sbatch -p rhel6-{0} {1}'.format(queue, JOB_FILE)
+                    print command
+                    os.system(command)
+                    time.sleep(1)
 
 
-            #print 'For', sample, 'there are {0} finished evt files'.format(len(finishedSamples)) 
 
-
-def writeSubmissionScript(JOB_FILE, batchName, DELPHES_CARD, inputName, outputName):
+def writeSubmissionScript(JOB_FILE, batchName, DELPHES_CARD, inputName, outputName, BATCH_SCRIPT_DIR):
     ofile = open(JOB_FILE, 'w')
 
+    
     # Write interpreter and slurm directives
-    writeSubmissionHeader(ofile)
+    writeSubmissionHeader(ofile, batchName, BATCH_SCRIPT_DIR)
 
-    ofile.write("./DelphesROOT {0} {1} {2}\n".format(tcl_card, outputName, inputName) )
+    ofile.write("./build/readers/DelphesROOT {0} {1} {2}\n".format(DELPHES_CARD, outputName, inputName) )
 
     ofile.write("echo \"End.\"\n")
     ofile.write("date\n")

@@ -25,7 +25,7 @@ def getSampleList(path):
 #____________________________________________________________________________
 def main(verbose):
 
-    NJOBS_PER_SAMPLE = 50
+    NJOBS_PER_SAMPLE = 100
 
 
     # get list of samples from LHE dir
@@ -51,6 +51,7 @@ def main(verbose):
             if information[f]['submitted'] == False:
                 evtsToProcess.append(f)
                 if(len(evtsToProcess) >= NJOBS_PER_SAMPLE): break
+        sorted(evtsToProcess)
         print 'selected {0} files to process'.format(len(evtsToProcess))
 
         # write batch script
@@ -82,7 +83,7 @@ def main(verbose):
 
             # update the dictionary
             unixTime = str(int(time.time()))
-            tempInfo = information[f]
+            tempInfo = information[evt]
             information[evt] = {
                     "submitted" : True,
                     "lhePath" : tempInfo["lhePath"],
@@ -117,7 +118,7 @@ def writeSubmissionHeader(ofile, batchName, jobDir):
 
     # SLURM directives
     ofile.write('#SBATCH --job-name="{0}"\n'.format(batchName))
-    ofile.write('#SBATCH --partition=rhel6-short\n')
+    #ofile.write('#SBATCH --partition=rhel6-short\n')
     ofile.write('#SBATCH --workdir="{0}"\n'.format(jobDir)) # default to PWD from where the job was submitted
     ofile.write('#SBATCH --output={0}%j.o\n'.format(batchName))
     ofile.write('#SBATCH --error={0}%j.o\n'.format(batchName))

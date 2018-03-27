@@ -1,13 +1,13 @@
 
-from extractTrackParameters import prepareLegend
-from Colours import Colours
+from utils import prepareLegend
+from colours import colours
 
 
 from ROOT import * 
 gROOT.SetBatch(1)
-gStyle.SetGridStyle(3) 
 gStyle.SetPadLeftMargin(0.15) # increase space for left margin
 gStyle.SetPadBottomMargin(0.15) # increase space for left margin
+gStyle.SetGridStyle(3) 
 gStyle.SetGridColor(kGray)
 gStyle.SetPadTickX(1) # add tics on top x
 gStyle.SetPadTickY(1) # add tics on right y
