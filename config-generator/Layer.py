@@ -23,18 +23,18 @@ class Layer():
         if self._moduleType == "macroPixel":
             lstring += "        @include MacroPixel_module1.cfg\n"
             lstring += "        @include MacroPixel_material.cfg\n"
-            lstring += "        resolutionLocalRPhi 0.0095 // Pitch ~100/3um\n"
-            lstring += "        resolutionLocalZ 0.115  // Macro-pixels ~ 400um\n"
+            lstring += "        resLocalRPhi 0.0095 // Pitch ~100/3um\n"
+            lstring += "        resLocalZ 0.115  // Macro-pixels ~ 400um\n"
         if self._moduleType == "strip":
             lstring += "        @include Strip_Outer_module.cfg\n"
             lstring += "        @include Strip_material_2.5.cfg\n"
-            lstring += "        resolutionLocalRPhi 0.0095\n"
-            lstring += "        resolutionLocalZ 14.434 // Strip = 50mm\n"
+            lstring += "        resLocalRPhi 0.0095\n"
+            lstring += "        resLocalZ 14.434 // Strip = 50mm\n"
         if self._moduleType == "tripletPixel":
             lstring += "        @include TripletPixel_module0.cfg\n"
             lstring += "        @include TripletPixel_material.cfg\n"
-            lstring += "        resolutionLocalRPhi  0.01 // Pitch 40um \n"
-            lstring += "        resolutionLocalZ  0.01 // Pitch 40um \n"
+            lstring += "        resLocalRPhi  0.01 // Pitch 40um \n"
+            lstring += "        resLocalZ  0.01 // Pitch 40um \n"
 
         return lstring
 
