@@ -113,6 +113,12 @@ def writeSubmissionScript(scriptName, batchName, cmdFile, outputName, jobDir):
     ofile.close()
 #____________________________________________________________________________
 def writeSubmissionHeader(ofile, batchName, jobDir):
+    '''
+    Args:
+        ofile: an open, writable file
+        batchName: name of the job that slurm reports 
+        jobDir: directory in which the job will be run
+    '''
 
     ofile.write("#!/bin/bash\n") # interpereter directive  
 
