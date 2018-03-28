@@ -1,5 +1,35 @@
 {
-  "Data rate per cm^2 -  1Mhz,spars [Gb/s/cm^2]</b": [
+  "#Hit-channels per BX": [
+    282846.0, 
+    168084.0, 
+    120350.0, 
+    81056.0, 
+    79344.0, 
+    76294.0, 
+    59934.0, 
+    48816.0
+  ], 
+  "#Hit-channels per module per BX": [
+    177.0, 
+    77.0, 
+    44.0, 
+    26.0, 
+    24.0, 
+    22.0, 
+    15.0, 
+    11.0
+  ], 
+  "#Hits per BX (bunch crossing)": [
+    282846.0, 
+    168084.0, 
+    120350.0, 
+    81056.0, 
+    79344.0, 
+    76294.0, 
+    59934.0, 
+    48816.0
+  ], 
+  "Data rate per cm^2 -  1Mhz,spars [Gb/s/cm^2]": [
     0.03, 
     0.02, 
     0.01, 
@@ -9,7 +39,7 @@
     0.0, 
     0.0
   ], 
-  "Data rate per cm^2 - 40Mhz,spars [Gb/s/cm^2]</b": [
+  "Data rate per cm^2 - 40Mhz,spars [Gb/s/cm^2]": [
     1.38, 
     0.61, 
     0.24, 
