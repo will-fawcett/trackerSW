@@ -27,7 +27,8 @@ CMD_DIR = PROCESS_DIR + "cmd/"
 #____________________________________________________________________________
 def main(verbose):
 
-    for seed in xrange(0, 1001):
+    # 2018-03-28 500 jobs submitted
+    for seed in xrange(0, 500):
         jobNumStr = '{0:04d}'.format(seed)
         jobName = 'pileup_'+jobNumStr
         #print jobName
@@ -42,7 +43,7 @@ def main(verbose):
 
         # submit the job
         os.chdir(JOB_DIR)
-        command = 'sbatch -p rhel6-veryshort {0}'.format(scriptFile)
+        command = 'sbatch -p rhel6-medium {0}'.format(scriptFile)
         print command
         os.system(command)
         time.sleep(1)

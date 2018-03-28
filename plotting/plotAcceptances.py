@@ -18,6 +18,14 @@ def main(verbose):
     samples = ['mg_pp_hh', 'py8_pp_minbias']
     pileups = [0, 200, 1000]
 
+    sampleInfo = {
+            # cross-sections are in [pb] 
+            'py8_pp_minbias' : { 'title' : 'Minbias',  'xsection' : 1.1 * 1e11 },
+            'mg_pp_hh' :       { 'title' : 'di-higgs', 'xsection' : 0.65 },
+            'mg_pp_tth'      : { 'title' : 'ttH',      'xsection' : 23.37 }, 
+            }
+
+
     trackBranchNames = [
          "TruthTrack", "Track", "PBMatchedTracks",
          "TracksFromHit30", "SmearedTracksFromHits", "PBMatchedHitTracks",
@@ -158,8 +166,9 @@ def main(verbose):
                             
                         # scale to trigger rate
                         rate = plotDict[scenario][plot]['acceptance']
-                        rate.SetTitle("Minbias #LT#mu#GT = 200")
-                        rate.Scale(40*1e3) 
+                        titleInfo = sampleInfo[sample]
+                        rate.SetTitle("{0} #LT#mu#GT = {1}".format(titleInfo['title'], pileup))
+                        rate.Scale(40*1e3) # scale to 40 MHz (appropriate for minbias, not for other samples)  
                         xaxis = rate.GetXaxis()
                         yaxis = rate.GetYaxis()
                         yaxis.SetTitle('Rate [kHz]')
