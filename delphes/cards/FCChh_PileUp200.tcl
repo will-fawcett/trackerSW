@@ -42,7 +42,7 @@ module PileUpMerger PileUpMerger {
 
   # pre-generated minbias input file
   #set PileUpFile /afs/cern.ch/work/w/wfawcett/private/geneva/delphes/samples/pileup/MinBias_s10.pileup 
-  set PileupParticle /atlas/data4/userdata/wfawcett/delphes/samples/pileup/MinBias_s10.pileup
+  set PileUpFile /atlas/data4/userdata/wfawcett/delphes/samples/pileup/MinBias_s10.pileup
   #set PileUpFile MinBias.pileup
 
   # average expected pile up

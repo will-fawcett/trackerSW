@@ -30,7 +30,7 @@ module PileUpMerger PileUpMerger {
   set VertexOutputArray vertices
 
   # pre-generated minbias input file
-  set PileupParticle /atlas/data4/userdata/wfawcett/delphes/samples/pileup/MinBias_s10.pileup
+  set PileUpFile /atlas/data4/userdata/wfawcett/delphes/samples/pileup/MinBias_s10.pileup
 
   # average expected pile up
   set MeanPileUp 200

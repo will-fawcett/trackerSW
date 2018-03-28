@@ -4,7 +4,8 @@
 #  Main authors:  William Fawcett (Geneva)
 # 
 #   Workflow as follows. Two track collections are created. 
-#   1: NeutrinoFilter -- removes neutrinos from particle collection 
+#   1: PileupMerger -- overlays pileup
+#   2: NeutrinoFilter -- removes neutrinos from particle collection 
 #
 #   Then split into "normal" tracking (delphes default), and tracking with hit reconstruction
 #
@@ -40,6 +41,7 @@
 
 set ExecutionPath {
 
+  PileUpMerger
   NeutrinoFilter
 
   ParticlePropagator
@@ -75,7 +77,7 @@ set ExecutionPath {
 
 module PdgCodeFilter NeutrinoFilter {
 
-  set InputArray Delphes/stableParticles
+  set InputArray PileUpMerger/stableParticles
   set OutputArray filteredParticles
 
   set PTMin 0.0
@@ -89,6 +91,37 @@ module PdgCodeFilter NeutrinoFilter {
 
 }
 
+#################################
+# PU merger
+#################################
+
+module PileUpMerger PileUpMerger {
+  set InputArray Delphes/stableParticles
+
+  set ParticleOutputArray stableParticles
+  set VertexOutputArray vertices
+
+  # pre-generated minbias input file
+  #set PileUpFile /afs/cern.ch/work/w/wfawcett/private/geneva/delphes/samples/pileup/MinBias_s10.pileup 
+  set PileUpFile /atlas/data4/userdata/wfawcett/delphes/samples/pileup/MinBias_s10.pileup
+  #set PileUpFile MinBias.pileup
+
+  # average expected pile up
+  set MeanPileUp 1000
+
+  # Set pileup distribution: 0 for poisson, 1 for uniform 
+  set PileUpDistribution 0 
+
+  # maximum spread in the beam direction in m
+  set ZVertexSpread 0.25
+
+  # maximum spread in time in s
+  set TVertexSpread 800E-12
+
+  # vertex smearing formula f(z,t) (z,t need to be respectively given in m,s) - {exp(-(t^2/160e-12^2/2))*exp(-(z^2/0.053^2/2))}
+  set VertexDistributionFormula {exp(-(t^2/160e-12^2/2))*exp(-(z^2/0.053^2/2))}
+
+}
 
 
 #################################
@@ -96,6 +129,7 @@ module PdgCodeFilter NeutrinoFilter {
 #################################
 
 module ParticlePropagator ParticlePropagator {
+  #set InputArray PileUpMerger/stableParticles
   set InputArray NeutrinoFilter/filteredParticles
 
   set OutputArray stableParticles
@@ -324,11 +358,8 @@ module FastJetFinder PBMatchedHitTrackJetFinder {
 
 module TreeWriter TreeWriter {
 
-  #add Branch Delphes/allParticles Particle GenParticle
-  add Branch Delphes/stableParticles Particle GenParticle 
-  # Change the particle branch only to be stable particles, right?
-  
-  #add Branch PileUpMerger/vertices Vertex Vertex
+  add Branch Delphes/allParticles Particle GenParticle
+  add Branch PileUpMerger/vertices Vertex Vertex
 
   # Stage A "normal" tracking
   add Branch TrackEfficiency/tracks TruthTrack Track
