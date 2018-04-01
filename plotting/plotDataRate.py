@@ -54,18 +54,30 @@ def main(verbose):
 
     superDict = {}
 
-    # open json files, collate all data
+    # open json files, collate all data from the triplet layers
     for fName in fileNames:
         jFileName = STORE_DIR+fName
         layer = int(fName.split('_')[0][-1])
         with open(jFileName) as data_file:
             info = json.load(data_file)
         superDict[layer] = info
-
     print superDict[1].keys()
 
+    # Collate data from inner barrel
+    with open( STORE_DIR + 'innerBarrel.json') as data_file2:
+        innerBarrel = json.load(data_file2)
+
+
     for variable in variables.keys():
-        [xvals, yvals] = getXYVals(superDict, variable)
+        
+        xvals = []
+        yvals = []
+        [xvalsInner, yvalsInner] = getXYValsInnerBarrel(innerBarrel, variable)
+        [xvalsOuter, yvalsOuter] = getXYVals(superDict, variable)
+        xvals = xvalsInner + xvalsOuter
+        yvals = yvalsInner + yvalsOuter
+
+
         makePlot(xvals, yvals, variables[variable])
 
 
@@ -84,10 +96,21 @@ def makePlot(xvals, yvals, settings):
     plt.title(title)
     plt.ylabel('{0} {1}'.format(settings['ytitle'], settings['units']))
     plt.xlabel('Radius [mm]')
+
+    #if name == 'perLayer':
+    plt.yscale('log')
+    plt.grid(True)
+
     #plt.show()
     fig = plt.figure(name)
     plt.savefig('dataRate/{0}.pdf'.format(name),  bbox_inches='tight')
     #plt.close()
+
+def getXYValsInnerBarrel(d, v):
+
+    radii = d["Radius [mm]"]    
+    yInfo = d[v]
+    return [radii, yInfo]
 
 
 def getXYVals(superDict, variable):
