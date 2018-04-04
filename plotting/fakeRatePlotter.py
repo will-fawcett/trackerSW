@@ -60,7 +60,7 @@ cols = {
         50: colours.grey
     }
 
-binslist  = [0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 50.0, 60.0, 80.0, 100.0] 
+binslist  = [0.0, 5.0, 10.0, 15.0, 30.0, 40.0, 60.0, 100.0] 
 binsarray = array('d', binslist)
 
 
@@ -88,6 +88,7 @@ def main():
     # fake rate v eta 
     # with a multigraph for each geometry 
     for PILEUP in pileups:
+        break
         #fName = "/atlas/users/wfawcett/fcc/delphes/test.root"
         fName = path+"hits_ttbar_pu{0}_multiGeometry.root".format(PILEUP) 
         print "Opening file:", fName
@@ -97,6 +98,14 @@ def main():
         fakeRates(ifile, PILEUP, geometries, "Pt")
         #fakeRates(ifile, PILEUP, geometries, "Eta") # Eta probably not calculated correctly
         ifile.Close()
+
+    
+    # Plots for a given triplet spacing, but different pileup scenarios  
+    for spacing in [30]:
+        pus = [0, 200, 1000]
+        efficiencyPerSpacing(path, spacing, pus)
+        fakeRatePerSpacing(path, spacing, pus)
+    return
 
     
     # Make summary plots for efficiency and fake rate 
@@ -236,6 +245,9 @@ def binInfo(h1, h2):
 
 #______________________________________________________________________________
 def efficiency(ifile, PILEUP, geometries, label="Pt"):
+    '''
+    Plot reconstruction efficiency for different triplet spacing
+    '''
 
     can = TCanvas("can", "can", 500, 500)   
 
@@ -307,6 +319,71 @@ def efficiency(ifile, PILEUP, geometries, label="Pt"):
 
     leg.Draw()
     can.SaveAs(outputDir+"efficiency_{0}_pu{1}.pdf".format(label, PILEUP))
+
+#______________________________________________________________________________
+def fakeRatePerSpacing(path, geometry, pileups, label="Pt"):
+    '''
+    Create plot of fake rate as a function of <label> (e.g. pT)
+    for a given triplet spacing, varying pileup
+    '''
+    can = TCanvas("can"+rand_uuid(), "can", 500, 500)   
+    fakeRates = {} 
+
+    leg = prepareLegend('topLeft')
+    leg.SetHeader('ttbar + pileup')
+
+    counter = 0 
+    for pu in pileups:
+        #print 'getting input histograms'
+        fName = path + "hits_ttbar_pu{0}_multiGeometry.root".format(pu)
+        ifile = TFile.Open(fName)
+        nReco = ifile.Get("recoTrack{0}_{1}".format(label, geometry)).Clone()
+        nReco.Sumw2()
+        nRecoFake = ifile.Get("recoTrack{0}_fake_{1}".format(label, geometry)).Clone()
+        nRecoFake.Sumw2()
+
+        # rebin and create fake rate
+        #print 'rebin'
+        nReco     = rebin_plot(nReco,     binsarray)
+        nRecoFake = rebin_plot(nRecoFake, binsarray) 
+        #print 'create rate'
+        fakeRate = TGraphAsymmErrors(nRecoFake, nReco)
+        fakeRate.SetName( fakeRate.GetName() + rand_uuid() )
+
+        fakeRates[pu] = fakeRate
+
+        #print 'style'
+        xaxis = fakeRate.GetXaxis()
+        yaxis = fakeRate.GetYaxis()
+        xaxis.SetRangeUser(0, 100)
+        xaxis.SetTitle("Reconstructed Track p_{T} [GeV]")
+        yaxis.SetRangeUser(0, 0.05)
+        yaxis.SetTitleOffset(1.5)
+        yaxis.SetTitle("Fake Rate")
+        fakeRate.SetTitle('Triplet spacing: {0} mm'.format(geometry))
+
+        # colour
+        if counter == 0:
+            icol = colours.blue
+        elif counter == 1:
+            icol = colours.orange
+        elif counter == 2:
+            icol =  colours.red
+        fakeRate.SetMarkerColor(icol) 
+        fakeRate.SetLineColor(icol)
+
+        leg.AddEntry(fakeRate, "#LT#mu#GT = {0}".format(pu), "lp")
+        
+        if counter == 0:
+            fakeRate.Draw("APE")
+        else: 
+            fakeRate.Draw("PE same")
+        fakeRate.GetHistogram().GetYaxis().SetTitleOffset(1.75)
+        counter +=1 
+
+
+    leg.Draw() 
+    can.SaveAs('fakeRate{0}mm.pdf'.format(geometry))
 
 #______________________________________________________________________________
 def fakeRates(ifile, PILEUP, geometries, label):
@@ -582,6 +659,87 @@ def rebin_plot(histogram, bins_array):
     return newplot
 
 #______________________________________________________________________________
+def getEfficiencyTGraph(ifile, label, geometry, rebin=1):
+    '''
+    Return a reconstruction efficiency TGraph
+    '''
+
+    denominatorLabel = "nHits{0}_{1}".format(label,geometry)
+
+    nHitsPt = ifile.Get(denominatorLabel).Clone()
+    nHitsPt.Sumw2()
+
+    numeratorLabel = "recoTrackHit{0}_true_{1}".format(label, geometry)
+    recoTrackPt_true = ifile.Get(numeratorLabel).Clone()
+    recoTrackPt_true.Sumw2() 
+
+    binslist2 = [x/2.0 for x in range(0, 21*2)] # *2 since we want 0.5 bin width
+
+    binslist2 += [22.0, 24.0, 26.0, 28.0, 30.0, 35.0, 40.0, 50.0, 60.0, 80.0, 100.0] 
+    binsarray2 = array('d', binslist)
+    recoTrackPt_true = rebin_plot(recoTrackPt_true, binsarray2)
+    nHitsPt = rebin_plot(nHitsPt, binsarray2)
+
+
+    #recoTrackPt_true.Rebin(rebin)
+    #nHitsPt.Rebin(rebin)
+
+    recoEfficiency = TGraphAsymmErrors( recoTrackPt_true, nHitsPt )
+    recoEfficiency.SetName( recoEfficiency.GetName() + rand_uuid() ) 
+    return recoEfficiency
+
+#______________________________________________________________________________
+def efficiencyPerSpacing(path, geometry, pileups):
+    '''
+    Plot reconstruction efficiency for fixed triplet spacing, varying pileup
+    '''
+
+    can = TCanvas("can", "can", 500, 500)   
+    # get the histograms 
+    leg = prepareLegend('topRight')
+    leg.SetHeader("ttbar + pileup")
+    counter = 0
+    theGraphs = {}
+    for pu in pileups:
+        fName = path + "hits_ttbar_pu{0}_multiGeometry.root".format(pu)
+        ifile = TFile.Open(fName)
+
+        recoEfficiency = getEfficiencyTGraph(ifile, "Pt", geometry, 1)
+        recoEfficiency.SetTitle("Triplet spacing: 30 mm")
+
+        xaxis = recoEfficiency.GetXaxis()
+        yaxis = recoEfficiency.GetYaxis()
+        xaxis.SetRangeUser(0, 50)
+        yaxis.SetRangeUser(0.8, 1.1)
+        xaxis.SetTitle("Outer Hit (Track) p_{T} [GeV]") # hit pT of the track ... 
+        yaxis.SetTitle("Reconstruction efficiency")
+    
+        # Add colours
+        if counter == 0:
+            icol = colours.blue
+        elif counter == 1:
+            icol = colours.orange
+        elif counter == 2:
+            icol =  colours.red
+        recoEfficiency.SetMarkerColor(icol)
+        recoEfficiency.SetLineColor(icol)
+        theGraphs[pu] = recoEfficiency
+
+        leg.AddEntry(recoEfficiency, '#LT#mu#GT = {0}'.format(pu), 'lp')
+
+        if counter==0:
+            recoEfficiency.Draw("APEl")
+        else:
+            recoEfficiency.Draw("PEl same")
+        counter += 1
+        recoEfficiency.GetHistogram().GetYaxis().SetTitleOffset(1.75)
+
+    leg.Draw()
+    can.SaveAs("reconstructionEfficiency{0}mm.pdf".format(geometry))
+
+
+
+#______________________________________________________________________________
 def calculateErrorDivision(numerator, numeratorError, denominator, denominatorError):
     '''
     Calculate propagated error on a = x/y
@@ -595,6 +753,8 @@ def calculateErrorDivision(numerator, numeratorError, denominator, denominatorEr
 
     sigma_a = math.sqrt( sigma_x**2 * (a/x)**2  + sigma_y**2 * (a/y)**2 )
     return sigma_a
+
+
 
 
 #______________________________________________________________________________

@@ -33,8 +33,9 @@ def main(verbose):
     # get list of samples from LHE dir
     samples = getSampleList(LHE_DIR)
     samples = ['py8_pp_minbias']
-    samples = ['mg_pp_hh']
-    #CAMPAIGN = '1521996111'
+    #samples = ['mg_pp_hh']
+    #CAMPAIGN = "1522403805"
+    CAMPAIGN = "1522404983"
 
     # Create a new campaign dir for all of the samples that are needed from this campaign
     CAMPAIGN_DIR = "/atlas/data4/userdata/wfawcett/delphes/processedLHE/"+CAMPAIGN+"/"
@@ -70,6 +71,7 @@ def main(verbose):
 
                     # Select the right delphes card (specific to pileup)  
                     DELPHES_CARD = "cards/triplet/FCChh_HitsToTracks_PileUp{0}.tcl".format(pu)
+                    DELPHES_CARD = "cards/triplet/FCChh_temp.tcl"
 
                     # input file path
                     inputFile = information[evt]["outputFile"]
