@@ -35,7 +35,7 @@ def main(verbose):
                 data = [float(x) for x in data if is_number(x)]
 
                 print what, '\t', data
-                dataDict[what.replace('>','')] = data
+                dataDict[what.replace('>','').replace('</b','')] = data
 
         print dataDict
 
