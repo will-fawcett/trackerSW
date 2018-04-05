@@ -25,7 +25,7 @@ def getSampleList(path):
 #____________________________________________________________________________
 def main(verbose):
 
-    NJOBS_PER_SAMPLE = 100
+    NJOBS_PER_SAMPLE = 50
 
 
     # get list of samples from LHE dir
@@ -129,6 +129,8 @@ def writeSubmissionHeader(ofile, batchName, jobDir):
     ofile.write('#SBATCH --output={0}%j.o\n'.format(batchName))
     ofile.write('#SBATCH --error={0}%j.o\n'.format(batchName))
     ofile.write('#SBATCH --mem=6GB\n')
+    ofile.write('#SBATCH --mem=16GB\n')
+    ofile.write('#SBATCH --mem-per-cpu=16G\n')
 
     ofile.write("hostname\n")
     ofile.write("date\n")

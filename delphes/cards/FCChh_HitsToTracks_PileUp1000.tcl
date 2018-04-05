@@ -102,9 +102,7 @@ module PileUpMerger PileUpMerger {
   set VertexOutputArray vertices
 
   # pre-generated minbias input file
-  #set PileUpFile /afs/cern.ch/work/w/wfawcett/private/geneva/delphes/samples/pileup/MinBias_s10.pileup 
   set PileUpFile /atlas/data4/userdata/wfawcett/delphes/samples/pileup/MinBias_s10.pileup
-  #set PileUpFile MinBias.pileup
 
   # average expected pile up
   set MeanPileUp 1000
@@ -185,7 +183,7 @@ module TrackSmearing TrackSmearing {
 
   # magnetic field
   set Bz 4.0
-  source tripletFCCresolutions_50mm.tcl 
+  source tripletFCCresolutions_30mm.tcl 
 }
 
 
@@ -303,7 +301,7 @@ module TrackSmearing SmearedTracksFromHits {
   set OutputArray tracks
   set ApplyToPileUp true 
   set Bz 4.0
-  source tripletFCCresolutions_50mm.tcl 
+  source tripletFCCresolutions_30mm.tcl 
 }
 
 # find the primary bin from the reconstructed tracks

@@ -151,7 +151,7 @@ module TrackSmearing TrackSmearing {
 
   # magnetic field
   set Bz 4.0
-  source tripletFCCresolutions_50mm.tcl 
+  source tripletFCCresolutions_30mm.tcl 
 }
 
 
@@ -269,7 +269,7 @@ module TrackSmearing SmearedTracksFromHits {
   set OutputArray tracks
   set ApplyToPileUp true 
   set Bz 4.0
-  source tripletFCCresolutions_50mm.tcl 
+  source tripletFCCresolutions_30mm.tcl 
 }
 
 # find the primary bin from the reconstructed tracks

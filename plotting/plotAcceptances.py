@@ -16,6 +16,7 @@ gStyle.SetPadTickY(1)
 def main(verbose):
 
     samples = ['mg_pp_hh', 'py8_pp_minbias']
+    samples += ['mg_pp_tth']
     pileups = [0, 200, 1000]
 
     sampleInfo = {
