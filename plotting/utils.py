@@ -1,5 +1,16 @@
 #!/usr/bin/python
 
+#____________________________________________________________________________
+def myText( x, y, text, tsize=0.05, color=1, angle=0) :
+    import ROOT
+    l = ROOT.TLatex()
+    l.SetTextSize(tsize)
+    l.SetNDC()
+    l.SetTextColor(color)
+    l.SetTextAngle(angle)
+    l.SetTextFont(42)
+    l.DrawLatex(x,y,text)
+
 #______________________________________________________________________________
 # Convenience function for generating random IDs
 def rand_uuid():

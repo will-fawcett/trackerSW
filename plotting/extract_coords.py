@@ -19,12 +19,6 @@ gStyle.SetPadLeftMargin(0.15) # increase space for left margin
 gStyle.SetGridStyle(3) 
 gStyle.SetGridColor(kGray)
 
-# Convenience function to print list of primitives associated with a TObject 
-def printPrimitiveNames(tobject):
-    primList = tobject.GetListOfPrimitives()
-    print 'TObject of type: {0}, and name: {1}, has {2} primitives'.format(type(tobject), tobject.GetName(), len(primList))
-    for x in primList:
-        print '\t', x
 
 RESULTS_PATH = '~/Documents/fcc/results-tkLayout'
 layoutType = 'quartet' # triplet|quartet|splitQuartet
@@ -46,6 +40,7 @@ variableMap = {
         'tripletSpacings' : {'units' : '[mm]', 'title' : 'Triplet spacing' },
         'trackMomentum' : {'units' : '[GeV]', 'title' : 'Track p_{T}'}, # Note could also have track momentum 
         'trackEta' : {'units' : '', 'title' : 'Track #eta'},
+        'etaValues' : {'units' : '', 'title' : 'Track #eta'},
         }
 
 #___________________________________________________________________________
@@ -135,23 +130,30 @@ def main():
     # now make some nice plots
     for variable in trackParameters:
 
-        # 2D plots with variable:barrel layers:layer spacings
-        for pt in momentumValues:
-            for eta in plotEtaValues:
-                make2DPlot(variable, megaDict[variable], barrelLayers=[1,2,3], tripletSpacings=tripletSpacings, trackMomentum=pt, trackEta=eta)
 
+        ###################################
         # plots 
+        ###################################
+
+        # plot trackparam vs eta (for different track momenta)
+        series = { "trackMomentum" : [1, 10, 100, 1000] }
+        constants = { "barrelLayer" : 1, 'tripletSpacing' : 30 }
+        xVar = 'trackEta'
+        xVar = 'etaValues'
+        makePlot(megaDict, xVar, variable, constants, series)
+
+        '''
+        # plot trackparam vs barrel layer (for different track momenta) 
         series = { "trackMomentum" : [1, 10, 100, 1000] }
         constants = { "trackEta" : 0 , 'tripletSpacing' : 20 } 
         xVar = 'barrelLayers' 
         makePlot(megaDict, xVar, variable, constants, series)
 
-        '''
+
         series = { "trackEta" : plotEtaValues } 
         constants = { "trackMomentum" : 10, 'tripletSpacing' : 20 }
         xVar = 'barrelLayers' 
         makePlot(megaDict, xVar, variable, constants, series)
-        '''
 
         series = { "trackMomentum" : [1, 10, 100, 1000] }
         constants = { "trackEta" : 0 , 'barrelLayer' : 1 } 
@@ -163,6 +165,13 @@ def main():
 
         makePlot(megaDict, xVar, variable, constants, series, legendPosition)
 
+        # 2D plots with variable:barrel layers:layer spacings
+        for pt in momentumValues:
+            for eta in plotEtaValues:
+                make2DPlot(variable, megaDict[variable], barrelLayers=[1,2,3], tripletSpacings=tripletSpacings, trackMomentum=pt, trackEta=eta)
+        '''
+
+    return 
 
     # make other 2D plots 
     for eta in megaDict['metadata']['etaValues']:
@@ -247,16 +256,25 @@ def makePlot(plotInfo, xVar, yVar, constants, series, legendPosition="topLeft"):
                 tripletSpacing = xVal
             else:
                 tripletSpacing = constants['tripletSpacing']
+            
+            if xVar == 'trackEta' or xVar == 'etaValues':
+                trackEta = xVal
+            else:
+                if series.keys()[0] == 'trackEta':
+                    trackEta = dataSeries
+                else:
+                    trackEta = constants['trackEta'] 
 
+
+
+
+
+            # find 
             if series.keys()[0] == 'trackMomentum':
                 trackMomentum = dataSeries
             else:
                 trackMomentum = constants['trackMomentum']
 
-            if series.keys()[0] == 'trackEta':
-                trackEta = dataSeries
-            else:
-                trackEta = constants['trackEta'] 
 
             trackParam = yVar
 
@@ -478,6 +496,13 @@ def extractPlotInfo(plot, xVals):
     return info
                 
 
+#___________________________________________________________________________
+def printPrimitiveNames(tobject):
+    # Convenience function to print list of primitives associated with a TObject 
+    primList = tobject.GetListOfPrimitives()
+    print 'TObject of type: {0}, and name: {1}, has {2} primitives'.format(type(tobject), tobject.GetName(), len(primList))
+    for x in primList:
+        print '\t', x
 
 
 

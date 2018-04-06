@@ -13,10 +13,11 @@ gROOT.SetBatch(1)
 gRandom.SetSeed(0)
 
 MAX_Z = 400 # mm 
-PILEUP = 1000 
 PILEUP = 200 
+PILEUP = 1000 
 
 def main():
+
     # gaussian parameters 
     mean = 0.0
     bunch_length = 75.0 # mm
@@ -28,24 +29,63 @@ def main():
 
     mygaus = TF1("mygaus", "TMath::Gaus(x,0,"+str(luminous_length)+")",-luminous_length*5 , luminous_length*5)
 
+    #########################################
+    # make some plots to show results
+    #########################################
+    can = TCanvas('can', 'can', 500, 500)
+    h = TH1D("vertexDistribution", "", 100, -400, 400)
+    vals = []
+    for i in xrange(10000):
+        val = mygaus.GetRandom()
+        h.Fill(val)
+        vals.append(val)
+    h.DrawNormalized()
+    can.SaveAs('vertexDistribution.pdf')
+
+    can.SetLogy()
+    #can.SetLogx()
+    distances = calculateDistances(vals, 400)
+
+    dist = TH1D("distanceDistribution", "", 100, 0, 1)
+    for d in distances:
+        dist.Fill(d)
+    dist.DrawNormalized('E')
+    can.SaveAs('distance.pdf')
+    return
+
+
+    #########################################
+    # More serious calculation
+    #########################################
+
     means = []
     pc95s = []
+    pc05s = []
 
-    for i in range(1000):
-        [mean, pc95] = calculateMeanAnd95(mygaus)
+    for i in xrange(1000):
+        [mean, pc95, pc05] = calculateMeanAnd95(mygaus)
         means.append(mean)
         pc95s.append(pc95)
+        pc05s.append(pc05)
 
     # calculate the mean of the mean
     mean95 = np.mean(pc95s)
+    mean05 = np.mean(pc05s)
     meanMeans = np.mean(means)
 
     print ''
     print 'Average mean distance: {0} um'.format(meanMeans*1000)
     print 'Average 95% distance:  {0} um'.format(mean95*1000)
+    print 'Average 05% distance:  {0} um'.format(mean05*1000)
+
+
 
 def calculateMeanAnd95(mygaus):
+    '''
+    Take gaussian TF1, extract random numbers from that distribution
+    Make a distribution of the "distance" between each number
 
+    '''
 
 
     #h1 = TH1F("h1", "test", 50, -5 * luminous_length,  5 *luminous_length)
@@ -70,9 +110,13 @@ def calculateMeanAnd95(mygaus):
     entry95 = int(len(distances) *.05)  # roun down, since counting starts at 0 
     value95 = distances[entry95]
 
+    # What is the distance that 5% of vertices are separated by at least
+    entry05 = int(len(distances) *.95)
+    value05 = distances[entry05]
+
     #print 'Distances. Mean {0} 95% {1}'.format( mean,  value95) 
 
-    return [mean, value95]
+    return [mean, value95, value05]
 
 
     '''

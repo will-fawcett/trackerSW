@@ -22,6 +22,13 @@ colours = [
     1, # black
 ]
 
+markers = [
+        20, # circle
+        21, # square 
+        22, # up triangle
+        23, # down triangle
+        ]
+
 PI = 3.14159265
 
 #____________________________________________________________________
@@ -41,8 +48,10 @@ def main(inputFile, outputDirBase):
     iFile = TFile.Open(inputFile)
 
     ptRanges = [
-            [0,2],
+            #[0,2],
+            [2, 5],
             [9, 11],
+            [20, 40],
             [50, 101]
             ]
     etaRanges = [
@@ -60,33 +69,48 @@ def main(inputFile, outputDirBase):
     parameters = {
             'z0Res'   : {'title' : 'z0 resolution' , 'units' : '[mm]', 'label': '#deltaz_{0}'},
             #'d0Res'   : {'title' : 'd0 resolution' , 'units' : '[mm]', 'label': '#deltad_{0}'},
-            'ptRes'   : {'title' : 'pt resolution' , 'units' : '[%]',    'label': '#deltap_{T}/p_{T}'},
+            'ptRes'   : {'title' : 'p_{T} resolution' , 'units' : '[%]',    'label': '#deltap_{T}/p_{T}'},
             #'CtgThetaRes': {'title' : 'cot(#theta) resolution', 'units' : '',      'label' : '#deltacot(#theta)'},
             'ptResRaw': {'title' : 'p_{T} resolution',       'units' : '[GeV]', 'label' : '#deltap_{T}'},
             #'phiRes'  : {'title' : '#phi resolution',        'units' : '[deg]',      'label' : '#delta#phi'},
             }
 
     branchNames = [
-         "TruthTrack", "Track", "PBMatchedTracks",
-         "TracksFromHit30", "SmearedTracksFromHits", "PBMatchedHitTracks",
+         #"TruthTrack", 
+         "Track", 
+         #"PBMatchedTracks",
+         "TracksFromHit30", 
+         "SmearedTracksFromHits", 
+         #"PBMatchedHitTracks",
          ]
 
     for branch in branchNames:
         outputDir = appendSlash(outputDirBase + branch)
         checkDir(outputDir)
 
-
-
-
         for par in parameters.keys():
 
-            # Get 3D plot
+            ##############################################
+            # Make 1d resolution plot across all eta range
+            ##############################################
+            basicCan = TCanvas(branch+par+"basicCan", "", 500, 500)
+            basicRes = iFile.Get(branch+'_'+par)
+            basicRes.Fit("gaus", "MQ") # M: "improve fit", Q: "quiet" (no printing), O: "Don't draw fit or histo
+            theFit = basicRes.GetFunction("gaus")
+            basicCan.SetLogy()
+            basicRes.Draw()
+            theFit.Draw('same')
+            basicCan.SaveAs(outputDir+par+'_basic.pdf')
+
+            ##########################################################
+            # Make proper resolution plots in pT and eta slices from 3D plot
+            ##########################################################
             plotName = branch+ '_' + par+'_pt_eta'
             resPlot = iFile.Get(plotName)
             if not is_TH3(resPlot):
                 print plotName
                 print 'ERROR, {0} is not of type TH3, it is {1}'.format(resPlot.GetName(), type(resPlot))
-                sys.exti()
+                sys.exit()
 
             # Create legend 
             #leg = prepareLegend('bottomRight')
@@ -110,6 +134,7 @@ def main(inputFile, outputDirBase):
                     graphs[n].SetPointError(i, 0, yErr)
                     graphs[n].SetMarkerColor(colours[n])
                     graphs[n].SetLineColor(colours[n])
+                    graphs[n].SetMarkerStyle(markers[n])
                 leg.AddEntry(graphs[n], '{0} < pT < {1}'.format(ptRange[0], ptRange[1]), 'lp')
 
             # Draw graphs 
@@ -119,21 +144,31 @@ def main(inputFile, outputDirBase):
             mg = TMultiGraph()
             for g in graphs:
                 mg.Add(g, 'p')
-            mg.SetTitle('{0} from Delphes; #eta;{1} {2}'.format(parameters[par]['title'], parameters[par]['label'], parameters[par]['units']) )
+
+            # set plot title 
+            plotHeader = '{0} from Delphes'.format(parameters[par]['title'])
+            plotHeader = '' 
+            xTitle = '#eta'
+            yTitle = '{0} {1}'.format(parameters[par]['label'], parameters[par]['units'])
+            mg.SetTitle('{0};{1};{2}'.format(plotHeader, xTitle, yTitle) )
             mg.Draw('a')
             leg.Draw()
 
             # Change the axis limits
             mgMin = mg.GetHistogram().GetYaxis().GetXmin()
             mgMax = mg.GetHistogram().GetYaxis().GetXmax()
-            if mgMax/10 < mgMin:
+            if mgMax/10 < mgMin or True:
                 mg.GetHistogram().GetYaxis().SetRangeUser(mgMin*0.5, mgMax*5) # make space for legend
             
             can.SaveAs(outputDir+par+'_graphs.pdf')
 
 #____________________________________________________________________
 def extractResolution(plot3D, ptRange, etaRange, parameterName, outputDir):
-    # projection of a slice (resolution, pT, eta) 
+    '''
+    Extracts slices/projections of a 3D plot to yield the resolution
+    as in slices of pT or eta 
+    '''
+
 
     yaxis = plot3D.GetYaxis()
     zaxis = plot3D.GetZaxis()
@@ -171,6 +206,7 @@ def extractResolution(plot3D, ptRange, etaRange, parameterName, outputDir):
     name = '{0}pt{1}_{2}eta{3}'.format(ptRange[0], ptRange[1], int(etaRange[0]*10), int(etaRange[1]*10))
     res.SetTitle('{0} sigma = {1:.2f}#pm{2:.2f}'.format(name, sigma, sigmaErr))
     tempCan = TCanvas('tcan', 'can', 500, 500)
+
     res.GetXaxis().SetRangeUser(-sigma*4, sigma*4)
 
     res.Draw()

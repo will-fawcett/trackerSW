@@ -13,6 +13,9 @@ gStyle.SetPadLeftMargin(0.13) # increase space for left margin
 gStyle.SetPadTickX(1)
 gStyle.SetPadTickY(1)
 
+INPUT_DIR = '/atlas/data4/userdata/wfawcett/delphes/results/fromLHE/'
+INPUT_DIR = '/Users/Will/Documents/fcc/trackerSW/particleProperties/'
+
 def main(verbose):
 
     samples = ['mg_pp_hh', 'py8_pp_minbias']
@@ -62,9 +65,12 @@ def main(verbose):
 
 
     for sample in samples:
+        print 'Plotting for sample', sample
         for pileup in pileups:
 
-            iFileName = '/atlas/data4/userdata/wfawcett/delphes/results/fromLHE/{0}_pu{1}.root'.format(sample, pileup)
+            print '\tPlotting for pileup', pileup
+
+            iFileName = INPUT_DIR + '{0}_pu{1}.root'.format(sample, pileup)
             iFile = TFile.Open(iFileName)
             can = TCanvas("can", "can", 500, 500)
             plotDict = {}
@@ -74,6 +80,7 @@ def main(verbose):
 
 
             for branch in trackBranchNames+jetBranchNames:
+                print '\t\tPlotting for branch', branch
                 outputDir = outputBaseDir+appendSlash(branch)
                 checkDir(outputDir)
                 plotDict[branch] = {}
@@ -87,15 +94,15 @@ def main(verbose):
                     print 'plotting', histoName
                     h0 = iFile.Get(histoName)
                     xTitle = plot.replace('track', 'Track ').replace('jet', 'Jet ').replace('Pt', ' p_{T}')
-                    print xTitle
+                    #print xTitle
                     h0.GetXaxis().SetTitle(xTitle+" [GeV]")
                     h0.GetYaxis().SetTitle("Fraction of events")
                     h0.Draw()
                     nbins = h0.GetNbinsX()
-                    print h0.Integral()
-                    print h0.Integral(1, nbins)
-                    print h0.Integral(1, nbins+1) # should include overflow
-                    print ''
+                    #print h0.Integral()
+                    #print h0.Integral(1, nbins)
+                    #print h0.Integral(1, nbins+1) # should include overflow
+                    #print ''
 
                     # plot acceptance
                     can.SaveAs(outputDir+plot+".pdf")
@@ -175,7 +182,7 @@ def main(verbose):
                         yaxis.SetTitle('Rate [kHz]')
 
                         if 'track' in plot:
-                            xaxis.SetRangeUser(0, 25)
+                            xaxis.SetRangeUser(0, 100)
                         if 'jet' in plot:
                             xaxis.SetRangeUser(0, 100)
 
@@ -185,6 +192,7 @@ def main(verbose):
 
                         if pCounter == 0:
                             rate.Draw()
+                            #elif 'jet' in plot: # only draw PU supressed for jet histograms 
                         else:
                             rate.Draw('same')
                         pCounter += 1 
