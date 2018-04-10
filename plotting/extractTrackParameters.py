@@ -50,9 +50,9 @@ def main(inputFile, outputDirBase):
     ptRanges = [
             #[0,2],
             [2, 5],
-            [9, 11],
-            [20, 40],
-            [50, 101]
+            [6, 10],
+            [11, 30],
+            [31, 50]
             ]
     etaRanges = [
             [0, 0.2],
@@ -67,12 +67,14 @@ def main(inputFile, outputDirBase):
             ]
 
     parameters = {
+            'ptRes'   : {'title' : 'p_{T} resolution' , 'units' : '',    'label': '#deltap_{T}/p_{T}'},
             'z0Res'   : {'title' : 'z0 resolution' , 'units' : '[mm]', 'label': '#deltaz_{0}'},
-            #'d0Res'   : {'title' : 'd0 resolution' , 'units' : '[mm]', 'label': '#deltad_{0}'},
-            'ptRes'   : {'title' : 'p_{T} resolution' , 'units' : '[%]',    'label': '#deltap_{T}/p_{T}'},
-            #'CtgThetaRes': {'title' : 'cot(#theta) resolution', 'units' : '',      'label' : '#deltacot(#theta)'},
             'ptResRaw': {'title' : 'p_{T} resolution',       'units' : '[GeV]', 'label' : '#deltap_{T}'},
-            #'phiRes'  : {'title' : '#phi resolution',        'units' : '[deg]',      'label' : '#delta#phi'},
+
+
+            ##'phiRes'  : {'title' : '#phi resolution',        'units' : '[deg]',      'label' : '#delta#phi'},
+            ##'CtgThetaRes': {'title' : 'cot(#theta) resolution', 'units' : '',      'label' : '#deltacot(#theta)'},
+            ##'d0Res'   : {'title' : 'd0 resolution' , 'units' : '[mm]', 'label': '#deltad_{0}'},
             }
 
     branchNames = [

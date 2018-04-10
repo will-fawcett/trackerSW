@@ -8,3 +8,5 @@ class colours:
  grey = 15
  purple = 618
  black = 1
+ darkRed = 205
+ darkBlue = 60

@@ -7,7 +7,7 @@ from utils import prepareLegend, myText
 
 from colours import colours
 
-STORE = "/Users/Will/Documents/fcc/trackerSW/particleProperties/"
+STORE = "/Users/Will/Documents/fcc/trackerSW/particleProperties/old/"
 
 gROOT.SetBatch(1)
 gStyle.SetPadTickX(1)
@@ -15,12 +15,35 @@ gStyle.SetPadTickY(1)
 gStyle.SetPadBottomMargin(0.15)
 gStyle.SetPadLeftMargin(0.13) # increase space for left margin
 
+TEXT_SIZE = 0.04
+gStyle.SetLabelSize(TEXT_SIZE, 'X')
+gStyle.SetLabelSize(TEXT_SIZE, 'Y')
+gStyle.SetTitleSize(TEXT_SIZE, 'X')
+gStyle.SetTitleSize(TEXT_SIZE, 'Y')
+gStyle.SetHistLineWidth(3)
+
+# Stuff for legend
+gStyle.SetCanvasColor(-1)
+gStyle.SetPadColor(-1)
+gStyle.SetFrameFillColor(-1)
+gStyle.SetHistFillColor(-1)
+gStyle.SetTitleFillColor(-1)
+gStyle.SetFillColor(-1)
+gStyle.SetFillStyle(4000)
+gStyle.SetStatStyle(0)
+gStyle.SetTitleStyle(0)
+gStyle.SetCanvasBorderSize(0)
+gStyle.SetFrameBorderSize(0)
+gStyle.SetLegendBorderSize(0)
+gStyle.SetStatBorderSize(0)
+gStyle.SetTitleBorderSize(0)
+
 def main():
 
     
     pileup = ["py8_pp_minbias_pu0.root"]
     signals = [
-            "mg_pp_thh_pu0.root",
+            "mg_pp_tth_pu0.root",
             #"mg_pp_tt_nlo_pu0.root",
             "mg_pp_hh_pu0.root",
             ]
@@ -29,12 +52,15 @@ def main():
             #"allTrackEta": {'xrange' : [-10, 10], 'xtitle' : 'Truth Track #eta', 'logy' : 1},
             "track1Eta": {'xrange'  : [-6, 6], 'xtitle' : 'Truth Track 1 #eta', 'logy' : 1},
             #"allTrackPt": {'xrange' : [0, 100], 'xtitle' : 'Truth Track p_{T} [GeV]', 'logy' : 1},
-            "track1Pt": {'xrange' :  [0, 150], 'xtitle' : 'Truth Track 1 p_{T} [GeV]', 'logy' : 1}
+            "track1Pt": {'xrange' :  [0, 150], 'xtitle' : 'Truth Track 1 p_{T} [GeV]', 'logy' : 1},
+            "track2Pt": {'xrange' :  [0, 100], 'xtitle' : 'Truth Track 2 p_{T} [GeV]', 'logy' : 1},
+            "track3Pt": {'xrange' :  [0, 100], 'xtitle' : 'Truth Track 3 p_{T} [GeV]', 'logy' : 1},
+            "track4Pt": {'xrange' :  [0, 100], 'xtitle' : 'Truth Track 4 p_{T} [GeV]', 'logy' : 1}
             }
 
     colz = {
             "py8_pp_minbias_pu0.root" : {'col' : colours.blue, 'leg' : 'Minbias'},
-            "mg_pp_thh_pu0.root"      : {'col' : colours.orange, 'leg' : 'ttH'},
+            "mg_pp_tth_pu0.root"      : {'col' : colours.orange, 'leg' : 'ttH'},
             "mg_pp_tt_nlo_pu0.root"   : {'col' : colours.purple, 'leg' : 'ttbar'},
             "mg_pp_hh_pu0.root"       : {'col' : colours.red, 'leg' : 'HH'}
             }
@@ -80,7 +106,7 @@ def main():
             h.SetMinimum(1e-3)
             leg.AddEntry(h, style['leg'], 'lp')
 
-            myText(0.2, 0.8, '#sqrt{s}=100 TeV' )
+            myText(0.2, 0.8, '#sqrt{s}=100 TeV', TEXT_SIZE )
 
 
 

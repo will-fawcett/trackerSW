@@ -1,13 +1,26 @@
 '''
 Script to do some statistics for the beam profile in Z
 '''
-
-
-from ROOT import *
+from utils import getReverseCumulativeHisto, myText
 import math
 from array import * 
 import numpy as np
+
+from ROOT import *
 gROOT.SetBatch(1)
+gStyle.SetPadBottomMargin(0.15)
+gStyle.SetPadLeftMargin(0.13) # increase space for left margin
+gStyle.SetPadTickX(1)
+gStyle.SetPadTickY(1)
+gStyle.SetOptStat(0)
+
+# histogram styling
+TEXT_SIZE = 0.04
+gStyle.SetLabelSize(TEXT_SIZE, 'X')
+gStyle.SetLabelSize(TEXT_SIZE, 'Y')
+gStyle.SetTitleSize(TEXT_SIZE, 'X')
+gStyle.SetTitleSize(TEXT_SIZE, 'Y')
+gStyle.SetHistLineWidth(3)
 
 # Set seed of random generator (default TRandom3)
 gRandom.SetSeed(0)
@@ -33,25 +46,90 @@ def main():
     # make some plots to show results
     #########################################
     can = TCanvas('can', 'can', 500, 500)
-    h = TH1D("vertexDistribution", "", 100, -400, 400)
+    um = 1000  # units
+
+    #____________________________________________
+    # Distribution of vertices
+    #____________________________________________
+    vertices = TH1D("vertexDistribution", "", 100, -400*um, 400*um)
     vals = []
-    for i in xrange(10000):
-        val = mygaus.GetRandom()
-        h.Fill(val)
+    nEvents = 1000
+    weight = 1.0 / float(nEvents)
+    for i in xrange(nEvents):
+        val = mygaus.GetRandom()*um # um 
+        vertices.Fill(val, weight)
         vals.append(val)
-    h.DrawNormalized()
+
+    xaxis = vertices.GetXaxis()
+    yaxis = vertices.GetYaxis()
+    xaxis.SetTitle('Vertex z position [#mum]')
+    xaxis.SetRangeUser(-250*um, 250*um)
+    yaxis.SetTitle('Fraction')
+    yaxis.SetRangeUser(0.0, 0.1)
+    vertices.Draw()
+    vertices.Fit("gaus", "M") # M: "improve fit", Q: "quiet" (no printing), O: "Don't draw fit or histo
+    myText(0.2, 0.80, '#LT#mu#GT = 1000', TEXT_SIZE)
+    myText(0.2, 0.75, 'Luminous length = {0:.1f} mm'.format(luminous_length), TEXT_SIZE) 
+
+    theFit = vertices.GetFunction("gaus")
     can.SaveAs('vertexDistribution.pdf')
 
-    can.SetLogy()
-    #can.SetLogx()
-    distances = calculateDistances(vals, 400)
+    #____________________________________________
+    # Distribution of distances between vertices
+    #____________________________________________
+    distances = calculateDistances(vals, MAX_Z*um)
 
-    dist = TH1D("distanceDistribution", "", 100, 0, 1)
+    can.SetLogy(1)
+    dist = TH1D("distanceDistribution", "", 1000, 0, 10*um)
     for d in distances:
-        dist.Fill(d)
-    dist.DrawNormalized('E')
+        dist.Fill(d, weight)
+
+    #distOriginal.GetXaxis().SetRangeUser(0, 1000)
+    #dist = distOriginal.Clone('clone')
+    xaxis = dist.GetXaxis()
+    yaxis = dist.GetYaxis()
+    xaxis.SetRangeUser(0, 100)
+    yaxis.SetTitle('Fraction of vertices')
+    xaxis.SetTitle('Distance between vertices, #deltaz [#mum]')
+
+    dist.Rebin(2)
+    dist.GetXaxis().SetRangeUser(0, 1000)
+    dist.Draw('E')
+    myText(0.7, 0.7, '#LT#mu#GT = 1000',TEXT_SIZE)
     can.SaveAs('distance.pdf')
-    return
+    return 
+
+    #____________________________________________
+    # Cumulative distribution of vertex distances 
+    #____________________________________________
+    can.SetLogy(0)
+    #distPc = getReverseCumulativeHisto(dist)
+    distPc = distOriginal.GetCumulative()
+    xaxis = distPc.GetXaxis()
+    yaxis = distPc.GetYaxis()
+    xaxis.SetTitle('Distance between vertices, #deltaz [#mum]')
+    yaxis.SetTitle('Fraction of vertices #deltaz < X')
+    xaxis.SetRangeUser(0, 1500)
+    yaxis.SetRangeUser(0, 1)
+    distPc.SetMarkerStyle(20)
+    distPc.Draw('E')
+    distPc.SetLineWidth(3)
+
+    # find where 95% is
+    for ibin in xrange(0,distPc.GetNbinsX()+1):
+        yval =  distPc.GetBinContent(ibin)
+        if yval > 0.95:
+            pc95bin = ibin
+            break
+    print '95% of distances are smaller than:'
+    print ibin, distPc.GetBinCenter(ibin), distPc.GetBinContent(ibin)
+    avVertex95 = distPc.GetBinCenter(ibin)
+    myText(0.4, 0.6, '#LT#mu#GT = 1000',TEXT_SIZE)
+    myText(0.4, 0.5, '#LT#deltaz#GT_{Vertex}^{95%} #approx '+'{0} #mum'.format(avVertex95), TEXT_SIZE)
+    myText(0.4, 0.4, 'Bunch length = {0} mm'.format(bunch_length) ,TEXT_SIZE)
+
+    can.SaveAs('cumulativeDistance.pdf')
+
 
 
     #########################################

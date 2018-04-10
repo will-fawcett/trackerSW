@@ -710,7 +710,7 @@ def efficiencyPerSpacing(path, geometry, pileups):
         xaxis = recoEfficiency.GetXaxis()
         yaxis = recoEfficiency.GetYaxis()
         xaxis.SetRangeUser(0, 50)
-        yaxis.SetRangeUser(0.8, 1.1)
+        yaxis.SetRangeUser(0.9, 1.1)
         xaxis.SetTitle("Outer Hit (Track) p_{T} [GeV]") # hit pT of the track ... 
         yaxis.SetTitle("Reconstruction efficiency")
     
