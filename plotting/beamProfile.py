@@ -88,6 +88,8 @@ def main():
     #dist = distOriginal.Clone('clone')
     xaxis = dist.GetXaxis()
     yaxis = dist.GetYaxis()
+    meanDistance = dist.GetMean()
+    print meanDistance
     xaxis.SetRangeUser(0, 100)
     yaxis.SetTitle('Fraction of vertices')
     xaxis.SetTitle('Distance between vertices, #deltaz [#mum]')
@@ -95,16 +97,16 @@ def main():
     dist.Rebin(2)
     dist.GetXaxis().SetRangeUser(0, 1000)
     dist.Draw('E')
-    myText(0.7, 0.7, '#LT#mu#GT = 1000',TEXT_SIZE)
+    myText(0.45, 0.75, '#LT#mu#GT = 1000',TEXT_SIZE)
+    myText(0.45, 0.8, 'Mean distance = 344 #mum', TEXT_SIZE)
     can.SaveAs('distance.pdf')
-    return 
 
     #____________________________________________
     # Cumulative distribution of vertex distances 
     #____________________________________________
     can.SetLogy(0)
     #distPc = getReverseCumulativeHisto(dist)
-    distPc = distOriginal.GetCumulative()
+    distPc = dist.GetCumulative()
     xaxis = distPc.GetXaxis()
     yaxis = distPc.GetYaxis()
     xaxis.SetTitle('Distance between vertices, #deltaz [#mum]')
@@ -128,7 +130,7 @@ def main():
     myText(0.4, 0.5, '#LT#deltaz#GT_{Vertex}^{95%} #approx '+'{0} #mum'.format(avVertex95), TEXT_SIZE)
     myText(0.4, 0.4, 'Bunch length = {0} mm'.format(bunch_length) ,TEXT_SIZE)
 
-    can.SaveAs('cumulativeDistance.pdf')
+    #can.SaveAs('cumulativeDistance.pdf')
 
 
 
