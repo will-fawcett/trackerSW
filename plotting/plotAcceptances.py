@@ -38,22 +38,26 @@ gStyle.SetTitleBorderSize(0)
 
 
 INPUT_DIR = '/atlas/data4/userdata/wfawcett/delphes/results/fromLHE/'
-INPUT_DIR = '/Users/Will/Documents/fcc/trackerSW/particleProperties/'
-OUTPUD_BASE_DIR = "/Users/Will/Documents/fcc/trackerSW/plotting/TrackPlots3"
+INPUT_DIR = '/Users/Will/Documents/fcc/trackerSW/particleProperties40mm/'
+OUTPUD_BASE_DIR = "/Users/Will/Documents/fcc/trackerSW/plotting/TrackPlots4"
+
+sampleInfo = {
+        # cross-sections are in [pb] 
+        'py8_pp_minbias' : { 'title' : 'Minbias',  'xsection' : 1.1 * 1e11 },
+        'mg_pp_hh' :       { 'title' : 'di-higgs', 'xsection' : 0.65 },
+        'mg_pp_tth'      : { 'title' : 'ttH',      'xsection' : 23.37 }, 
+        }
+
+X_MIN = 0
 
 def main(verbose):
 
     samples = ['mg_pp_hh', 'py8_pp_minbias']
     samples += ['mg_pp_tth']
-    samples = ['py8_pp_minbias']
+    #samples = ['py8_pp_minbias']
     pileups = [0, 200, 1000]
+    pileups = [0, 1000]
 
-    sampleInfo = {
-            # cross-sections are in [pb] 
-            'py8_pp_minbias' : { 'title' : 'Minbias',  'xsection' : 1.1 * 1e11 },
-            'mg_pp_hh' :       { 'title' : 'di-higgs', 'xsection' : 0.65 },
-            'mg_pp_tth'      : { 'title' : 'ttH',      'xsection' : 23.37 }, 
-            }
 
 
     trackBranchNames = [
@@ -87,6 +91,8 @@ def main(verbose):
             "jet2Pt",
             "jet3Pt",
             "jet4Pt",
+            "jet5Pt",
+            "jet6Pt",
             ]
 
     # signal acceptances for things from hits
@@ -96,7 +102,16 @@ def main(verbose):
     # signal acceptances for things from delphes objects
     plotSignalAcceptances(1000, ['Track', 'PBMatchedTracks'], True)
     plotSignalAcceptances(1000, ['SmearedTrackJets', 'PBMatchedTrackJets'], False)
-    return
+    #return
+
+    # signal acceptances for things from hits
+    plotSignalAcceptances(0, ['SmearedTracksFromHits', 'PBMatchedHitTracks'], True)
+    plotSignalAcceptances(0, ['SmearedHitTrackJets', 'PBMatchedHitTrackJets'], False)
+
+    # signal acceptances for things from delphes objects
+    plotSignalAcceptances(0, ['TruthTrack', 'Track'], True)
+    plotSignalAcceptances(0, ['Track', 'PBMatchedTracks'], True)
+    plotSignalAcceptances(0, ['SmearedTrackJets', 'PBMatchedTrackJets'], False)
 
     
     
@@ -173,10 +188,6 @@ def main(verbose):
 
             #print plotDict
 
-            gStyle.SetGridStyle(3) 
-            gStyle.SetGridColor(kGray)
-            #can = TCanvas("can2", "can2", 500, 500)
-            can.SetGrid()
 
             # plot trigger rates (for minbias) in the different scenarios 
             s1 = {
@@ -209,75 +220,91 @@ def main(verbose):
             # Make plots of trigger rate
             ############################
 
-            can.SetLogy()
-            for scenarioSet in [s1, s2, s3, s4]:
-                # scenario set contains the "nominal" objects and the PB matched objects
-                outputDir = outputBaseDir+"Rates/"
-                checkDir(outputDir)
-                outputDir = outputDir+scenarioSet.keys()[0]+'/'
-                checkDir(outputDir)
-
-                plots = plotDict[scenarioSet.keys()[0]].keys()
-
-                for plot in plots:
-                    pCounter = 0
-                    #leg = prepareLegend('topRight')
-                    if 'track' in plot or 'lepton' in plot or 'electron' in plot or 'muon' in plot:
-                        leg = TLegend(0.55, 0.55, 0.8, 0.70)
-                    if 'jet' in plot:
-                        leg = TLegend(0.3, 0.5, 0.8, 0.70)
-                    leg.SetTextSize(TEXT_SIZE)
-                    for scenario in scenarioSet.keys():
-                        
-                        # get style dict
-                        style = scenarioSet[scenario]
-                            
-                        # scale to trigger rate
-                        rate = plotDict[scenario][plot]['acceptance']
-                        titleInfo = sampleInfo[sample]
-                        rate.Scale(40*1e3) # scale to 40 MHz (appropriate for minbias, not for other samples)  
-
-                        # style 
-                        #rate.SetTitle("{0} #LT#mu#GT = {1}".format(titleInfo['title'], pileup))
-                        xaxis = rate.GetXaxis()
-                        yaxis = rate.GetYaxis()
-                        yaxis.SetTitle('Rate [kHz]')
+            makeRatePlot(s1, True, outputBaseDir, plotDict, sample, pileup)
+            makeRatePlot(s2, False, outputBaseDir, plotDict, sample, pileup)
+            makeRatePlot(s3, False, outputBaseDir, plotDict, sample, pileup)
+            makeRatePlot(s4, True, outputBaseDir, plotDict, sample, pileup)
 
 
-                        if 'track' in plot:
-                            xaxis.SetRangeUser(0, 175)
-                            if '1Pt' in plot:
-                                xaxis.SetRangeUser(0, 175)
-                            if '2Pt' in plot: 
-                                xaxis.SetRangeUser(0, 150)
-                            if '3Pt' in plot:
-                                xaxis.SetRangeUser(0, 70)
-                            if '4Pt' in plot:
-                                xaxis.SetRangeUser(0, 50)
-                            myText(0.55, 0.80, '#sqrt{s} = 100 TeV', TEXT_SIZE)
-                            myText(0.55, 0.75, '{0}'.format(titleInfo['title']), TEXT_SIZE)
-                            myText(0.55, 0.70, "#LT#mu#GT = {0}".format(pileup), TEXT_SIZE)
-                        if 'jet' in plot:
-                            myText(0.3, 0.80, '#sqrt{s} = 100 TeV', TEXT_SIZE)
-                            myText(0.3, 0.75, '{0}'.format(titleInfo['title']), TEXT_SIZE)
-                            myText(0.3, 0.70, "#LT#mu#GT = {0}".format(pileup), TEXT_SIZE)
-                            xaxis.SetRangeUser(0, 300)
+def makeRatePlot(scenarioSet, doTrack, outputBaseDir, plotDict, sample, pileup):
 
-                        rate.SetMarkerStyle(style['marker'])
-                        rate.SetMarkerColor(style['colour'])
-                        rate.SetLineColor(style['colour'])
+    gStyle.SetGridStyle(3) 
+    gStyle.SetGridColor(kGray)
 
-                        if pCounter == 0:
-                            rate.Draw()
-                            #elif 'jet' in plot: # only draw PU supressed for jet histograms 
-                        else:
-                            rate.Draw('same')
-                        pCounter += 1 
+    can = TCanvas("can3", "", 500, 500)
+    can.SetGrid()
+    can.SetLogy()
+    #can.SetLogx()
+
+    # scenario set contains the "nominal" objects and the PB matched objects
+    outputDir = outputBaseDir+"Rates/"
+    checkDir(outputDir)
+    outputDir = outputDir+scenarioSet.keys()[0]+'/'
+    checkDir(outputDir)
+
+    plots = plotDict[scenarioSet.keys()[0]].keys()
+
+    for plot in plots:
+        pCounter = 0
+        #leg = prepareLegend('topRight')
+        if doTrack:
+            leg = TLegend(0.55, 0.55, 0.8, 0.70)
+        else:
+            leg = TLegend(0.3, 0.5, 0.8, 0.70)
+
+        leg.SetTextSize(TEXT_SIZE)
+        for scenario in scenarioSet.keys():
             
-                        leg.AddEntry(rate, style['leg'], 'lp') 
-                        
-                    leg.Draw()
-                    can.SaveAs(outputDir+'rate_{0}.pdf'.format(plot))
+            # get style dict
+            style = scenarioSet[scenario]
+                
+            # scale to trigger rate
+            rate = plotDict[scenario][plot]['acceptance']
+            titleInfo = sampleInfo[sample]
+            rate.Scale(40*1e3) # scale to 40 MHz (appropriate for minbias, not for other samples)  
+
+            # style 
+            #rate.SetTitle("{0} #LT#mu#GT = {1}".format(titleInfo['title'], pileup))
+            xaxis = rate.GetXaxis()
+            yaxis = rate.GetYaxis()
+            yaxis.SetTitle('Rate [kHz]')
+            rate.SetMinimum(10)
+
+
+            if doTrack:
+                xaxis.SetRangeUser(0, 175)
+                if '1Pt' in plot:
+                    xaxis.SetRangeUser(0, 175)
+                if '2Pt' in plot: 
+                    xaxis.SetRangeUser(0, 150)
+                if '3Pt' in plot:
+                    xaxis.SetRangeUser(0, 70)
+                if '4Pt' in plot:
+                    xaxis.SetRangeUser(0, 50)
+                myText(0.55, 0.80, '#sqrt{s} = 100 TeV', TEXT_SIZE)
+                myText(0.55, 0.75, '{0}'.format(titleInfo['title']), TEXT_SIZE)
+                myText(0.55, 0.70, "#LT#mu#GT = {0}".format(pileup), TEXT_SIZE)
+            else:
+                myText(0.3, 0.80, '#sqrt{s} = 100 TeV', TEXT_SIZE)
+                myText(0.3, 0.75, '{0}'.format(titleInfo['title']), TEXT_SIZE)
+                myText(0.3, 0.70, "#LT#mu#GT = {0}".format(pileup), TEXT_SIZE)
+                xaxis.SetRangeUser(X_MIN, 300)
+
+            rate.SetMarkerStyle(style['marker'])
+            rate.SetMarkerColor(style['colour'])
+            rate.SetLineColor(style['colour'])
+
+            if pCounter == 0:
+                rate.Draw()
+                #elif 'jet' in plot: # only draw PU supressed for jet histograms 
+            else:
+                rate.Draw('same')
+            pCounter += 1 
+
+            leg.AddEntry(rate, style['leg'], 'lp') 
+            
+        leg.Draw()
+        can.SaveAs(outputDir+'rate_{0}.pdf'.format(plot))
 
 def plotSignalAcceptances(pu, branchPair, doTrack=True):
 
@@ -291,10 +318,20 @@ def plotSignalAcceptances(pu, branchPair, doTrack=True):
     hhFile  = TFile.Open(hhFName)
     tthFile = TFile.Open(tthFName)
 
+
+    gStyle.SetGridStyle(3) 
+    gStyle.SetGridColor(kGray)
+
     can = TCanvas('can2', 'can', 500, 500)
+    can.SetGrid()
+    #can.SetLogx()
 
+    if doTrack:
+        NOBJECTS = 5
+    else:
+        NOBJECTS = 7
 
-    for i in xrange(1, 5):
+    for i in xrange(1, NOBJECTS):
         if doTrack:
             histName = '{1}_track{0}Pt'.format(i, branchPair[0])
             histNamePB = '{1}_track{0}Pt'.format(i, branchPair[1])
@@ -340,10 +377,10 @@ def plotSignalAcceptances(pu, branchPair, doTrack=True):
         # Legend
         aLeg = TLegend(0.57, 0.54, 0.85, 0.73) 
         aLeg.SetTextSize(TEXT_SIZE)
-        aLeg.AddEntry(hhPlot, 'HH (all)', 'lp') 
-        aLeg.AddEntry(tthPlot, 'ttH (all)', 'lp')
-        aLeg.AddEntry(hhPlotPB, 'HH (PB)', 'lp')
-        aLeg.AddEntry(tthPlotPB, 'ttH (PB)', 'lp')
+        aLeg.AddEntry(hhPlot, 'HH (all tracks)', 'lp') 
+        aLeg.AddEntry(tthPlot, 'ttH (all tracks)', 'lp')
+        aLeg.AddEntry(hhPlotPB, 'HH (PB tracks)', 'lp')
+        aLeg.AddEntry(tthPlotPB, 'ttH (PB tracks)', 'lp')
 
         xaxis = hhPlot.GetXaxis()
         yaxis = hhPlot.GetYaxis()
@@ -365,16 +402,19 @@ def plotSignalAcceptances(pu, branchPair, doTrack=True):
         else:
             # for jets
             xaxis.SetTitle('Track Jet {0}'.format(i)+' p_{T} [GeV]')
-            xaxis.SetRangeUser(0, 500)
+            xaxis.SetRangeUser(X_MIN, 500)
             if i==1:
-                xaxis.SetRangeUser(0, 600)
+                xaxis.SetRangeUser(X_MIN, 600)
             if i==2:
-                xaxis.SetRangeUser(0, 500)
+                xaxis.SetRangeUser(X_MIN, 400)
             if i==3:
-                xaxis.SetRangeUser(0, 500)
+                xaxis.SetRangeUser(X_MIN, 300)
             if i==4: 
-                xaxis.SetRangeUser(0, 400)
-        #yaxis.SetRangeUser(0, 1)
+                xaxis.SetRangeUser(X_MIN, 400)
+            if i==5:
+                xaxis.SetRangeUser(X_MIN, 300)
+            if i==6:
+                xaxis.SetRangeUser(X_MIN, 300)
 
 
         hhPlot.Draw()
@@ -393,6 +433,7 @@ def plotSignalAcceptances(pu, branchPair, doTrack=True):
         else:
             can.SaveAs(OUTPUD_BASE_DIR+'/signalAcceptances/{2}_{3}_pu{0}_jet{1}Pt.pdf'.format(pu, i, branchPair[0], branchPair[1]))
 
+'''
 def plotSignalAcceptancesOld(pileups, trackBranchNames, jetBranchNames, ):
 
     # plot acceptances for (all) signal models for each of the track multiplicities
@@ -467,7 +508,7 @@ def plotSignalAcceptancesOld(pileups, trackBranchNames, jetBranchNames, ):
                     if i==2:
                         xaxis.SetRangeUser(0, 500)
                     if i==3:
-                        xaxis.SetRangeUser(0, 500)
+                        xaxis.SetRangeUser(0, 300)
                     if i==4: 
                         xaxis.SetRangeUser(0, 400)
                 #yaxis.SetRangeUser(0, 1)
@@ -482,6 +523,7 @@ def plotSignalAcceptancesOld(pileups, trackBranchNames, jetBranchNames, ):
                 aLeg.Draw()
                 
                 can.SaveAs(OUTPUD_BASE_DIR+'/signalAcceptances/{2}_pu{0}_jet{1}Pt.pdf'.format(pu, i, branch))
+'''
 
 if __name__ == "__main__":
 
