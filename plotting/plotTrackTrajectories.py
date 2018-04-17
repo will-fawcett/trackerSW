@@ -104,10 +104,6 @@ def main():
     # plot! 
     #################################
 
-    # plot vertices 
-    if not plotMatched:
-        plt.scatter(vertexZ, vertexR, c='dodgerblue')
-    plt.scatter(primaryVertexZ, primaryVertexR, c='orange')
 
     # select set of tracks 
     if plotMatched:
@@ -126,6 +122,11 @@ def main():
         aTrack = track(eta, z0, pu)
         if not aTrack.isPU:
             plt.plot(aTrack.xVar(), aTrack.yVar(), color='red', linestyle='-', linewidth=2)
+
+    # plot vertices 
+    if not plotMatched:
+        plt.scatter(vertexZ, vertexR, c='dodgerblue')
+    plt.scatter(primaryVertexZ, primaryVertexR, c='orange')
 
     # Draw primary bin
     if addPB: 
