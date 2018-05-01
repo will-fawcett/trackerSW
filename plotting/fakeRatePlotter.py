@@ -125,11 +125,13 @@ def main():
     fakeRateSummaries   = {}
     efficiencySummariesPt2 = {}
     fakeRateSummariesPt2   = {}
+    fakeRateInfoDictPt2 = {}
     for geometry in geometries:
         efficiencySummary = TGraphErrors()
         fakeRateSummary   = TGraphErrors()
         efficiencySummaryPt2 = TGraphErrors()
         fakeRateSummaryPt2   = TGraphErrors()
+        fakeRateInfoDictPt2[geometry] = {} 
         counter = 0
         for PILEUP in pileups:
             #fName = "/atlas/users/wfawcett/fcc/delphes/test.root"
@@ -185,6 +187,8 @@ def main():
             efficiencySummariesPt2[geometry] = efficiencySummaryPt2
             fakeRateSummariesPt2[geometry]   = fakeRateSummaryPt2
 
+            fakeRateInfoDictPt2[geometry][PILEUP] = fakeRatePt2 
+
             ifile.Close()
 
             counter += 1
@@ -192,7 +196,7 @@ def main():
     outNameJson = 'averageFakeRatePt2.json'
     print 'Writing to json', outNameJson
     with open(outNameJson, 'w') as fp:
-        json.dump(fakeRateSummariesPt2, fp, sort_keys=True, indent=2)
+        json.dump(fakeRateInfoDictPt2, fp, sort_keys=True, indent=2)
 
     sys.exit()
     
