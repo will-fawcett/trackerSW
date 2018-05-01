@@ -187,7 +187,7 @@ def main():
             efficiencySummariesPt2[geometry] = efficiencySummaryPt2
             fakeRateSummariesPt2[geometry]   = fakeRateSummaryPt2
 
-            fakeRateInfoDictPt2[geometry][PILEUP] = fakeRatePt2 
+            fakeRateInfoDictPt2[geometry][PILEUP] = {'val': fakeRatePt2 , 'error' : fakeRateErrorPt2} 
 
             ifile.Close()
 
