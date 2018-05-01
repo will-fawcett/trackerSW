@@ -91,8 +91,8 @@ def main():
     pileups = [0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
 
     geometries = [50]
-    geometries = [10, 20, 30, 40, 50]
     geometries = [30]
+    geometries = [10, 20, 30, 40, 50]
 
 
     # For each pileup scenario, plot:
