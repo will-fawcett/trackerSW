@@ -1,4 +1,5 @@
 from ROOT import *
+import json
 from colours import colours
 from utils import prepareLegend, checkDir, rand_uuid, myText
 import os
@@ -117,7 +118,6 @@ def main():
         pus = [0, 200, 1000]
         #fakeRatePerSpacing(path, spacing, pus)
         efficiencyPerSpacing(path, spacing, pus)
-    return
 
     
     # Make summary plots for efficiency and fake rate 
@@ -190,6 +190,7 @@ def main():
             counter += 1
 
     outNameJson = 'averageFakeRatePt2.json'
+    print 'Writing to json', outNameJson
     with open(outNameJson, 'w') as fp:
         json.dump(fakeRateSummariesPt2, fp, sort_keys=True, indent=2)
 
