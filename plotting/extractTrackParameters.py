@@ -11,6 +11,13 @@ gStyle.SetGridStyle(3)
 gStyle.SetPadLeftMargin(0.15) # increase space for left margin
 gStyle.SetGridColor(kGray)
 
+TEXT_SIZE = 0.05
+gStyle.SetLabelSize(TEXT_SIZE, 'X')
+gStyle.SetLabelSize(TEXT_SIZE, 'Y')
+gStyle.SetTitleSize(TEXT_SIZE, 'X')
+gStyle.SetTitleSize(TEXT_SIZE, 'Y')
+gStyle.SetHistLineWidth(3)
+
 
 colours = [
     865, # blue
@@ -70,11 +77,11 @@ def main(inputFile, outputDirBase):
             'ptRes'   : {'title' : 'p_{T} resolution' , 'units' : '',    'label': '#deltap_{T}/p_{T}'},
             'z0Res'   : {'title' : 'z0 resolution' , 'units' : '[mm]', 'label': '#deltaz_{0}'},
             'ptResRaw': {'title' : 'p_{T} resolution',       'units' : '[GeV]', 'label' : '#deltap_{T}'},
+            #'d0Res'   : {'title' : 'd0 resolution' , 'units' : '[mm]', 'label': '#deltad_{0}'},
 
 
             ##'phiRes'  : {'title' : '#phi resolution',        'units' : '[deg]',      'label' : '#delta#phi'},
             ##'CtgThetaRes': {'title' : 'cot(#theta) resolution', 'units' : '',      'label' : '#deltacot(#theta)'},
-            ##'d0Res'   : {'title' : 'd0 resolution' , 'units' : '[mm]', 'label': '#deltad_{0}'},
             }
 
     branchNames = [
@@ -157,6 +164,7 @@ def main(inputFile, outputDirBase):
             leg.Draw()
 
             # Change the axis limits
+            mg.GetHistogram().GetXaxis().SetNdivisions(5, 5, 0)
             mgMin = mg.GetHistogram().GetYaxis().GetXmin()
             mgMax = mg.GetHistogram().GetYaxis().GetXmax()
             if mgMax/10 < mgMin or True:

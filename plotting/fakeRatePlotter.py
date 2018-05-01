@@ -91,6 +91,7 @@ def main():
 
     geometries = [50]
     geometries = [10, 20, 30, 40, 50]
+    geometries = [30]
 
 
     # For each pileup scenario, plot:
@@ -187,6 +188,12 @@ def main():
             ifile.Close()
 
             counter += 1
+
+    outNameJson = 'averageFakeRatePt2.json'
+    with open(outNameJson, 'w') as fp:
+        json.dump(fakeRateSummariesPt2, fp, sort_keys=True, indent=2)
+
+    sys.exit()
     
 
     ########################
