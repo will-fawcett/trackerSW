@@ -151,7 +151,7 @@ module TrackSmearing TrackSmearing {
 
   # magnetic field
   set Bz 4.0
-  source tripletFCCresolutions_30mm.tcl 
+  source tripletFCCresolutions_40mm.tcl 
 }
 
 
@@ -248,7 +248,8 @@ module HitFinder HitFinder30 {
   set OutputArray hits
   set BarrelLength 2.250 
   set Bz 4.0
-  add BarrelLayerRadii {0.552} {0.582} {0.612}
+  #add BarrelLayerRadii {0.552} {0.582} {0.612}
+  add BarrelLayerRadii {0.542} {0.582} {0.622}
 }
 
 # HitToTrack (take delphes hits and reconstruct tracks)
@@ -269,7 +270,7 @@ module TrackSmearing SmearedTracksFromHits {
   set OutputArray tracks
   set ApplyToPileUp true 
   set Bz 4.0
-  source tripletFCCresolutions_30mm.tcl 
+  source tripletFCCresolutions_40mm.tcl 
 }
 
 # find the primary bin from the reconstructed tracks

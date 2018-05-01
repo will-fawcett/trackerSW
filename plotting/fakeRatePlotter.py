@@ -1,6 +1,6 @@
 from ROOT import *
 from colours import colours
-from utils import prepareLegend, checkDir, rand_uuid
+from utils import prepareLegend, checkDir, rand_uuid, myText
 import os
 import math
 from array import array
@@ -10,6 +10,14 @@ gStyle.SetPadBottomMargin(0.15)
 gStyle.SetPadLeftMargin(0.13) # increase space for left margin
 gStyle.SetPadTickX(1)
 gStyle.SetPadTickY(1)
+
+
+TEXT_SIZE = 0.04
+gStyle.SetLabelSize(TEXT_SIZE, 'X')
+gStyle.SetLabelSize(TEXT_SIZE, 'Y')
+gStyle.SetTitleSize(TEXT_SIZE, 'X')
+gStyle.SetTitleSize(TEXT_SIZE, 'Y')
+gStyle.SetHistLineWidth(3)
 
 if os.environ["isGeneva"]:
     basePath = "/atlas/users/wfawcett/fcc/delphes/results/"
@@ -60,7 +68,10 @@ cols = {
         50: colours.grey
     }
 
-binslist  = [0.0, 5.0, 10.0, 15.0, 30.0, 40.0, 60.0, 100.0] 
+binslist  = range(0, 21) + range(22, 31, 2) + [35.0, 40.0, 50.0, 100.0] 
+print binslist
+
+#binslist = [0.0, 5.0, 10.0, 15.0, 30.0, 40.0, 60.0, 100.0]
 binsarray = array('d', binslist)
 
 
@@ -103,8 +114,8 @@ def main():
     # Plots for a given triplet spacing, but different pileup scenarios  
     for spacing in [30]:
         pus = [0, 200, 1000]
+        #fakeRatePerSpacing(path, spacing, pus)
         efficiencyPerSpacing(path, spacing, pus)
-        fakeRatePerSpacing(path, spacing, pus)
     return
 
     
@@ -329,7 +340,7 @@ def fakeRatePerSpacing(path, geometry, pileups, label="Pt"):
     can = TCanvas("can"+rand_uuid(), "can", 500, 500)   
     fakeRates = {} 
 
-    leg = prepareLegend('topLeft')
+    leg = prepareLegend('topRight')
     leg.SetHeader('ttbar + pileup')
 
     counter = 0 
@@ -360,7 +371,8 @@ def fakeRatePerSpacing(path, geometry, pileups, label="Pt"):
         yaxis.SetRangeUser(0, 0.05)
         yaxis.SetTitleOffset(1.5)
         yaxis.SetTitle("Fake Rate")
-        fakeRate.SetTitle('Triplet spacing: {0} mm'.format(geometry))
+        fakeRate.SetTitle('')
+        myText(0.2, 0.75, 'Triplet spacing: 30 mm', TEXT_SIZE)
 
         # colour
         if counter == 0:
@@ -676,7 +688,7 @@ def getEfficiencyTGraph(ifile, label, geometry, rebin=1):
     binslist2 = [x/2.0 for x in range(0, 21*2)] # *2 since we want 0.5 bin width
 
     binslist2 += [22.0, 24.0, 26.0, 28.0, 30.0, 35.0, 40.0, 50.0, 60.0, 80.0, 100.0] 
-    binsarray2 = array('d', binslist)
+    binsarray2 = array('d', binslist2)
     recoTrackPt_true = rebin_plot(recoTrackPt_true, binsarray2)
     nHitsPt = rebin_plot(nHitsPt, binsarray2)
 
@@ -705,7 +717,8 @@ def efficiencyPerSpacing(path, geometry, pileups):
         ifile = TFile.Open(fName)
 
         recoEfficiency = getEfficiencyTGraph(ifile, "Pt", geometry, 1)
-        recoEfficiency.SetTitle("Triplet spacing: 30 mm")
+        recoEfficiency.SetTitle("")
+        myText(0.2, 0.75, 'Triplet spacing: 30 mm', TEXT_SIZE)
 
         xaxis = recoEfficiency.GetXaxis()
         yaxis = recoEfficiency.GetYaxis()
