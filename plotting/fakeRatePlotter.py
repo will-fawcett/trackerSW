@@ -7,17 +7,31 @@ import math
 from array import array
 
 gROOT.SetBatch(1)
-gStyle.SetPadBottomMargin(0.15)
-gStyle.SetPadLeftMargin(0.13) # increase space for left margin
+
+# Setting for 'normal' plots
+#gStyle.SetPadBottomMargin(0.15)
+#gStyle.SetPadLeftMargin(0.13) # increase space for left margin
+
+# Setting for CDR plots 
+gStyle.SetPadBottomMargin(0.16)
+gStyle.SetPadLeftMargin(0.2) # increase space for left margin
+gStyle.SetPadTopMargin(0.02)
+gStyle.SetPadRightMargin(0.02) # increase space for left margin
+
 gStyle.SetPadTickX(1)
 gStyle.SetPadTickY(1)
 
+TEXT_SIZE = 0.04
+TITLE_SIZE = 0.07
+LABEL_SIZE = 0.065
+X_AXIS_OFFSET = 1.0
+Y_AXIS_OFFSET = 1.5 
 
 TEXT_SIZE = 0.04
-gStyle.SetLabelSize(TEXT_SIZE, 'X')
-gStyle.SetLabelSize(TEXT_SIZE, 'Y')
-gStyle.SetTitleSize(TEXT_SIZE, 'X')
-gStyle.SetTitleSize(TEXT_SIZE, 'Y')
+gStyle.SetLabelSize(LABEL_SIZE, 'X')
+gStyle.SetLabelSize(LABEL_SIZE, 'Y')
+gStyle.SetTitleSize(TITLE_SIZE, 'X')
+gStyle.SetTitleSize(TITLE_SIZE, 'Y')
 gStyle.SetHistLineWidth(3)
 
 if os.environ["isGeneva"]:
@@ -72,7 +86,8 @@ cols = {
 binslist  = range(0, 21) + range(22, 31, 2) + [35.0, 40.0, 50.0, 100.0] 
 print binslist
 
-#binslist = [0.0, 5.0, 10.0, 15.0, 30.0, 40.0, 60.0, 100.0]
+# binslist for CDR 
+binslist = [0.0, 5.0, 10.0, 15.0, 30.0, 40.0, 60.0, 100.0]
 binsarray = array('d', binslist)
 
 
@@ -116,8 +131,8 @@ def main():
     # Plots for a given triplet spacing, but different pileup scenarios  
     for spacing in [30]:
         pus = [0, 200, 1000]
-        #fakeRatePerSpacing(path, spacing, pus)
-        efficiencyPerSpacing(path, spacing, pus)
+        fakeRatePerSpacing(path, spacing, pus)
+        #efficiencyPerSpacing(path, spacing, pus)
 
     
     # Make summary plots for efficiency and fake rate 
@@ -342,6 +357,7 @@ def efficiency(ifile, PILEUP, geometries, label="Pt"):
 
     leg.Draw()
     can.SaveAs(outputDir+"efficiency_{0}_pu{1}.pdf".format(label, PILEUP))
+    can.SaveAs(outputDir+"efficiency_{0}_pu{1}.eps".format(label, PILEUP))
 
 #______________________________________________________________________________
 def fakeRatePerSpacing(path, geometry, pileups, label="Pt"):
@@ -353,6 +369,8 @@ def fakeRatePerSpacing(path, geometry, pileups, label="Pt"):
     fakeRates = {} 
 
     leg = prepareLegend('topRight')
+    leg = TLegend(0.725, 0.725, .98, .98)
+    leg.SetTextSize(TEXT_SIZE)
     leg.SetHeader('ttbar + pileup')
 
     counter = 0 
@@ -378,13 +396,14 @@ def fakeRatePerSpacing(path, geometry, pileups, label="Pt"):
         #print 'style'
         xaxis = fakeRate.GetXaxis()
         yaxis = fakeRate.GetYaxis()
+        yaxis.SetNdivisions(5,5,0)
         xaxis.SetRangeUser(0, 100)
         xaxis.SetTitle("Reconstructed Track p_{T} [GeV]")
         yaxis.SetRangeUser(0, 0.05)
         yaxis.SetTitleOffset(1.5)
         yaxis.SetTitle("Fake Rate")
         fakeRate.SetTitle('')
-        myText(0.2, 0.75, 'Triplet spacing: 30 mm', TEXT_SIZE)
+        myText(0.25, 0.9, 'Triplet spacing: 30 mm', TEXT_SIZE)
 
         # colour
         if counter == 0:
@@ -402,12 +421,14 @@ def fakeRatePerSpacing(path, geometry, pileups, label="Pt"):
             fakeRate.Draw("APE")
         else: 
             fakeRate.Draw("PE same")
-        fakeRate.GetHistogram().GetYaxis().SetTitleOffset(1.75)
+        #fakeRate.GetHistogram().GetYaxis().SetTitleOffset(1.75)
+        fakeRate.GetHistogram().GetYaxis().SetTitleOffset(Y_AXIS_OFFSET)
         counter +=1 
 
 
     leg.Draw() 
     can.SaveAs('fakeRate{0}mm.pdf'.format(geometry))
+    can.SaveAs('fakeRate{0}mm.eps'.format(geometry))
 
 #______________________________________________________________________________
 def fakeRates(ifile, PILEUP, geometries, label):
@@ -474,6 +495,7 @@ def fakeRates(ifile, PILEUP, geometries, label):
 
     leg.Draw() 
     can.SaveAs(outputDir+"fakeRate_{0}_pu{1}.pdf".format(label, PILEUP))
+    can.SaveAs(outputDir+"fakeRate_{0}_pu{1}.eps".format(label, PILEUP))
 
 #______________________________________________________________________________
 def calculateAverageEfficiency(ifile, PILEUP, geometry, ptThreshold):
@@ -617,8 +639,10 @@ def numberOfTracks(ifile, PILEUP, geometry, PT=None):
 
     if PT:
         can.SaveAs(outputDir+"trackComparrison_pu{0}_geometry{1}_Pt{2}.pdf".format(PILEUP, geometry, PT))
+        can.SaveAs(outputDir+"trackComparrison_pu{0}_geometry{1}_Pt{2}.eps".format(PILEUP, geometry, PT))
     else:
         can.SaveAs(outputDir+"trackComparrison_pu{0}_geometry{1}.pdf".format(PILEUP, geometry))
+        can.SaveAs(outputDir+"trackComparrison_pu{0}_geometry{1}.eps".format(PILEUP, geometry))
 
     #efficiencyHist = nRecoTracksMatched.Clone()
     #efficiencyHist.Divide(nDelphesHits)
@@ -720,7 +744,9 @@ def efficiencyPerSpacing(path, geometry, pileups):
 
     can = TCanvas("can", "can", 500, 500)   
     # get the histograms 
-    leg = prepareLegend('topRight')
+    #leg = prepareLegend('topRight')
+    leg = TLegend(0.725, 0.725, .98, .98)
+    leg.SetTextSize(TEXT_SIZE)
     leg.SetHeader("ttbar + pileup")
     counter = 0
     theGraphs = {}
@@ -730,7 +756,7 @@ def efficiencyPerSpacing(path, geometry, pileups):
 
         recoEfficiency = getEfficiencyTGraph(ifile, "Pt", geometry, 1)
         recoEfficiency.SetTitle("")
-        myText(0.2, 0.75, 'Triplet spacing: 30 mm', TEXT_SIZE)
+        myText(0.25, 0.9, 'Triplet spacing: 30 mm', TEXT_SIZE)
 
         xaxis = recoEfficiency.GetXaxis()
         yaxis = recoEfficiency.GetYaxis()
@@ -738,6 +764,7 @@ def efficiencyPerSpacing(path, geometry, pileups):
         yaxis.SetRangeUser(0.9, 1.1)
         xaxis.SetTitle("Outer Hit (Track) p_{T} [GeV]") # hit pT of the track ... 
         yaxis.SetTitle("Reconstruction efficiency")
+        yaxis.SetNdivisions(5,5,0)
     
         # Add colours
         if counter == 0:
@@ -757,10 +784,12 @@ def efficiencyPerSpacing(path, geometry, pileups):
         else:
             recoEfficiency.Draw("PEl same")
         counter += 1
-        recoEfficiency.GetHistogram().GetYaxis().SetTitleOffset(1.75)
+        recoEfficiency.GetHistogram().GetYaxis().SetTitleOffset(Y_AXIS_OFFSET)
+        #recoEfficiency.GetHistogram().GetYaxis().SetTitleOffset(1.75)
 
     leg.Draw()
     can.SaveAs("reconstructionEfficiency{0}mm.pdf".format(geometry))
+    can.SaveAs("reconstructionEfficiency{0}mm.eps".format(geometry))
 
 
 
