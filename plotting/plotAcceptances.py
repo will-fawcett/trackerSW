@@ -8,16 +8,27 @@ from utils import getReverseCumulativeHisto, appendSlash, checkDir, prepareLegen
 from colours import colours
 
 gROOT.SetBatch(1)
-gStyle.SetPadBottomMargin(0.15)
-gStyle.SetPadLeftMargin(0.13) # increase space for left margin
+gStyle.SetPadBottomMargin(0.16)
+gStyle.SetPadLeftMargin(0.2) # increase space for left margin
+
+gStyle.SetPadTopMargin(0.02)
+gStyle.SetPadRightMargin(0.02) # increase space for left margin
+
 gStyle.SetPadTickX(1)
 gStyle.SetPadTickY(1)
 
 TEXT_SIZE = 0.04
-gStyle.SetLabelSize(TEXT_SIZE, 'X')
-gStyle.SetLabelSize(TEXT_SIZE, 'Y')
-gStyle.SetTitleSize(TEXT_SIZE, 'X')
-gStyle.SetTitleSize(TEXT_SIZE, 'Y')
+TITLE_SIZE = 0.07
+LABEL_SIZE = 0.065
+X_AXIS_OFFSET = 1.0
+Y_AXIS_OFFSET = 1.4 
+
+gStyle.SetLabelSize(LABEL_SIZE, 'X')
+gStyle.SetLabelSize(LABEL_SIZE, 'Y')
+gStyle.SetTitleSize(TITLE_SIZE, 'X')
+gStyle.SetTitleSize(TITLE_SIZE, 'Y')
+gStyle.SetTitleOffset(0.9, 'X')
+gStyle.SetTitleOffset(0.9, 'Y')
 gStyle.SetHistLineWidth(3)
 
 # Stuff for legend
@@ -38,8 +49,11 @@ gStyle.SetTitleBorderSize(0)
 
 
 INPUT_DIR = '/atlas/data4/userdata/wfawcett/delphes/results/fromLHE/'
-INPUT_DIR = '/Users/Will/Documents/fcc/trackerSW/particleProperties40mm/'
-OUTPUD_BASE_DIR = "/Users/Will/Documents/fcc/trackerSW/plotting/TrackPlots4"
+#INPUT_DIR = '/Users/Will/Documents/fcc/trackerSW/particleProperties40mm/'
+#OUTPUD_BASE_DIR = "/Users/Will/Documents/fcc/trackerSW/plotting/TrackPlots40mm"
+
+INPUT_DIR = '/Users/Will/Documents/fcc/trackerSW/particleProperties/'
+OUTPUD_BASE_DIR = "/Users/Will/Documents/fcc/trackerSW/plotting/TrackPlots30mm"
 
 sampleInfo = {
         # cross-sections are in [pb] 
@@ -248,7 +262,9 @@ def makeRatePlot(scenarioSet, doTrack, outputBaseDir, plotDict, sample, pileup):
         pCounter = 0
         #leg = prepareLegend('topRight')
         if doTrack:
-            leg = TLegend(0.55, 0.55, 0.8, 0.70)
+            #leg = TLegend(0.55, 0.55, 0.8, 0.70)
+            # legend for modified boarders
+            leg = TLegend(0.65, 0.65, 0.9, 0.80)
         else:
             leg = TLegend(0.3, 0.5, 0.8, 0.70)
 
@@ -263,13 +279,22 @@ def makeRatePlot(scenarioSet, doTrack, outputBaseDir, plotDict, sample, pileup):
             titleInfo = sampleInfo[sample]
             rate.Scale(40*1e3) # scale to 40 MHz (appropriate for minbias, not for other samples)  
 
+            rate.SetTitleSize(TITLE_SIZE, 'X')
+            rate.SetLabelSize(TITLE_SIZE, 'X')
+            rate.SetTitleSize(TITLE_SIZE, 'Y')
+            rate.SetLabelSize(TITLE_SIZE, 'Y')
+
             # style 
             #rate.SetTitle("{0} #LT#mu#GT = {1}".format(titleInfo['title'], pileup))
             xaxis = rate.GetXaxis()
             yaxis = rate.GetYaxis()
             yaxis.SetTitle('Rate [kHz]')
-            rate.SetMinimum(10)
+            rate.SetMinimum(300)
 
+            # settings for larger font 
+            xaxis.SetNdivisions(5,5,0)
+            xaxis.SetTitleOffset(X_AXIS_OFFSET)
+            yaxis.SetTitleOffset(Y_AXIS_OFFSET)
 
             if doTrack:
                 xaxis.SetRangeUser(0, 175)
@@ -281,9 +306,9 @@ def makeRatePlot(scenarioSet, doTrack, outputBaseDir, plotDict, sample, pileup):
                     xaxis.SetRangeUser(0, 70)
                 if '4Pt' in plot:
                     xaxis.SetRangeUser(0, 50)
-                myText(0.55, 0.80, '#sqrt{s} = 100 TeV', TEXT_SIZE)
-                myText(0.55, 0.75, '{0}'.format(titleInfo['title']), TEXT_SIZE)
-                myText(0.55, 0.70, "#LT#mu#GT = {0}".format(pileup), TEXT_SIZE)
+                myText(0.65, 0.90, '#sqrt{s} = 100 TeV', TEXT_SIZE)
+                myText(0.65, 0.85, '{0}'.format(titleInfo['title']), TEXT_SIZE)
+                myText(0.65, 0.80, "#LT#mu#GT = {0}".format(pileup), TEXT_SIZE)
             else:
                 myText(0.3, 0.80, '#sqrt{s} = 100 TeV', TEXT_SIZE)
                 myText(0.3, 0.75, '{0}'.format(titleInfo['title']), TEXT_SIZE)
@@ -374,6 +399,14 @@ def plotSignalAcceptances(pu, branchPair, doTrack=True):
         hhPlotPB.SetMarkerStyle(20)
         tthPlotPB.SetMarkerStyle(23)
 
+        # size (if gStyle didn't work)
+        hhPlot.SetTitleSize(TITLE_SIZE, 'X')
+        hhPlot.SetLabelSize(TITLE_SIZE, 'X')
+        hhPlot.SetTitleSize(TITLE_SIZE, 'Y')
+        hhPlot.SetLabelSize(TITLE_SIZE, 'Y')
+        
+
+
         # Legend
         aLeg = TLegend(0.57, 0.54, 0.85, 0.73) 
         aLeg.SetTextSize(TEXT_SIZE)
@@ -385,6 +418,10 @@ def plotSignalAcceptances(pu, branchPair, doTrack=True):
         xaxis = hhPlot.GetXaxis()
         yaxis = hhPlot.GetYaxis()
         yaxis.SetTitle('Acceptance')
+
+        xaxis.SetNdivisions(5,5,0)
+        xaxis.SetTitleOffset(X_AXIS_OFFSET)
+        yaxis.SetTitleOffset(Y_AXIS_OFFSET)
 
     
         # For tracks
